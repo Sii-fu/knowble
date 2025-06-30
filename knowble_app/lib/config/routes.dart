@@ -16,8 +16,8 @@ import '../features/chat/chat_list_page.dart';
 import '../features/chat/chat_detail_page.dart';
 import '../features/student/dashboard_page.dart';
 import '../features/student/enrolled_courses_page.dart';
-import '../features/instructor/dashboard_page.dart';
-import '../features/instructor/create_course_page.dart';
+import '../features/instructor/course_screen.dart';
+
 import '../features/instructor/manage_students_page.dart';
 import '../features/admin/dashboard_page.dart';
 import '../features/admin/user_management_page.dart';
@@ -40,8 +40,8 @@ class AppRoutes {
     '/chat_detail': (context) => const ChatDetailPage(),
     '/student_dashboard': (context) => const StudentDashboardPage(),
     '/enrolled_courses': (context) => const EnrolledCoursesPage(),
-    '/instructor_dashboard': (context) => const InstructorDashboardPage(),
-    '/create_course': (context) => const CreateCoursePage(),
+    '/course_screen': (context) => const CourseScreen(),
+    
     '/manage_students': (context) => const ManageStudentsPage(),
     '/admin_dashboard': (context) => const AdminDashboardPage(),
     '/user_management': (context) => const UserManagementPage(),
