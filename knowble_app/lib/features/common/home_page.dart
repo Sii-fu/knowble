@@ -50,8 +50,11 @@ class _LoginPageState extends State<_LoginPage> {
     setState(() { _loading = true; _error = null; });
     final ok = await AuthService.login(_emailController.text, _passwordController.text);
     setState(() { _loading = false; });
-    if (!ok) setState(() { _error = 'Invalid credentials'; });
-    else Navigator.pushReplacementNamed(context, '/');
+    if (!ok) {
+      setState(() { _error = 'Invalid credentials'; });
+    } else {
+      Navigator.pushReplacementNamed(context, '/');
+    }
   }
 
   @override

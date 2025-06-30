@@ -5,6 +5,7 @@
 // All screens and navigation logic are ultimately connected through this file.
 
 import 'package:flutter/material.dart';
+import 'package:sizer/sizer.dart';
 import 'config/theme.dart';
 import 'config/routes.dart';
 
@@ -14,14 +15,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Knowble',
-      theme: AppTheme.lightTheme, // Light theme from config/theme.dart
-      darkTheme: AppTheme.darkTheme, // Dark theme from config/theme.dart
-      themeMode: ThemeMode.system, // Follows system theme
-      initialRoute: AppRoutes.initial, // Initial route from config/routes.dart
-      routes: AppRoutes.routes, // All named routes
-      debugShowCheckedModeBanner: false, // Hides debug banner
+    return Sizer(
+      builder: (context, orientation, deviceType) {
+        return MaterialApp(
+          title: 'Knowble',
+          theme: AppTheme.lightTheme, // Light theme from config/theme.dart
+          darkTheme: AppTheme.darkTheme, // Dark theme from config/theme.dart
+          themeMode: ThemeMode.system, // Follows system theme
+          initialRoute:
+              AppRoutes.initial, // Initial route from config/routes.dart
+          routes: AppRoutes.routes, // All named routes
+          debugShowCheckedModeBanner: false, // Hides debug banner
+        );
+      },
     );
   }
 }

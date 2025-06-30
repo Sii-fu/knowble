@@ -5,7 +5,6 @@
 // Each route points to a screen in the features/ directory.
 
 import 'package:flutter/material.dart';
-import '../features/common/home_page.dart';
 import '../features/common/settings_page.dart';
 import '../features/common/chatbot/chatbot_page.dart';
 import '../features/course/course_list_page.dart';
@@ -22,14 +21,29 @@ import '../features/instructor/manage_students_page.dart';
 import '../features/admin/dashboard_page.dart';
 import '../features/admin/user_management_page.dart';
 import '../features/admin/course_approval_page.dart';
+import '../features/common/splash_screen.dart';
+import '../features/common/onboarding_screens.dart';
+import '../features/common/onboarding_screen_1/onboarding_screen_1.dart';
+import '../features/common/onboarding_screen_2/onboarding_screen_2.dart';
+import '../features/common/onboarding_screen_3/onboarding_screen_3.dart';
+import '../features/common/auth/login_screen.dart';
+import '../features/common/auth/registration_screen.dart';
+
+
 
 // AppRoutes holds all route names and their corresponding widget builders.
 class AppRoutes {
-  static const String initial = '/'; // The initial route (home/login)
+  static const String initial = '/'; // The initial route (SplashScreen)
 
   // Map of route names to widget builders for navigation throughout the app.
   static final Map<String, WidgetBuilder> routes = {
-    '/': (context) => const HomePage(),
+    '/': (context) => const SplashScreen(),
+    '/onboarding': (context) => const OnboardingScreen(),
+    '/onboarding-screen-1': (context) => const OnboardingScreen1(),
+    '/onboarding-screen-2': (context) => const OnboardingScreen2(),
+    '/onboarding-screen-3': (context) => const OnboardingScreen3(),
+    '/login': (context) => const LoginScreen(),
+    '/registration': (context) => const RegistrationScreen(),
     '/settings': (context) => const SettingsPage(),
     '/chatbot': (context) => const ChatbotPage(),
     '/courses': (context) => const CourseListPage(),
