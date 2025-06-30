@@ -1,7 +1,5 @@
 // user_model.dart
-// Defines the User class and UserRole enum for Knowble.
-// This file provides the data structure for user information, including name, email, and role.
-// Used by authentication, providers, and role-based logic throughout the app.
+// (Deprecated) Use user.dart instead. This file can be deleted.
 
 // Enum representing the role of a user in the system.
 enum UserRole { student, instructor, admin }

@@ -1,7 +1,5 @@
 // course_model.dart
-// Defines the data classes for Course, Module, and Lesson in Knowble.
-// These classes represent the structure of course content, including modules and lessons.
-// Used by course providers, UI screens, and anywhere course data is needed.
+// (Deprecated) Use course.dart, module.dart, lesson.dart, section.dart, content.dart, etc. instead. This file can be deleted.
 
 import 'user_model.dart';
 

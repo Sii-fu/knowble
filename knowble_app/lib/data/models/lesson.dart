@@ -1,1 +1,0 @@
-// TODO: Define Lesson model

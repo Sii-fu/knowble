@@ -8,12 +8,16 @@
 - [Problem Statement](#problem-statement)
 - [Objectives](#objectives)
 - [Main Features](#main-features)
+- [Project ER Diagram](#project-er-diagram)
+- [Tentative UI Screens](#tentative-ui-screens)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [Usage](#usage)
 - [Contributing](#contributing)
+- [Team](#team)
 - [License](#license)
+- [Contact](#contact)
 
 ## About the Project
 
