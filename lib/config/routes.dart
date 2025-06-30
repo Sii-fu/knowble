@@ -6,7 +6,6 @@
 
 import 'package:flutter/material.dart';
 import '../features/common/settings_page.dart';
-import '../features/common/chatbot/chatbot_page.dart';
 import '../features/course/course_list_page.dart';
 import '../features/course/course_detail_page.dart';
 import '../features/course/course_content_page.dart';
@@ -45,7 +44,6 @@ class AppRoutes {
     '/login': (context) => const LoginScreen(),
     '/registration': (context) => const RegistrationScreen(),
     '/settings': (context) => const SettingsPage(),
-    '/chatbot': (context) => const ChatbotPage(),
     '/courses': (context) => const CourseListPage(),
     '/course_detail': (context) => const CourseDetailPage(),
     '/course_content': (context) => const CourseContentPage(),

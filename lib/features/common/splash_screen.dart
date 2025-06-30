@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
+import 'package:knowble_app/features/common/auth/auth_manager.dart';
 
 /// SplashScreen - Entry point of the app that shows logo animation and navigates to onboarding
 /// Called from AppRoutes as the initial route ('/')
@@ -55,17 +56,12 @@ class _SplashScreenState extends State<SplashScreen>
   /// Starts a timer to navigate to onboarding after animation completes
   /// Called from initState to handle navigation timing
   void _startNavigationTimer() {
-    Future.delayed(const Duration(milliseconds: 2500), () {
+    Future.delayed(const Duration(milliseconds: 2500), () async {
       if (mounted) {
-        _navigateToOnboarding();
+        // After animation, check auth and route based on user role
+        await AuthManager.handleInitialAuth(context);
       }
     });
-  }
-
-  /// Navigates to the first onboarding screen
-  /// Called from _startNavigationTimer after the splash animation completes
-  void _navigateToOnboarding() {
-    Navigator.pushReplacementNamed(context, '/onboarding-screen-1');
   }
 
   @override
