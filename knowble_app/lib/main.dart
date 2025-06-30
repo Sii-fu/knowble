@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'app.dart';
+import '../features/instructor/course_screen.dart';
 
 void main() {
   // The root of the app. MyApp is defined in app.dart.

@@ -1,4 +1,4 @@
-.//SIGNUP ROUTE
+//SIGNUP ROUTE
 app.post('/api/auth/signup', async (req, res) => {
   const { email, password, fullName, role } = req.body;
 
