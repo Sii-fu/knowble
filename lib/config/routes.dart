@@ -5,28 +5,43 @@
 // Each route points to a screen in the features/ directory.
 
 import 'package:flutter/material.dart';
-import '../features/common/settings_page.dart';
+
+
+
 import '../features/course/course_list_page.dart';
 import '../features/course/course_detail_page.dart';
 import '../features/course/course_content_page.dart';
 import '../features/course/quiz_page.dart';
+
+
 import '../features/chat/chat_list_page.dart';
 import '../features/chat/chat_detail_page.dart';
-import '../features/student/dashboard_page.dart';
-import '../features/student/enrolled_courses_page.dart';
-import '../features/instructor/course_screen.dart';
 
+import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
+
+
 import '../features/admin/dashboard_page.dart';
 import '../features/admin/user_management_page.dart';
 import '../features/admin/course_approval_page.dart';
+
+
 import '../features/common/splash_screen.dart';
+import '../features/common/settings_page.dart';
 import '../features/common/onboarding_screens.dart';
 import '../features/common/onboarding_screen_1/onboarding_screen_1.dart';
 import '../features/common/onboarding_screen_2/onboarding_screen_2.dart';
 import '../features/common/onboarding_screen_3/onboarding_screen_3.dart';
 import '../features/common/auth/login_screen.dart';
 import '../features/common/auth/registration_screen.dart';
+
+
+import '../features/student/widgets/student_layout.dart';
+import '../features/student/dashboard_page.dart';
+import '../features/student/home_page.dart';
+import '../features/student/courses_page.dart';
+import '../features/student/schedule_page.dart';
+import '../features/student/profile_page.dart';
 
 
 
@@ -51,12 +66,17 @@ class AppRoutes {
     '/chats': (context) => const ChatListPage(),
     '/chat_detail': (context) => const ChatDetailPage(),
     '/student_dashboard': (context) => const StudentDashboardPage(),
-    '/enrolled_courses': (context) => const EnrolledCoursesPage(),
     '/course_screen': (context) => const CourseScreen(),
-    
+
+    '/student': (context) => const StudentLayout(),
     '/manage_students': (context) => const ManageStudentsPage(),
     '/admin_dashboard': (context) => const AdminDashboardPage(),
     '/user_management': (context) => const UserManagementPage(),
     '/course_approval': (context) => const CourseApprovalPage(),
+    '/student_home': (context) => const StudentHomePage(),
+    '/student_courses': (context) => const StudentCoursesPage(),
+    '/student_schedule': (context) => const StudentSchedulePage(),
+    '/student_profile': (context) => const StudentProfilePage(),
   };
 }
+

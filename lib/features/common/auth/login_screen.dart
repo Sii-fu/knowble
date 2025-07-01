@@ -3,7 +3,7 @@ import 'package:knowble_app/config/theme.dart';
 import 'package:knowble_app/widgets/user_type_dropdown_widget.dart';
 import 'package:knowble_app/widgets/google_signin_button_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:knowble_app/features/common/auth/auth_manager.dart';
+import 'package:knowble_app/core/services/auth_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
