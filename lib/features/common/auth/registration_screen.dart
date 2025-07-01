@@ -3,6 +3,7 @@ import 'package:knowble_app/config/theme.dart';
 import 'package:knowble_app/widgets/user_type_dropdown_widget.dart';
 import 'package:knowble_app/widgets/google_signin_button_widget.dart';
 import 'package:knowble_app/widgets/terms_checkbox_widget.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -211,7 +212,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             value: _selectedUserType,
                             onChanged: (value) {
                               setState(() {
-                                _selectedUserType = value;
+                                _selectedUserType = value?.toLowerCase();
                               });
                             },
                           ),
@@ -330,7 +331,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  void _handleSignUp() {
+  void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
       if (!_agreeToTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -344,8 +345,32 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         );
         return;
       }
-      // Handle sign up logic
-      print('Sign up with: ${_emailController.text}');
+      // Supabase sign up integration
+      final authResponse = await Supabase.instance.client.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      final userId = authResponse.user?.id;
+      if (userId != null) {
+        await Supabase.instance.client.from('users').insert({
+          'id': userId,
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'role': _selectedUserType,
+          'profile_pic': '',
+          'bio': '',
+          'is_verified': false,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful! Please check your email.')),
+        );
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration failed. Please try again.')),
+        );
+      }
     }
   }
 

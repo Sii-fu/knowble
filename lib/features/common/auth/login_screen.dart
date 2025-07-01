@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
 import 'package:knowble_app/widgets/user_type_dropdown_widget.dart';
 import 'package:knowble_app/widgets/google_signin_button_widget.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:knowble_app/features/common/auth/auth_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -306,10 +308,39 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _handleSignIn() {
+  Future<String?> loginUser(String email, String password) async {
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      final user = response.user;
+      if (user != null) {
+        print('✅ Logged in: \\${user.email}');
+        return null; // No error
+      } else {
+        return 'Login failed. User not found.';
+      }
+    } on AuthException catch (e) {
+      print('❌ AuthException: \\${e.message}');
+      return e.message;
+    } catch (e) {
+      print('❌ Unknown Error: \\${e}');
+      return 'Unexpected error occurred.';
+    }
+  }
+
+  void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
-      // Handle sign in logic
-      print('Sign in with: ${_emailController.text}');
+      final error = await loginUser(_emailController.text, _passwordController.text);
+      if (error == null) {
+        // Directly call AuthManager for role-based redirection after login
+        await AuthManager.handleInitialAuth(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
     }
   }
 
