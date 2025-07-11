@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'courses_page.dart';
 
 class StudentDashboardPage extends StatelessWidget {
   const StudentDashboardPage({super.key});
@@ -308,17 +308,24 @@ class _BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.teal,
-      unselectedItemColor: Colors.grey,
-      showUnselectedLabels: true,
       currentIndex: 0,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: const Color(0xFF006C66),
+      unselectedItemColor: Colors.grey,
+      onTap: (index) {
+        if (index == 1) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const StudentCoursesPage()),
+          );
+        }
+      },
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'My Courses'),
-        BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Inbox'),
-        BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Schedule'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
+        BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'MY COURSES'),
+        BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'INBOX'),
+        BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'SCHEDULE'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE'),
       ],
     );
   }
