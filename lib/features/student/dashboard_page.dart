@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 
 class StudentDashboardPage extends StatelessWidget {
   const StudentDashboardPage({super.key});
@@ -10,40 +10,43 @@ class StudentDashboardPage extends StatelessWidget {
       backgroundColor: Colors.white,
       bottomNavigationBar: const _BottomNavBar(),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
-              const _Header(),
-              const SizedBox(height: 16),
-              const _SearchBar(),
-              const SizedBox(height: 24),
-              const _SectionTitle(title: 'Recent learning'),
-              const SizedBox(height: 12),
-              const _RecentLearning(),
-              const SizedBox(height: 24),
-              const _SectionTitle(title: 'Recommended'),
-              const SizedBox(height: 12),
-              const _RecommendedCourses(),
-              const SizedBox(height: 24),
-              const _SectionTitle(title: "Today's Task"),
-              const SizedBox(height: 12),
-              const _TaskCard(
-                time: '7AM - 8PM',
-                title: 'Go to office',
-                subtitle: 'meeting with client singapure',
-                location: 'Plaza Indonesia',
-              ),
-              SizedBox(height: 12),
-              const _TaskCard(
-                time: '7AM - 8PM',
-                title: 'Project app baparekraf',
-                subtitle: 'talk to environment',
-                location: 'Pondok indah mall',
-              ),
-            ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                const _Header(),
+                const SizedBox(height: 16),
+                const _SearchBar(),
+                const SizedBox(height: 24),
+                const _SectionTitle(title: 'Recent learning'),
+                const SizedBox(height: 12),
+                const _RecentLearning(),
+                const SizedBox(height: 24),
+                const _SectionTitle(title: 'Recommended'),
+                const SizedBox(height: 12),
+                const _RecommendedCourses(),
+                const SizedBox(height: 24),
+                const _SectionTitle(title: "Today's Task"),
+                const SizedBox(height: 12),
+                const _TaskCard(
+                  time: '7AM - 8PM',
+                  title: 'Go to office',
+                  subtitle: 'meeting with client singapure',
+                  location: 'Plaza Indonesia',
+                ),
+                SizedBox(height: 12),
+                const _TaskCard(
+                  time: '7AM - 8PM',
+                  title: 'Project app baparekraf',
+                  subtitle: 'talk to environment',
+                  location: 'Pondok indah mall',
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
@@ -132,7 +135,7 @@ class _RecentLearning extends StatelessWidget {
           SizedBox(width: 12),
           _CourseCard(
             title: 'Enlargement to Trigonometry',
-            image: 'assets/images/trigonometry.png',
+            image: 'assets/images/trig.jpg',
             progress: 5,
             total: 10,
           ),
@@ -152,11 +155,11 @@ class _RecommendedCourses extends StatelessWidget {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: const [
-          _RecommendedCard(title: 'Bacterial Biology Overview', lessons: '12 Lessons', duration: '12h 20m', image: 'assets/images/algebra1.jpg'),
+          _RecommendedCard(title: 'Bacterial Biology Overview', lessons: '12 Lessons', duration: '12h 20m', image: 'assets/images/bio1.jpg'),
           SizedBox(width: 12),
-          _RecommendedCard(title: 'Mendelian Genetics & Mechanisms of Her...', lessons: '14 Lessons', duration: '18h 20m', image: 'assets/images/genetics.png'),
+          _RecommendedCard(title: 'Mendelian Genetics & Mechanisms of Her...', lessons: '14 Lessons', duration: '18h 20m', image: 'assets/images/bio2.jpg'),
           SizedBox(width: 12),
-          _RecommendedCard(title: 'Metabolic Biochemistry for High School', lessons: '12 Lessons', duration: '', image: 'assets/images/biochem.png'),
+          _RecommendedCard(title: 'Metabolic Biochemistry for High School', lessons: '12 Lessons', duration: '', image: 'assets/images/bio3.png'),
         ],
       ),
     );
