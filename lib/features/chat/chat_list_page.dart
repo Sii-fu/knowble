@@ -23,16 +23,19 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   Future<void> _fetchChats() async {
+    if (!mounted) return;
     setState(() { _loading = true; _error = null; });
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception('Not logged in');
       final response = await Supabase.instance.client.rpc('get_student_chats', params: {'student_uuid': userId});
+      if (!mounted) return;
       setState(() {
         _chats = response as List<dynamic>?;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
