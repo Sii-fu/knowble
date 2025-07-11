@@ -173,10 +173,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onTabSelected,
-      ),
+      
     );
   }
 }

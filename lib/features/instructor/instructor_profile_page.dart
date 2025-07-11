@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/theme.dart';
 
-class StudentProfilePage extends StatelessWidget {
-  const StudentProfilePage({super.key});
+class InstructorProfilePage extends StatelessWidget {
+  const InstructorProfilePage({super.key});
 
   Future<void> _logout(BuildContext context) async {
     try {
@@ -27,12 +27,18 @@ class StudentProfilePage extends StatelessWidget {
       data: theme,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          title: const Text('Instructor Profile'),
+          backgroundColor: theme.appBarTheme.backgroundColor,
+          foregroundColor: theme.appBarTheme.foregroundColor,
+          elevation: theme.appBarTheme.elevation,
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'Student Profile Page',
+                'Instructor Profile Page',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   color: AppTheme.primaryTeal,
                   fontWeight: FontWeight.bold,
