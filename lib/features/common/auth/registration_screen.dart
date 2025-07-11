@@ -41,20 +41,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           builder: (context, constraints) {
             final screenWidth = constraints.maxWidth;
             final screenHeight = constraints.maxHeight;
-            
+
             return SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: 20), // Add bottom padding
               child: Container(
                 width: double.infinity,
-                height: screenHeight,
                 padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.06, 
-                  vertical: screenHeight * 0.04
+                  horizontal: screenWidth * 0.06,
+                  vertical: screenHeight * 0.015,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: screenHeight * 0.06),
-                    
+                    SizedBox(height: screenHeight * 0.08),
+
                     // Logo and Title Section
                     Center(
                       child: Column(
@@ -63,16 +63,35 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             width: screenWidth * 0.2,
                             height: screenWidth * 0.2,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryTeal,
-                              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                              borderRadius: BorderRadius.circular(
+                                screenWidth * 0.02,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.school,
-                              color: AppTheme.surfaceWhite,
-                              size: screenWidth * 0.1,
+                            child: Image.asset(
+                              'assets/images/logo 3.png',
+                              width: screenWidth * 0.2,
+                              height: screenWidth * 0.2,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: screenWidth * 0.2,
+                                  height: screenWidth * 0.2,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryTeal,
+                                    borderRadius: BorderRadius.circular(
+                                      screenWidth * 0.02,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.school,
+                                    color: AppTheme.surfaceWhite,
+                                    size: screenWidth * 0.1,
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                          SizedBox(height: screenHeight * 0.02),
+                          SizedBox(height: screenHeight * 0.015),
                           Text(
                             'Getting Started!',
                             style: const TextStyle(
@@ -95,9 +114,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                         ],
                       ),
                     ),
-                    
-                    SizedBox(height: screenHeight * 0.04),
-                    
+
+                    SizedBox(height: screenHeight * 0.025),
+
                     // Form Section
                     Form(
                       key: _formKey,
@@ -108,6 +127,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           TextFormField(
                             controller: _nameController,
                             keyboardType: TextInputType.name,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Jost',
+                              fontSize: 16,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Full Name',
                               prefixIcon: Icon(Icons.person_outlined),
@@ -119,13 +143,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               return null;
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.015),
+
                           // Email Field
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Jost',
+                              fontSize: 16,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Email',
                               prefixIcon: Icon(Icons.email_outlined),
@@ -134,25 +163,34 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your email';
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(value)) {
                                 return 'Please enter a valid email';
                               }
                               return null;
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.015),
+
                           // Password Field
                           TextFormField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Jost',
+                              fontSize: 16,
+                            ),
                             decoration: InputDecoration(
                               labelText: 'Password',
                               prefixIcon: const Icon(Icons.lock_outlined),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                   size: screenWidth * 0.06,
                                 ),
                                 onPressed: () {
@@ -172,24 +210,32 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               return null;
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.015),
+
                           // Confirm Password Field
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: !_isConfirmPasswordVisible,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Jost',
+                              fontSize: 16,
+                            ),
                             decoration: InputDecoration(
                               labelText: 'Confirm Password',
                               prefixIcon: const Icon(Icons.lock_outlined),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                  _isConfirmPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                   size: screenWidth * 0.06,
                                 ),
                                 onPressed: () {
                                   setState(() {
-                                    _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                                    _isConfirmPasswordVisible =
+                                        !_isConfirmPasswordVisible;
                                   });
                                 },
                               ),
@@ -204,9 +250,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               return null;
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.015),
+
                           // User Type Dropdown
                           UserTypeDropdownWidget(
                             value: _selectedUserType,
@@ -216,9 +262,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               });
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.015),
+
                           // Terms Checkbox
                           TermsCheckboxWidget(
                             isChecked: _agreeToTerms,
@@ -228,9 +274,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               });
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.04),
-                          
+
+                          SizedBox(height: screenHeight * 0.02),
+
                           // Sign Up Button
                           SizedBox(
                             width: double.infinity,
@@ -248,9 +294,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               ),
                             ),
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.015),
+
                           // Divider with "or"
                           Row(
                             children: [
@@ -261,7 +307,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 ),
                               ),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.03,
+                                ),
                                 child: const Text(
                                   'or',
                                   style: TextStyle(
@@ -279,16 +327,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               ),
                             ],
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.015),
+
                           // Google Sign In Button
                           GoogleSigninButtonWidget(
                             onPressed: _handleGoogleSignIn,
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.04),
-                          
+
+                          SizedBox(height: screenHeight * 0.02),
+
                           // Sign In Link
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -335,7 +383,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (_formKey.currentState!.validate()) {
       if (!_agreeToTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please agree to the terms and conditions')),
+          const SnackBar(
+            content: Text('Please agree to the terms and conditions'),
+          ),
         );
         return;
       }
@@ -363,12 +413,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           'created_at': DateTime.now().toIso8601String(),
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please check your email.')),
+          const SnackBar(
+            content: Text('Registration successful! Please check your email.'),
+          ),
         );
         Navigator.pushReplacementNamed(context, '/login');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration failed. Please try again.')),
+          const SnackBar(
+            content: Text('Registration failed. Please try again.'),
+          ),
         );
       }
     }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CreateCourseScreen extends StatefulWidget {
-  const CreateCourseScreen({Key? key}) : super(key: key);
+  const CreateCourseScreen({super.key});
 
   @override
   State<CreateCourseScreen> createState() => _CreateCourseScreenState();
