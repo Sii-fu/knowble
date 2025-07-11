@@ -5,10 +5,10 @@ class EditCourseScreen extends StatefulWidget {
   final String subject;
 
   const EditCourseScreen({
-    Key? key,
+    super.key,
     required this.courseTitle,
     required this.subject,
-  }) : super(key: key);
+  });
 
   @override
   State<EditCourseScreen> createState() => _EditCourseScreenState();

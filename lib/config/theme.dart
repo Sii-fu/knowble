@@ -184,7 +184,7 @@ class AppTheme {
 
     // Input decoration - Clean form styling
     inputDecorationTheme: InputDecorationTheme(
-      fillColor: surfaceWhite,
+      fillColor: Colors.white, // White background
       filled: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
@@ -483,7 +483,7 @@ class AppTheme {
 
     // Input decoration - Dark mode
     inputDecorationTheme: InputDecorationTheme(
-      fillColor: surfaceDark,
+      fillColor: Colors.white, // White background for dark mode
       filled: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(

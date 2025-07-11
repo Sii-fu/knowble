@@ -6,8 +6,6 @@
 
 import 'package:flutter/material.dart';
 
-
-
 import '../features/course/course_list_page.dart';
 import '../features/course/course_detail_page.dart';
 import '../features/course/course_content_page.dart';
@@ -25,7 +23,6 @@ import '../features/admin/dashboard_page.dart';
 import '../features/admin/user_management_page.dart';
 import '../features/admin/course_approval_page.dart';
 
-
 import '../features/common/splash_screen.dart';
 import '../features/common/settings_page.dart';
 import '../features/common/onboarding_screens.dart';
@@ -35,15 +32,17 @@ import '../features/common/onboarding_screen_3/onboarding_screen_3.dart';
 import '../features/common/auth/login_screen.dart';
 import '../features/common/auth/registration_screen.dart';
 
-
 import '../features/student/widgets/student_layout.dart';
 import '../features/student/dashboard_page.dart';
 import '../features/student/home_page.dart';
 import '../features/student/courses_page.dart';
 import '../features/student/schedule_page.dart';
 import '../features/student/profile_page.dart';
-
-
+import '../features/student/calendar_dashboard.dart';
+import '../features/student/scheduler/task_creation_modal.dart';
+import '../features/student/scheduler/task_edit_modal.dart';
+import '../features/student/scheduler/task_detail_view.dart';
+import '../features/student/scheduler/full_month_calendar_view.dart';
 
 // AppRoutes holds all route names and their corresponding widget builders.
 class AppRoutes {
@@ -76,9 +75,11 @@ class AppRoutes {
     '/student_courses': (context) => const StudentCoursesPage(),
     '/student_schedule': (context) => const StudentSchedulePage(),
     '/student_profile': (context) => const StudentProfilePage(),
-
-
+    '/calendar-dashboard': (context) => const CalendarDashboard(),
+    '/task-creation-modal': (context) => const TaskCreationModal(),
+    '/task-edit-modal': (context) => const TaskEditModal(),
+    '/task-detail-view': (context) => const TaskDetailView(),
+    '/full-month-calendar-view': (context) => const FullMonthCalendarView(),
     '/home_teacher': (context) => const TeacherHomePage(), 
   };
 }
-

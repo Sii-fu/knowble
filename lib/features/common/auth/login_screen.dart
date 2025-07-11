@@ -36,20 +36,20 @@ class _LoginScreenState extends State<LoginScreen> {
           builder: (context, constraints) {
             final screenWidth = constraints.maxWidth;
             final screenHeight = constraints.maxHeight;
-            
+
             return SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: 20), // Add bottom padding
               child: Container(
                 width: double.infinity,
-                height: screenHeight,
                 padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.06, 
-                  vertical: screenHeight * 0.04
+                  horizontal: screenWidth * 0.06,
+                  vertical: screenHeight * 0.015,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: screenHeight * 0.06),
-                    
+                    SizedBox(height: screenHeight * 0.08),
+
                     // Logo and Title Section
                     Center(
                       child: Column(
@@ -58,16 +58,35 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: screenWidth * 0.2,
                             height: screenWidth * 0.2,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryTeal,
-                              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                              borderRadius: BorderRadius.circular(
+                                screenWidth * 0.02,
+                              ),
                             ),
-                            child: Icon(
-                              Icons.school,
-                              color: AppTheme.surfaceWhite,
-                              size: screenWidth * 0.1,
+                            child: Image.asset(
+                              'assets/images/logo 3.png',
+                              width: screenWidth * 0.2,
+                              height: screenWidth * 0.2,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: screenWidth * 0.2,
+                                  height: screenWidth * 0.2,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryTeal,
+                                    borderRadius: BorderRadius.circular(
+                                      screenWidth * 0.02,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.school,
+                                    color: AppTheme.surfaceWhite,
+                                    size: screenWidth * 0.1,
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                          SizedBox(height: screenHeight * 0.02),
+                          SizedBox(height: screenHeight * 0.015),
                           Text(
                             'Welcome Back!',
                             style: const TextStyle(
@@ -90,9 +109,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
-                    
-                    SizedBox(height: screenHeight * 0.04),
-                    
+
+                    SizedBox(height: screenHeight * 0.02),
+
                     // Form Section
                     Form(
                       key: _formKey,
@@ -103,6 +122,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Jost',
+                              fontSize: 16,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Email',
                               prefixIcon: Icon(Icons.email_outlined),
@@ -111,25 +135,34 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your email';
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(value)) {
                                 return 'Please enter a valid email';
                               }
                               return null;
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.02),
+
                           // Password Field
                           TextFormField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Jost',
+                              fontSize: 16,
+                            ),
                             decoration: InputDecoration(
                               labelText: 'Password',
                               prefixIcon: const Icon(Icons.lock_outlined),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                   size: screenWidth * 0.06,
                                 ),
                                 onPressed: () {
@@ -149,9 +182,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.02),
+
                           // User Type Dropdown
                           UserTypeDropdownWidget(
                             value: _selectedUserType,
@@ -161,9 +194,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               });
                             },
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.02),
+
                           // Remember Me & Forgot Password
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -205,9 +238,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ],
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.04),
-                          
+
+                          SizedBox(height: screenHeight * 0.025),
+
                           // Sign In Button
                           SizedBox(
                             width: double.infinity,
@@ -225,9 +258,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.02),
+
                           // Divider with "or"
                           Row(
                             children: [
@@ -238,7 +271,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.03),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.03,
+                                ),
                                 child: const Text(
                                   'or',
                                   style: TextStyle(
@@ -256,16 +291,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ],
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.03),
-                          
+
+                          SizedBox(height: screenHeight * 0.02),
+
                           // Google Sign In Button
                           GoogleSigninButtonWidget(
                             onPressed: _handleGoogleSignIn,
                           ),
-                          
-                          SizedBox(height: screenHeight * 0.04),
-                          
+
+                          SizedBox(height: screenHeight * 0.025),
+
                           // Sign Up Link
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -325,21 +360,24 @@ class _LoginScreenState extends State<LoginScreen> {
       print('❌ AuthException: \\${e.message}');
       return e.message;
     } catch (e) {
-      print('❌ Unknown Error: \\${e}');
+      print('❌ Unknown Error: \\$e');
       return 'Unexpected error occurred.';
     }
   }
 
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
-      final error = await loginUser(_emailController.text, _passwordController.text);
+      final error = await loginUser(
+        _emailController.text,
+        _passwordController.text,
+      );
       if (error == null) {
         // Directly call AuthManager for role-based redirection after login
         await AuthManager.handleInitialAuth(context);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
       }
     }
   }
