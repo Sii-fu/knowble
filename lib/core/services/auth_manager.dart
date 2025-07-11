@@ -38,7 +38,7 @@ class AuthManager {
         if (role == 'student') {
           Navigator.pushReplacementNamed(context, '/student');
         } else if (role == 'instructor') {
-          Navigator.pushReplacementNamed(context, '/instructor_dashboard');
+          Navigator.pushReplacementNamed(context, '/home_teacher');
         } else if (role == 'admin') {
           Navigator.pushReplacementNamed(context, '/admin_dashboard');
         } else {

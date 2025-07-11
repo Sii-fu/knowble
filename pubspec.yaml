@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   sizer: ^2.0.15
   supabase_flutter: ^2.9.1
+  timeago: ^3.7.1
+  fl_chart: ^0.71.0
 
 dev_dependencies:
   flutter_test:

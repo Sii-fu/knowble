@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/features/student/widgets/student_navbar.dart';
 import 'package:knowble_app/features/student/dashboard_page.dart';
-import 'package:knowble_app/features/chat/chat_list_page.dart';
+import 'package:knowble_app/features/student/chat/chat_list_page.dart';
 import 'package:knowble_app/features/student/calendar_dashboard.dart';
 import 'package:knowble_app/features/student/profile_page.dart';
 import 'package:knowble_app/features/student/courses_page.dart';

@@ -11,11 +11,13 @@ import '../features/course/course_detail_page.dart';
 import '../features/course/course_content_page.dart';
 import '../features/course/quiz_page.dart';
 
-import '../features/chat/chat_list_page.dart';
-import '../features/chat/chat_detail_page.dart';
+
+import '../features/student/chat/chat_list_page.dart';
 
 import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
+import '../features/instructor/home_teacher.dart'; 
+
 
 import '../features/admin/dashboard_page.dart';
 import '../features/admin/user_management_page.dart';
@@ -61,7 +63,6 @@ class AppRoutes {
     '/course_content': (context) => const CourseContentPage(),
     '/quiz': (context) => const QuizPage(),
     '/chats': (context) => const ChatListPage(),
-    '/chat_detail': (context) => const ChatDetailPage(),
     '/student_dashboard': (context) => const StudentDashboardPage(),
     '/course_screen': (context) => const CourseScreen(),
 
@@ -79,5 +80,8 @@ class AppRoutes {
     '/task-edit-modal': (context) => const TaskEditModal(),
     '/task-detail-view': (context) => const TaskDetailView(),
     '/full-month-calendar-view': (context) => const FullMonthCalendarView(),
+
+
+    '/home_teacher': (context) => const TeacherHomePage(), 
   };
 }
