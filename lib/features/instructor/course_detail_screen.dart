@@ -8,12 +8,12 @@ class CourseDetailScreen extends StatelessWidget {
   final String duration;
 
   const CourseDetailScreen({
-    Key? key,
+    super.key,
     required this.title,
     required this.subject,
     required this.students,
     required this.duration,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +302,7 @@ class CourseDetailScreen extends StatelessWidget {
 class ChapterItem extends StatelessWidget {
   final String title;
 
-  const ChapterItem({Key? key, required this.title}) : super(key: key);
+  const ChapterItem({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
