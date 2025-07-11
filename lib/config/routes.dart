@@ -80,8 +80,6 @@ class AppRoutes {
     '/task-edit-modal': (context) => const TaskEditModal(),
     '/task-detail-view': (context) => const TaskDetailView(),
     '/full-month-calendar-view': (context) => const FullMonthCalendarView(),
-
-
     '/home_teacher': (context) => const TeacherHomePage(), 
   };
 }

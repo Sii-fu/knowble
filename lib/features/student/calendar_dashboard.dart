@@ -4,6 +4,8 @@ import 'package:knowble_app/config/theme.dart';
 import './scheduler/widgets/date_strip_widget.dart';
 import './scheduler/widgets/empty_state_widget.dart';
 import './scheduler/widgets/task_card_widget.dart';
+import '../../core/services/reminder_service.dart';
+import '../../data/models/reminder.dart';
 
 class CalendarDashboard extends StatefulWidget {
   const CalendarDashboard({super.key});
@@ -17,69 +19,17 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
   bool isCalendarViewExpanded = false;
   final ScrollController _scrollController = ScrollController();
 
-  // Mock data for tasks
-  final List<Map<String, dynamic>> mockTasks = [
-    {
-      "id": 1,
-      "title": "Mathematics Study Session",
-      "description":
-          "Review calculus concepts and practice integration problems for upcoming exam",
-      "startTime": "09:00 AM",
-      "endTime": "11:00 AM",
-      "date": DateTime.now(),
-      "priority": "High",
-      "subject": "Mathematics",
-    },
-    {
-      "id": 2,
-      "title": "Physics Lab Report",
-      "description":
-          "Complete lab report on electromagnetic induction experiment",
-      "startTime": "02:00 PM",
-      "endTime": "04:00 PM",
-      "date": DateTime.now(),
-      "priority": "Medium",
-      "subject": "Physics",
-    },
-    {
-      "id": 3,
-      "title": "History Essay Writing",
-      "description": "Draft essay on World War II causes and consequences",
-      "startTime": "07:00 PM",
-      "endTime": "09:00 PM",
-      "date": DateTime.now(),
-      "priority": "Low",
-      "subject": "History",
-    },
-    {
-      "id": 4,
-      "title": "Chemistry Quiz Preparation",
-      "description": "Study organic chemistry reactions and mechanisms",
-      "startTime": "10:00 AM",
-      "endTime": "12:00 PM",
-      "date": DateTime.now().add(Duration(days: 1)),
-      "priority": "High",
-      "subject": "Chemistry",
-    },
-    {
-      "id": 5,
-      "title": "English Literature Reading",
-      "description":
-          "Read chapters 5-8 of Pride and Prejudice for class discussion",
-      "startTime": "03:00 PM",
-      "endTime": "05:00 PM",
-      "date": DateTime.now().add(Duration(days: 1)),
-      "priority": "Medium",
-      "subject": "English",
-    },
-  ];
+  // Replace mock data with real reminders from Supabase
+  List<Reminder> _reminders = []; // List of actual Reminder objects
+  bool _isLoading = false; // Loading state for data fetching
+  String? _errorMessage; // Error message if fetch fails
 
-  List<Map<String, dynamic>> get filteredTasks {
-    return mockTasks.where((task) {
-      final taskDate = task["date"] as DateTime;
-      return taskDate.year == selectedDate.year &&
-          taskDate.month == selectedDate.month &&
-          taskDate.day == selectedDate.day;
+  // Remove mock data and replace with filtered reminders
+  List<Reminder> get filteredReminders {
+    return _reminders.where((reminder) {
+      return reminder.isOnDate(
+        selectedDate,
+      ); // Use the built-in method from Reminder model
     }).toList();
   }
 
@@ -101,10 +51,49 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
     return '${months[selectedDate.month - 1]} ${selectedDate.year}';
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadRemindersForDate(selectedDate); // Load reminders when screen opens
+  }
+
+  // Load reminders for a specific date using ReminderService
+  Future<void> _loadRemindersForDate(DateTime date) async {
+    setState(() {
+      _isLoading = true; // Show loading state
+      _errorMessage = null; // Clear any previous errors
+    });
+
+    try {
+      // Fetch reminders from Supabase using ReminderService
+      final reminders = await ReminderService.getRemindersForDate(date);
+
+      setState(() {
+        _reminders = reminders; // Update reminders list
+        _isLoading = false; // Hide loading state
+      });
+
+      // Log success for debugging
+      print(
+        '✅ Loaded ${reminders.length} reminders for ${date.toString().split(' ')[0]}',
+      );
+    } catch (e) {
+      // Handle errors gracefully
+      setState(() {
+        _errorMessage = 'Failed to load tasks. Please try again.';
+        _isLoading = false;
+      });
+
+      // Log error for debugging
+      print('❌ Error loading reminders: $e');
+    }
+  }
+
   void _onDateSelected(DateTime date) {
     setState(() {
       selectedDate = date;
     });
+    _loadRemindersForDate(date); // Load reminders for newly selected date
   }
 
   void _toggleCalendarView() async {
@@ -116,38 +105,133 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
       setState(() {
         selectedDate = selectedDateFromCalendar;
       });
+      _loadRemindersForDate(
+        selectedDateFromCalendar,
+      ); // Load reminders for selected date
     }
   }
 
-  void _onTaskTap(Map<String, dynamic> task) {
-    Navigator.pushNamed(context, '/task-detail-view');
-  }
-
-  void _onTaskEdit(Map<String, dynamic> task) {
-    Navigator.pushNamed(context, '/task-edit-modal');
-  }
-
-  void _onTaskDelete(Map<String, dynamic> task) {
-    setState(() {
-      mockTasks.removeWhere((t) => t["id"] == task["id"]);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Task deleted successfully'),
-        backgroundColor: AppTheme.textPrimary,
-      ),
+  void _onTaskTap(Reminder reminder) {
+    // Pass the actual reminder data to task detail view
+    Navigator.pushNamed(
+      context,
+      '/task-detail-view',
+      arguments: reminder, // Pass Reminder object instead of mock data
     );
   }
 
-  void _onAddTask() {
-    Navigator.pushNamed(context, '/task-creation-modal');
+  void _onTaskEdit(Reminder reminder) {
+    Navigator.pushNamed(
+      context,
+      '/task-edit-modal',
+      arguments: reminder, // Pass Reminder object for editing
+    );
+  }
+
+  void _onTaskDelete(Reminder reminder) async {
+    // Show confirmation dialog
+    final bool? shouldDelete = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              'Delete Task',
+              style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Jost'),
+            ),
+            content: Text(
+              'Are you sure you want to delete "${reminder.title}"? This action cannot be undone.',
+              style: TextStyle(fontFamily: 'Jost'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontFamily: 'Jost',
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.white, fontFamily: 'Jost'),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    // If user confirmed deletion
+    if (shouldDelete == true) {
+      try {
+        // Delete reminder using ReminderService
+        final error = await ReminderService.deleteReminder(reminder.id);
+
+        if (error == null) {
+          // Success - reload reminders to update UI
+          _loadRemindersForDate(selectedDate);
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Task "${reminder.title}" deleted successfully'),
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+          );
+        } else {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: Colors.red),
+          );
+        }
+      } catch (e) {
+        // Handle unexpected errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete task. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _onAddTask() async {
+    // Navigate to task creation modal and pass selected date
+    final result = await Navigator.pushNamed(
+      context,
+      '/task-creation-modal',
+      arguments: selectedDate, // Pass selected date to creation modal
+    );
+
+    // If task was created successfully, reload reminders
+    if (result != null) {
+      _loadRemindersForDate(selectedDate);
+    }
   }
 
   Future<void> _onRefresh() async {
-    await Future.delayed(Duration(seconds: 1));
-    setState(() {
-      // Refresh task data
-    });
+    // Reload reminders for current date
+    await _loadRemindersForDate(selectedDate);
+  }
+
+  // Convert Reminder object to Map for TaskCardWidget compatibility
+  Map<String, dynamic> _reminderToTaskMap(Reminder reminder) {
+    return {
+      "id": reminder.id,
+      "title": reminder.title,
+      "description": reminder.description ?? '',
+      "startTime": reminder.formattedStartTime,
+      "endTime": reminder.formattedEndTime,
+      "date": reminder.time,
+      "priority": reminder.priority,
+      "subject": "General", // Default subject since we don't have this field
+      "course_id": reminder.courseId,
+    };
   }
 
   @override
@@ -207,11 +291,14 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
               ),
             ),
 
-            // Date strip
+            // Date strip (update to use real reminders)
             DateStripWidget(
               selectedDate: selectedDate,
               onDateSelected: _onDateSelected,
-              tasks: mockTasks,
+              tasks:
+                  _reminders
+                      .map(_reminderToTaskMap)
+                      .toList(), // Convert reminders to task maps
             ),
 
             // Main content area
@@ -219,26 +306,7 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
               child: RefreshIndicator(
                 onRefresh: _onRefresh,
                 color: AppTheme.primaryTeal,
-                child:
-                    filteredTasks.isEmpty
-                        ? EmptyStateWidget(onAddTask: _onAddTask)
-                        : ListView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 4.w,
-                            vertical: 2.h,
-                          ),
-                          itemCount: filteredTasks.length,
-                          itemBuilder: (context, index) {
-                            final task = filteredTasks[index];
-                            return TaskCardWidget(
-                              task: task,
-                              onTap: () => _onTaskTap(task),
-                              onEdit: () => _onTaskEdit(task),
-                              onDelete: () => _onTaskDelete(task),
-                            );
-                          },
-                        ),
+                child: _buildMainContent(),
               ),
             ),
           ],
@@ -251,6 +319,89 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
         elevation: 4.0,
         child: Icon(Icons.add, color: AppTheme.surfaceWhite, size: 7.w),
       ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    if (_isLoading) {
+      // Show loading indicator
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryTeal),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              'Loading tasks...',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontFamily: 'Jost',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      // Show error state
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 15.w, color: Colors.red),
+            SizedBox(height: 2.h),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.red,
+                fontFamily: 'Jost',
+                fontSize: 14.sp,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            ElevatedButton(
+              onPressed: () => _loadRemindersForDate(selectedDate),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryTeal,
+              ),
+              child: Text(
+                'Retry',
+                style: TextStyle(
+                  color: AppTheme.surfaceWhite,
+                  fontFamily: 'Jost',
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (filteredReminders.isEmpty) {
+      // Show empty state
+      return EmptyStateWidget(onAddTask: _onAddTask);
+    }
+
+    // Show reminders list
+    return ListView.builder(
+      controller: _scrollController,
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+      itemCount: filteredReminders.length,
+      itemBuilder: (context, index) {
+        final reminder = filteredReminders[index];
+        final taskMap = _reminderToTaskMap(reminder);
+
+        return TaskCardWidget(
+          task: taskMap,
+          onTap: () => _onTaskTap(reminder),
+          onEdit: () => _onTaskEdit(reminder),
+          onDelete: () => _onTaskDelete(reminder),
+        );
+      },
     );
   }
 }

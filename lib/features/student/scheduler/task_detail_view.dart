@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
+// Add imports for reminder service and model
+import '../../../core/services/reminder_service.dart';
+import '../../../data/models/reminder.dart';
 
 class TaskDetailView extends StatefulWidget {
   const TaskDetailView({super.key});
@@ -10,24 +13,11 @@ class TaskDetailView extends StatefulWidget {
 }
 
 class _TaskDetailViewState extends State<TaskDetailView> {
-  // Mock task data
-  final Map<String, dynamic> taskData = {
-    "id": 1,
-    "title": "Advanced Calculus Study Session",
-    "description":
-        "Review integration techniques, practice solving complex integrals, and prepare for upcoming midterm exam. Focus on integration by parts, trigonometric substitution, and partial fractions.",
-    "startTime": "09:00 AM",
-    "endTime": "11:30 AM",
-    "priority": "High",
-    "course_id": "course-1", // Added course_id
-    "date": "July 11, 2025",
-    "createdAt": "July 10, 2025 at 3:45 PM",
-    "modifiedAt": "July 11, 2025 at 8:20 AM",
-    "subject": "Mathematics",
-    "location": "Library Study Room 3A",
-  };
+  Reminder? _reminder; // Actual reminder data from Supabase
+  bool _isLoading = true; // Loading state
+  String? _errorMessage; // Error message if loading fails
 
-  // TODO: Replace with actual backend data
+  // TODO: Replace with actual backend data (keep for course lookup)
   final List<Map<String, dynamic>> _enrolledCourses = [
     {'id': 'course-1', 'name': 'Mathematics 101', 'code': 'MATH101'},
     {'id': 'course-2', 'name': 'Physics Fundamentals', 'code': 'PHYS200'},
@@ -36,6 +26,32 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     {'id': 'course-5', 'name': 'English Literature', 'code': 'ENG201'},
     {'id': 'course-6', 'name': 'Biology Essentials', 'code': 'BIO100'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Load reminder data when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadReminderData();
+    });
+  }
+
+  void _loadReminderData() {
+    // Get reminder data passed from calendar dashboard
+    final reminder = ModalRoute.of(context)?.settings.arguments as Reminder?;
+
+    if (reminder != null) {
+      setState(() {
+        _reminder = reminder;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _errorMessage = 'No task data provided';
+        _isLoading = false;
+      });
+    }
+  }
 
   Map<String, dynamic>? _getCourseInfo(String? courseId) {
     if (courseId == null) return null;
@@ -74,26 +90,104 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     return colors[hash.abs() % colors.length];
   }
 
+  String _calculateDuration() {
+    if (_reminder?.endTime == null) return 'No end time';
+
+    final duration = _reminder!.endTime!.difference(_reminder!.time);
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+
+    if (hours > 0 && minutes > 0) {
+      return 'Duration: $hours hours $minutes minutes';
+    } else if (hours > 0) {
+      return 'Duration: $hours hours';
+    } else {
+      return 'Duration: $minutes minutes';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: _buildAppBar(context),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTimeRangeCard(),
-              SizedBox(height: 3.h),
-              _buildTaskInfoCard(),
-              SizedBox(height: 3.h),
-              _buildActionButtons(context),
-              SizedBox(height: 2.h),
-            ],
+        child:
+            _isLoading
+                ? _buildLoadingState()
+                : _errorMessage != null
+                ? _buildErrorState()
+                : _buildTaskContent(),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryTeal),
           ),
-        ),
+          SizedBox(height: 2.h),
+          Text(
+            'Loading task details...',
+            style: TextStyle(color: AppTheme.textSecondary, fontFamily: 'Jost'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 15.w, color: Colors.red),
+          SizedBox(height: 2.h),
+          Text(
+            _errorMessage!,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.red,
+              fontFamily: 'Jost',
+              fontSize: 14.sp,
+            ),
+          ),
+          SizedBox(height: 2.h),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: Text(
+              'Go Back',
+              style: TextStyle(
+                color: AppTheme.surfaceWhite,
+                fontFamily: 'Jost',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskContent() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTimeRangeCard(),
+          SizedBox(height: 3.h),
+          _buildTaskInfoCard(),
+          SizedBox(height: 3.h),
+          _buildActionButtons(context),
+          SizedBox(height: 2.h),
+        ],
       ),
     );
   }
@@ -127,6 +221,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   }
 
   Widget _buildTimeRangeCard() {
+    if (_reminder == null) return SizedBox.shrink();
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(5.w),
@@ -145,7 +241,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
         children: [
           // Date
           Text(
-            taskData["date"],
+            _reminder!.formattedDate,
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.w600,
@@ -166,7 +262,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  taskData["startTime"],
+                  _reminder!.formattedStartTime,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
@@ -185,7 +281,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  taskData["endTime"],
+                  _reminder!.formattedEndTime,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
@@ -201,7 +297,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
           // Duration calculation
           Text(
-            "Duration: 2 hours 30 minutes",
+            _calculateDuration(),
             style: TextStyle(
               fontSize: 12.sp,
               color: AppTheme.textSecondary,
@@ -214,6 +310,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   }
 
   Widget _buildTaskInfoCard() {
+    if (_reminder == null) return SizedBox.shrink();
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(5.w),
@@ -233,7 +331,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
         children: [
           // Title
           Text(
-            taskData["title"],
+            _reminder!.title,
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w600,
@@ -245,34 +343,16 @@ class _TaskDetailViewState extends State<TaskDetailView> {
           SizedBox(height: 3.h),
 
           // Tags row
-          Row(
+          Wrap(
+            spacing: 3.w,
+            runSpacing: 1.h,
             children: [
-              // Subject tag
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-                decoration: BoxDecoration(
-                  color: _getSubjectColor(taskData["subject"]).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  taskData["subject"],
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: _getSubjectColor(taskData["subject"]),
-                    fontFamily: 'Jost',
-                  ),
-                ),
-              ),
-
-              SizedBox(width: 3.w),
-
               // Priority tag
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
                 decoration: BoxDecoration(
                   color: _getPriorityColor(
-                    taskData["priority"],
+                    _reminder!.priority,
                   ).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -283,25 +363,26 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: _getPriorityColor(taskData["priority"]),
+                        color: _getPriorityColor(_reminder!.priority),
                         shape: BoxShape.circle,
                       ),
                     ),
                     SizedBox(width: 1.w),
                     Text(
-                      taskData["priority"],
+                      _reminder!.priority,
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
-                        color: _getPriorityColor(taskData["priority"]),
+                        color: _getPriorityColor(_reminder!.priority),
                         fontFamily: 'Jost',
                       ),
                     ),
                   ],
                 ),
               ),
+
               // Course Information (if available)
-              if (_getCourseInfo(taskData["course_id"]) != null)
+              if (_getCourseInfo(_reminder!.courseId) != null)
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
                   decoration: BoxDecoration(
@@ -326,7 +407,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _getCourseInfo(taskData["course_id"])!['name'],
+                            _getCourseInfo(_reminder!.courseId)!['name'],
                             style: TextStyle(
                               fontSize: 12.sp,
                               fontWeight: FontWeight.w500,
@@ -335,7 +416,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                             ),
                           ),
                           Text(
-                            _getCourseInfo(taskData["course_id"])!['code'],
+                            _getCourseInfo(_reminder!.courseId)!['code'],
                             style: TextStyle(
                               fontSize: 10.sp,
                               color: AppTheme.primaryTeal,
@@ -353,7 +434,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
           SizedBox(height: 3.h),
 
           // Description
-          if (taskData["description"].isNotEmpty) ...[
+          if (_reminder!.description != null &&
+              _reminder!.description!.isNotEmpty) ...[
             Text(
               "Description",
               style: TextStyle(
@@ -365,7 +447,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
             ),
             SizedBox(height: 1.h),
             Text(
-              taskData["description"],
+              _reminder!.description!,
               style: TextStyle(
                 fontSize: 12.sp,
                 color: AppTheme.textSecondary,
@@ -376,41 +458,12 @@ class _TaskDetailViewState extends State<TaskDetailView> {
             SizedBox(height: 3.h),
           ],
 
-          // Location
-          if (taskData["location"].isNotEmpty) ...[
-            Row(
-              children: [
-                Icon(Icons.location_on, color: AppTheme.primaryTeal, size: 5.w),
-                SizedBox(width: 2.w),
-                Text(
-                  "Location",
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                    fontFamily: 'Jost',
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 1.h),
-            Text(
-              taskData["location"],
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: AppTheme.textSecondary,
-                fontFamily: 'Jost',
-              ),
-            ),
-            SizedBox(height: 3.h),
-          ],
-
           // Metadata
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Created: ${taskData["createdAt"]}",
+                "Task ID: ${_reminder!.id}",
                 style: TextStyle(
                   fontSize: 10.sp,
                   color: AppTheme.textSecondary,
@@ -419,7 +472,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
               ),
               SizedBox(height: 0.5.h),
               Text(
-                "Last modified: ${taskData["modifiedAt"]}",
+                "User ID: ${_reminder!.userId}",
                 style: TextStyle(
                   fontSize: 10.sp,
                   color: AppTheme.textSecondary,
@@ -486,11 +539,13 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   }
 
   void _navigateToEditTask(BuildContext context) {
-    Navigator.pushNamed(context, '/task-edit-modal', arguments: taskData);
+    Navigator.pushNamed(context, '/task-edit-modal', arguments: _reminder);
   }
 
-  void _deleteTask(BuildContext context) {
-    showDialog(
+  void _deleteTask(BuildContext context) async {
+    if (_reminder == null) return;
+
+    final bool? shouldDelete = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
@@ -499,12 +554,12 @@ class _TaskDetailViewState extends State<TaskDetailView> {
               style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Jost'),
             ),
             content: Text(
-              'Are you sure you want to delete this task? This action cannot be undone.',
+              'Are you sure you want to delete "${_reminder!.title}"? This action cannot be undone.',
               style: TextStyle(fontFamily: 'Jost'),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => Navigator.of(context).pop(false),
                 child: Text(
                   'Cancel',
                   style: TextStyle(
@@ -514,16 +569,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                 ),
               ),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop(); // Go back to calendar
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Task deleted successfully'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                },
+                onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: Text(
                   'Delete',
@@ -533,5 +579,32 @@ class _TaskDetailViewState extends State<TaskDetailView> {
             ],
           ),
     );
+
+    if (shouldDelete == true) {
+      try {
+        final error = await ReminderService.deleteReminder(_reminder!.id);
+
+        if (error == null) {
+          Navigator.of(context).pop(); // Go back to calendar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Task "${_reminder!.title}" deleted successfully'),
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: Colors.red),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete task. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

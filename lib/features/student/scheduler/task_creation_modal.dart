@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
+import '../../../core/services/reminder_service.dart';
 
 class TaskCreationModal extends StatefulWidget {
-  const TaskCreationModal({super.key});
+  final DateTime? selectedDate;
+
+  const TaskCreationModal({super.key, this.selectedDate});
 
   @override
   State<TaskCreationModal> createState() => _TaskCreationModalState();
@@ -19,8 +22,10 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
   String _priority = 'Medium';
   String? _selectedCourseId;
   bool _isLoading = false;
+  DateTime _selectedDate = DateTime.now(); // Add this for date selection
 
   final List<String> _priorities = ['High', 'Medium', 'Low'];
+
 
   // TODO: Replace with actual backend data
   final List<Map<String, dynamic>> _enrolledCourses = [
@@ -31,7 +36,12 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
     {'id': 'course-5', 'name': 'English Literature', 'code': 'ENG201'},
     {'id': 'course-6', 'name': 'Biology Essentials', 'code': 'BIO100'},
   ];
-
+  @override
+  void initState() {
+    super.initState();
+    // Set selected date from widget parameter or default to today
+    _selectedDate = widget.selectedDate ?? DateTime.now();
+  }
   @override
   void dispose() {
     _titleController.dispose();
