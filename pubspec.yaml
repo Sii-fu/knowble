@@ -66,6 +66,7 @@ flutter:
     - assets/images/online course.png
     - assets/images/teacher chat.png
     - assets/images/chatbot gif.gif
+    - assets/images/
     # Add other images as needed
 
   # An image asset can refer to one or more resolution-specific "variants", see
