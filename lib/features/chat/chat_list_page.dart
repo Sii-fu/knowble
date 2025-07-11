@@ -1,168 +1,163 @@
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chat_detail_page.dart';
+import '../../config/theme.dart';
 
-class ChatListPage extends StatelessWidget {
+class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final chats = [
-      {
-        'instructorName': 'Dr. Alice Smith',
-        'courseCode': 'CS101',
-        'lastMessage': 'Please review the assignment details and let me know if you have questions.',
-        'lastMessageTime': DateTime.now().subtract(const Duration(minutes: 2)),
-        'profileImage': null,
-      },
-      {
-        'instructorName': 'Prof. John Doe',
-        'courseCode': 'MATH202',
-        'lastMessage': 'Great job on the quiz! See you in class tomorrow.',
-        'lastMessageTime': DateTime.now().subtract(const Duration(hours: 1, minutes: 15)),
-        'profileImage': null,
-      },
-      {
-        'instructorName': 'Ms. Emily Lee',
-        'courseCode': 'ENG303',
-        'lastMessage': 'Don’t forget to submit your essay by Friday.',
-        'lastMessageTime': DateTime.now().subtract(const Duration(days: 1, hours: 3)),
-        'profileImage': null,
-      },
-    ];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chats'),
-        backgroundColor: const Color(0xFFB39DDB), // Light purple
-        foregroundColor: Colors.white,
-        elevation: 2,
-      ),
-      backgroundColor: const Color(0xFFF3EFFF), // Very light purple background
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        itemCount: chats.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final chat = chats[index];
-          return ChatCard(
-            instructorName: chat['instructorName'] as String,
-            courseCode: chat['courseCode'] as String,
-            lastMessage: chat['lastMessage'] as String,
-            lastMessageTime: chat['lastMessageTime'] as DateTime,
-            profileImage: chat['profileImage'] as String?,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChatDetailPage()),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
+  State<ChatListPage> createState() => _ChatListPageState();
 }
 
-class ChatCard extends StatelessWidget {
-  final String instructorName;
-  final String courseCode;
-  final String lastMessage;
-  final DateTime lastMessageTime;
-  final String? profileImage;
-  final VoidCallback onTap;
+class _ChatListPageState extends State<ChatListPage> {
+  List<dynamic>? _chats;
+  bool _loading = true;
+  String? _error;
 
-  const ChatCard({
-    super.key,
-    required this.instructorName,
-    required this.courseCode,
-    required this.lastMessage,
-    required this.lastMessageTime,
-    this.profileImage,
-    required this.onTap,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _fetchChats();
+  }
+
+  Future<void> _fetchChats() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) throw Exception('Not logged in');
+      final response = await Supabase.instance.client.rpc('get_student_chats', params: {'student_uuid': userId});
+      setState(() {
+        _chats = response as List<dynamic>?;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  String _formatTimestamp(DateTime? dt) {
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0) {
+      return timeago.format(dt, locale: 'en_short');
+    } else if (diff.inDays == 1) {
+      return 'Yesterday';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    } else {
+      return '${dt.day}/${dt.month}/${dt.year}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Card(
-        elevation: 3,
-        color: const Color(0xFFEDE7F6), // Light purple card background
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundImage: profileImage != null
-                    ? NetworkImage(profileImage!)
-                    : null,
-                child: profileImage == null
-                    ? const Icon(Icons.person, size: 28, color: Color(0xFF9575CD))
-                    : null,
-                backgroundColor: const Color(0xFFD1C4E9), // Lighter purple for avatar bg
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            instructorName,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF512DA8), // Deep purple text
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD1C4E9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            courseCode,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: const Color(0xFF512DA8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      lastMessage,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF5E35B1), // Medium purple
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                timeago.format(lastMessageTime),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: const Color(0xFF9575CD), // Light purple
-                ),
-              ),
-            ],
-          ),
+    final theme = AppTheme.lightTheme;
+    return Theme(
+      data: theme,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Chats'),
+          backgroundColor: theme.appBarTheme.backgroundColor,
+          foregroundColor: theme.appBarTheme.foregroundColor,
+          elevation: theme.appBarTheme.elevation,
         ),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text('Error: $_error', style: TextStyle(color: AppTheme.errorRed)))
+                : (_chats == null || _chats!.isEmpty)
+                    ? Center(child: Text('No messages yet', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary)))
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                        itemCount: _chats!.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final chat = _chats![index];
+                          final courseId = chat['course_id'] as String?;
+                          final instructorId = chat['instructor_id'] as String?;
+                          final courseTitle = chat['course_title'] as String? ?? '';
+                          final instructorName = chat['instructor_name'] as String? ?? '';
+                          final profileImage = chat['instructor_profile_url'] as String?;
+                          final lastMessage = chat['last_message'] as String? ?? '';
+                          final lastTimestamp = chat['last_timestamp'] as String?;
+                          final dt = lastTimestamp != null ? DateTime.tryParse(lastTimestamp) : null;
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppTheme.accentLight,
+                              backgroundImage: (profileImage != null && profileImage.isNotEmpty)
+                                  ? NetworkImage(profileImage)
+                                  : null,
+                              child: (profileImage == null || profileImage.isEmpty)
+                                  ? Icon(Icons.person, color: AppTheme.primaryTeal)
+                                  : null,
+                            ),
+                            title: Text(
+                              instructorName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: AppTheme.primaryTeal,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  courseTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                                ),
+                                Text(
+                                  lastMessage,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                            trailing: Text(
+                              _formatTimestamp(dt),
+                              style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal),
+                            ),
+                            onTap: () {
+                              final user = Supabase.instance.client.auth.currentUser;
+                              if (user == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Session expired. Please log in again.')),
+                                );
+                                // Optionally, redirect to login page here
+                                return;
+                              }
+                              if (courseId != null && instructorId != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatDetailPage(
+                                      courseId: courseId,
+                                      receiverId: instructorId,
+                                      instructorName: instructorName,
+                                      courseCode: courseTitle,
+                                      profileImage: profileImage,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            tileColor: AppTheme.surfaceWhite,
+                          );
+                        },
+                      ),
       ),
     );
   }

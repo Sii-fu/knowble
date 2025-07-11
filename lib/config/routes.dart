@@ -15,7 +15,6 @@ import '../features/course/quiz_page.dart';
 
 
 import '../features/chat/chat_list_page.dart';
-import '../features/chat/chat_detail_page.dart';
 
 import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
@@ -64,7 +63,6 @@ class AppRoutes {
     '/course_content': (context) => const CourseContentPage(),
     '/quiz': (context) => const QuizPage(),
     '/chats': (context) => const ChatListPage(),
-    '/chat_detail': (context) => const ChatDetailPage(),
     '/student_dashboard': (context) => const StudentDashboardPage(),
     '/course_screen': (context) => const CourseScreen(),
 
