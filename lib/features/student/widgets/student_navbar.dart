@@ -30,7 +30,7 @@ class StudentBottomNavbar extends StatelessWidget {
             offset: const Offset(0, -2),
           ),
         ],
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        // borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
       ),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
