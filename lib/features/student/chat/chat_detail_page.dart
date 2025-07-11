@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../config/theme.dart';
+import '../../../config/theme.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String courseId;

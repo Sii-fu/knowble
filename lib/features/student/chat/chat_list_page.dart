@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chat_detail_page.dart';
-import '../../config/theme.dart';
+import '../../../config/theme.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});

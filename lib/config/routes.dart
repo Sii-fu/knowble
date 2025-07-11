@@ -14,10 +14,11 @@ import '../features/course/course_content_page.dart';
 import '../features/course/quiz_page.dart';
 
 
-import '../features/chat/chat_list_page.dart';
+import '../features/student/chat/chat_list_page.dart';
 
 import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
+import '../features/instructor/dashboard_page.dart'; 
 
 
 import '../features/admin/dashboard_page.dart';
@@ -75,6 +76,9 @@ class AppRoutes {
     '/student_courses': (context) => const StudentCoursesPage(),
     '/student_schedule': (context) => const StudentSchedulePage(),
     '/student_profile': (context) => const StudentProfilePage(),
+
+
+    '/instructor_dashboard': (context) => const InstructorDashboardPage(), 
   };
 }
 
