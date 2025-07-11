@@ -36,6 +36,7 @@ import '../features/common/auth/login_screen.dart';
 import '../features/common/auth/registration_screen.dart';
 
 
+import '../features/instructor/widgets/instructor_layout.dart';
 import '../features/student/widgets/student_layout.dart';
 import '../features/student/dashboard_page.dart';
 import '../features/student/home_page.dart';
@@ -68,6 +69,7 @@ class AppRoutes {
     '/course_screen': (context) => const CourseScreen(),
 
     '/student': (context) => const StudentLayout(),
+    '/instructor': (context) => const InstructorLayout(),
     '/manage_students': (context) => const ManageStudentsPage(),
     '/admin_dashboard': (context) => const AdminDashboardPage(),
     '/user_management': (context) => const UserManagementPage(),
