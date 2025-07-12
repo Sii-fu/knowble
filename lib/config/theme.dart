@@ -21,6 +21,8 @@ class AppTheme {
   // Instructor theme colors
   static const Color instructorPrimary = Color(0xFF42A5F5); // Blue[400]
   static const Color instructorAccent = Color(0xFFE3F2FD); // Blue[50]
+  static const Color instructorbg = Color.fromARGB(255, 221, 229, 235); // Blue[50]
+  
   static const Color instructorSecondary = Color(0xFF1976D2); // Blue[700] for darker elements
   
   static LinearGradient gradient = LinearGradient(

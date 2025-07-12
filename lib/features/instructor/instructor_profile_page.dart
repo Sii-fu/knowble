@@ -41,7 +41,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             // Profile Image
             CircleAvatar(
               radius: 48,
-              backgroundImage: AssetImage('assets/Profile 1 (teacher) (1).jpg'),
+              backgroundImage: AssetImage('assets/images/Profile 2 (teacher).jpg'),
             ),
             const SizedBox(height: 16),
             const Text(
