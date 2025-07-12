@@ -74,6 +74,7 @@ flutter:
     - assets/images/03_INTRO-02.jpg
     - assets/images/04_INTRO-03.jpg
     - assets/images/
+    - assets/medal.png
     # Add other images as needed
 
   # An image asset can refer to one or more resolution-specific "variants", see

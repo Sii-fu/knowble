@@ -17,7 +17,8 @@ import '../features/student/chat/chat_list_page.dart';
 import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
 import '../features/instructor/home_teacher.dart'; 
-
+import '../features/instructor/instructor_profile_page2.dart';
+import '../features/instructor/instructor_profile_page.dart'; 
 
 import '../features/admin/dashboard_page.dart';
 import '../features/admin/user_management_page.dart';
@@ -84,5 +85,8 @@ class AppRoutes {
     '/task-detail-view': (context) => const TaskDetailView(),
     '/full-month-calendar-view': (context) => const FullMonthCalendarView(),
     '/home_teacher': (context) => const TeacherHomePage(), 
+    '/instructor_profile_page2': (context) => const InstructorProfilePage2(), 
+    '/instructor_profile_page': (context) => const InstructorProfilePage(), 
+    
   };
 }
