@@ -16,7 +16,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isSelectionMode = false;
-  List<int> _selectedCourses = [];
+  final List<int> _selectedCourses = [];
 
   final List<Map<String, dynamic>> _mockCourses = [
     {

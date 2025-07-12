@@ -17,7 +17,7 @@ class _AdminInstructorsManagementState
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isMultiSelectMode = false;
-  List<int> _selectedInstructors = [];
+  final List<int> _selectedInstructors = [];
   int _currentIndex = 1; // Instructors tab active
 
   final List<Map<String, dynamic>> _mockInstructors = [

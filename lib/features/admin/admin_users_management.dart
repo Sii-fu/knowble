@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
 import './widgets/user_filter_chip.dart';
 import './widgets/user_list_item_card.dart';

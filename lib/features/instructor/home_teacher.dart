@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'teacher_navbar.dart'; // Make sure this is the stateless navbar with currentIndex and onTap
+// Make sure this is the stateless navbar with currentIndex and onTap
 import 'course_screen.dart'; // Import the CourseScreen
 
 class TeacherHomePage extends StatefulWidget {
