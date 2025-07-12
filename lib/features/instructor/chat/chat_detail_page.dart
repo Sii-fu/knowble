@@ -50,19 +50,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    _textFieldFocus.dispose();
-    _realtimeChannel?.unsubscribe();
-    super.dispose();
+      _controller.dispose();
+      _scrollController.dispose();
+      _textFieldFocus.dispose();
+      _realtimeChannel?.unsubscribe();
+      super.dispose();
   }
 
   Future<void> _initChat() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
-    _currentUserId = userId;
-    await _loadMessages();
-    _subscribeToRealtime();
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+      _currentUserId = userId;
+      await _loadMessages();
+      _subscribeToRealtime();
   }
 
   Future<void> _loadMessages() async {
@@ -72,10 +72,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         .from('chats')
         .select()
         .eq('course_id', widget.courseId)
-        .or('sender_id.eq.$userId,receiver_id.eq.$userId')
+        .or(
+          'and(sender_id.eq.$_currentUserId,receiver_id.eq.${widget.receiverId}),and(sender_id.eq.${widget.receiverId},receiver_id.eq.$_currentUserId)'
+        )
         .order('timestamp', ascending: true);
+
+
     setState(() {
-      _messages = List<Map<String, dynamic>>.from(data);
+        _messages = List<Map<String, dynamic>>.from(data);
     });
     _scrollToBottom(animate: false); // Instant scroll when loading messages
   }
@@ -96,7 +100,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           // print("📡 New realtime message received: $newMsg");
 
           if (newMsg['course_id'] == widget.courseId &&
-              (newMsg['sender_id'] == userId || newMsg['receiver_id'] == userId)) {
+              ((newMsg['sender_id'] == userId && newMsg['receiver_id'] == widget.receiverId) ||
+              (newMsg['sender_id'] == widget.receiverId && newMsg['receiver_id'] == userId))) {
             setState(() {
               _messages.add(Map<String, dynamic>.from(newMsg));
             });
@@ -138,7 +143,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         'message': text,
         'timestamp': DateTime.now().toIso8601String(),
       });
-      await _loadMessages(); // reload messages
       _controller.clear();
       
       // Keep focus on text field after sending
