@@ -17,8 +17,20 @@ class AppTheme {
   static const Color accentLight = Color(0xFFF0FDFA);
   static const Color gradientStart = Color(0xFF087E8B);
   static const Color gradientEnd = Color(0xFF0B3954);
+  
+  // Instructor theme colors
+  static const Color instructorPrimary = Color(0xFF42A5F5); // Blue[400]
+  static const Color instructorAccent = Color(0xFFE3F2FD); // Blue[50]
+  static const Color instructorSecondary = Color(0xFF1976D2); // Blue[700] for darker elements
+  
   static LinearGradient gradient = LinearGradient(
     colors: [gradientStart, gradientEnd],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+  
+  static LinearGradient instructorGradient = LinearGradient(
+    colors: [instructorPrimary, instructorSecondary],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

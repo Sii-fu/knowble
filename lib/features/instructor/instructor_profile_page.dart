@@ -14,6 +14,7 @@ class InstructorProfilePage extends StatefulWidget {
 
 class _InstructorProfilePageState extends State<InstructorProfilePage> {
   int _selectedIndex = 3;
+  bool _showBadges = false;
 
   void _onTabSelected(int index) {
     setState(() {
@@ -47,6 +48,30 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
         );
       }
     }
+  }
+
+  Widget _badgeItem(String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: Row(
+        children: [
+          Image.asset(
+            'assets/medal.png',
+            width: 32,
+            height: 32,
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -83,47 +108,69 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 TextButton(
-                  onPressed: null, // Disabled because this is the current page
+                  onPressed: () {
+                    setState(() {
+                      _showBadges = false;
+                    });
+                  },
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue[400],
+                    backgroundColor: !_showBadges ? Colors.blue[400] : Colors.blue[50],
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'General',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: !_showBadges ? Colors.white : Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 TextButton(
                   onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/instructor_profile_page2');
+                    setState(() {
+                      _showBadges = true;
+                    });
                   },
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue[50],
+                    backgroundColor: _showBadges ? Color(0xFF5271FF) : Colors.blue[50],
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Badges',
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: _showBadges ? Colors.white : Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 32),
-            // Info List
-            _profileItem(Icons.person, 'Name', 'Christina Angela', onEdit: () {}),
-            _profileItem(Icons.email, 'Email', 'christina.angela123@mail.com', onEdit: () {}),
-            _profileItem(Icons.lock, 'Password', 'Tap to Change Password', onEdit: () {}),
-            _profileItem(Icons.phone_iphone, 'Phone Number', '(684) 555-0102', onEdit: () {}),
-            _profileItem(Icons.credit_card, 'Payment', 'Tap to Change Payment', onEdit: () {}),
-            _profileItem(Icons.verified_user, 'Privacy Policy', 'Tap to See Privacy Policy', trailingArrow: true, onEdit: () {}),
-            const SizedBox(height: 32),
+            if (!_showBadges) ...[
+              // Info List
+              _profileItem(Icons.person, 'Name', 'Christina Angela', onEdit: () {}),
+              _profileItem(Icons.email, 'Email', 'christina.angela123@mail.com', onEdit: () {}),
+              _profileItem(Icons.lock, 'Password', 'Tap to Change Password', onEdit: () {}),
+              _profileItem(Icons.phone_iphone, 'Phone Number', '(684) 555-0102', onEdit: () {}),
+              _profileItem(Icons.credit_card, 'Payment', 'Tap to Change Payment', onEdit: () {}),
+              _profileItem(Icons.verified_user, 'Privacy Policy', 'Tap to See Privacy Policy', trailingArrow: true, onEdit: () {}),
+              const SizedBox(height: 32),
+            ] else ...[
+              // Badges List
+              _badgeItem('Good Teacher', 'Awarded for consistently high student ratings and positive feedback.'),
+              _badgeItem('Patient', 'Recognized for taking time to help every student understand.'),
+              _badgeItem('Responsive', 'Quick to answer questions and provide support.'),
+              _badgeItem('Story Teller', 'Engages students with creative and memorable lessons.'),
+              _badgeItem('Famous', 'Popular among students and faculty for outstanding teaching.'),
+              const SizedBox(height: 32),
+            ],
             // Log out
             TextButton(
               onPressed: () => _logout(context),
@@ -140,6 +187,15 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
           ],
         ),
       ),
+      // bottomNavigationBar: CustomBottomNavBar(
+      //   currentIndex: _selectedIndex,
+      //   onTap: (index) {
+      //     setState(() {
+      //       _selectedIndex = index;
+      //     });
+      //     // Add navigation logic if needed
+      //   },
+      // ),
     );
   }
 
