@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../config/theme.dart';
-import 'teacher_navbar.dart';
 import 'home_teacher.dart';
 import 'course_screen.dart';
 
@@ -90,7 +88,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             // Profile Image
             CircleAvatar(
               radius: 48,
-              backgroundImage: AssetImage('assets/Profile 1 (teacher) (1).jpg'),
+              backgroundImage: AssetImage('assets/images/Profile 2 (teacher).jpg'),
             ),
             const SizedBox(height: 16),
             const Text(
