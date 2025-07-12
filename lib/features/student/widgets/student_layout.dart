@@ -5,7 +5,7 @@ import 'package:knowble_app/features/student/chat/chat_list_page.dart';
 import 'package:knowble_app/features/student/calendar_dashboard.dart';
 import 'package:knowble_app/features/student/profile_page.dart';
 import 'package:knowble_app/features/student/courses_page.dart';
-
+import 'package:knowble_app/features/student/ongoing_courses.dart';
 /// StudentLayout is a root wrapper for all student-facing pages with a persistent bottom navbar.
 class StudentLayout extends StatefulWidget {
   const StudentLayout({super.key});
@@ -24,6 +24,7 @@ class _StudentLayoutState extends State<StudentLayout> {
     ChatListPage(),
     CalendarDashboard(),
     StudentProfilePage(),
+    OngoingCoursesPage(),
   ];
 
   void _onNavTap(int index) {

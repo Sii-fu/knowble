@@ -138,7 +138,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         'message': text,
         'timestamp': DateTime.now().toIso8601String(),
       });
-      // await _loadMessages(); // reload messages
+      await _loadMessages(); // reload messages
       _controller.clear();
       
       // Keep focus on text field after sending
@@ -171,8 +171,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               CircleAvatar(
                 radius: 18,
                 backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
-                backgroundColor: AppTheme.accentLight,
                 child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.primaryTeal) : null,
+                backgroundColor: AppTheme.accentLight,
               ),
               const SizedBox(width: 12),
               Column(
