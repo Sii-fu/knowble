@@ -11,17 +11,16 @@ import '../features/course/course_detail_page.dart';
 import '../features/course/course_content_page.dart';
 import '../features/course/quiz_page.dart';
 
-
 import '../features/student/chat/chat_list_page.dart';
 
 import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
-import '../features/instructor/home_teacher.dart'; 
+import '../features/instructor/home_teacher.dart';
 
-
-import '../features/admin/dashboard_page.dart';
-import '../features/admin/user_management_page.dart';
-import '../features/admin/course_approval_page.dart';
+import '../features/admin/admin_dashboard.dart';
+import '../features/admin/admin_users_management.dart';
+import '../features/admin/admin_courses_management.dart';
+import '../features/admin/admin_instructors_management.dart';
 
 import '../features/common/splash_screen.dart';
 import '../features/common/settings_page.dart';
@@ -68,9 +67,13 @@ class AppRoutes {
 
     '/student': (context) => const StudentLayout(),
     '/manage_students': (context) => const ManageStudentsPage(),
-    '/admin_dashboard': (context) => const AdminDashboardPage(),
-    '/user_management': (context) => const UserManagementPage(),
-    '/course_approval': (context) => const CourseApprovalPage(),
+
+    // Admin routes with new structure
+    '/admin/dashboard': (context) => const AdminDashboard(),
+    '/admin/users': (context) => const AdminUsersManagement(),
+    '/admin/courses': (context) => const AdminCoursesManagement(),
+    '/admin/instructors': (context) => const AdminInstructorsManagement(),
+
     '/student_home': (context) => const StudentHomePage(),
     '/student_courses': (context) => const StudentCoursesPage(),
     '/student_schedule': (context) => const StudentSchedulePage(),
@@ -80,6 +83,6 @@ class AppRoutes {
     '/task-edit-modal': (context) => const TaskEditModal(),
     '/task-detail-view': (context) => const TaskDetailView(),
     '/full-month-calendar-view': (context) => const FullMonthCalendarView(),
-    '/home_teacher': (context) => const TeacherHomePage(), 
+    '/home_teacher': (context) => const TeacherHomePage(),
   };
 }

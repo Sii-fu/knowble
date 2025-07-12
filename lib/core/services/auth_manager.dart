@@ -29,18 +29,19 @@ class AuthManager {
       // Fetch user role from Supabase users table
       final userId = currentUserId;
       if (userId != null) {
-        final response = await _client
-            .from('users')
-            .select('role')
-            .eq('id', userId)
-            .single();
+        final response =
+            await _client
+                .from('users')
+                .select('role')
+                .eq('id', userId)
+                .single();
         final role = response['role'] as String?;
         if (role == 'student') {
           Navigator.pushReplacementNamed(context, '/student');
         } else if (role == 'instructor') {
           Navigator.pushReplacementNamed(context, '/home_teacher');
         } else if (role == 'admin') {
-          Navigator.pushReplacementNamed(context, '/admin_dashboard');
+          Navigator.pushReplacementNamed(context, '/admin/dashboard');
         } else {
           print('User role is unknown, redirecting to login');
           Navigator.pushReplacementNamed(context, '/login');
@@ -81,8 +82,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
