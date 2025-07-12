@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'course_detail_screen.dart';
 import 'create_course_screen.dart';
+import '../../config/theme.dart';
 
 class CourseScreen extends StatelessWidget {
   const CourseScreen({super.key});
@@ -109,7 +110,7 @@ class CourseScreen extends StatelessWidget {
           ],
         ),
       ),
-      // Floating Action Button - Updated to navigate to CreateCourseScreen
+      // Floating Action Button - Updated to use app theme
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
@@ -119,13 +120,18 @@ class CourseScreen extends StatelessWidget {
             ),
           );
         },
-        backgroundColor: Colors.blue[600],
-        icon: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: AppTheme.primaryTeal,
+        foregroundColor: AppTheme.surfaceWhite,
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        icon: const Icon(Icons.add, size: 20),
         label: const Text(
           'Add Course',
           style: TextStyle(
-            color: Colors.white,
             fontWeight: FontWeight.w600,
+            fontSize: 14,
           ),
         ),
       ),

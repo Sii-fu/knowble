@@ -27,6 +27,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   List<Map<String, dynamic>> _messages = [];
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _textFieldFocus = FocusNode();
   bool _sending = false;
   RealtimeChannel? _realtimeChannel;
   String? _currentUserId;
@@ -35,12 +36,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   void initState() {
     super.initState();
     _initChat();
+    
+    // Listen for focus changes to handle keyboard appearance
+    _textFieldFocus.addListener(() {
+      if (_textFieldFocus.hasFocus) {
+        // When keyboard appears, scroll to bottom after a short delay
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _scrollToBottom();
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _textFieldFocus.dispose();
     _realtimeChannel?.unsubscribe();
     super.dispose();
   }
@@ -65,7 +77,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     setState(() {
       _messages = List<Map<String, dynamic>>.from(data);
     });
-    _scrollToBottom();
+    _scrollToBottom(animate: false); // Instant scroll when loading messages
   }
 
   void _subscribeToRealtime() {
@@ -96,14 +108,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 }
 
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool animate = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        if (animate) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        } else {
+          // Instant scroll without animation
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
       }
     });
   }
@@ -123,6 +140,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       });
       await _loadMessages(); // reload messages
       _controller.clear();
+      
+      // Keep focus on text field after sending
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        FocusScope.of(context).requestFocus(_textFieldFocus);
+      });
+      
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to send: ${e.toString()}')),
@@ -138,6 +161,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     return Theme(
       data: theme,
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           backgroundColor: theme.appBarTheme.backgroundColor,
           foregroundColor: theme.appBarTheme.foregroundColor,
@@ -219,6 +243,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     Expanded(
                       child: TextField(
                         controller: _controller,
+                        focusNode: _textFieldFocus,
                         enabled: !_sending,
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
