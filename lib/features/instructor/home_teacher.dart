@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'teacher_navbar.dart'; // Make sure this is the stateless navbar with currentIndex and onTap
+// Make sure this is the stateless navbar with currentIndex and onTap
 import 'course_screen.dart'; // Import the CourseScreen
 
 class TeacherHomePage extends StatefulWidget {
@@ -204,12 +204,12 @@ class LessonCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(subtitle, style: const TextStyle(color: Colors.grey)),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF0D47A1))),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
           const Spacer(),
           LinearProgressIndicator(value: progress),
-          Text("${(progress * 10).toInt()}/10"),
+          Text("${(progress * 10).toInt()}/10", style: const TextStyle(color: Color(0xFF0D47A1))),
         ],
       ),
     );
@@ -295,8 +295,8 @@ class StatisticCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: color.withOpacity(0.15),
-              child: Icon(icon, color: color, size: 22),
               radius: 18,
+              child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(height: 8),
             Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),

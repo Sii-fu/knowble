@@ -47,6 +47,81 @@ class CustomIconWidget extends StatelessWidget {
       case 'notifications':
         iconData = Icons.notifications;
         break;
+      case 'dashboard':
+        iconData = Icons.dashboard;
+        break;
+      case 'people':
+        iconData = Icons.people;
+        break;
+      case 'book':
+        iconData = Icons.book;
+        break;
+      case 'logout':
+        iconData = Icons.logout;
+        break;
+      case 'verified_user':
+        iconData = Icons.verified_user;
+        break;
+      case 'manage_accounts':
+        iconData = Icons.manage_accounts;
+        break;
+      case 'analytics':
+        iconData = Icons.analytics;
+        break;
+      case 'pending_actions':
+        iconData = Icons.pending_actions;
+        break;
+      case 'report':
+        iconData = Icons.report;
+        break;
+      case 'check_circle':
+        iconData = Icons.check_circle;
+        break;
+      case 'cancel':
+        iconData = Icons.cancel;
+        break;
+      case 'visibility':
+        iconData = Icons.visibility;
+        break;
+      case 'clear':
+        iconData = Icons.clear;
+        break;
+      case 'edit':
+        iconData = Icons.edit;
+        break;
+      case 'people_outline':
+        iconData = Icons.people_outline;
+        break;
+      case 'checklist':
+        iconData = Icons.checklist;
+        break;
+      case 'school_outlined':
+        iconData = Icons.school_outlined;
+        break;
+      case 'filter_list':
+        iconData = Icons.filter_list;
+        break;
+      case 'trending_up':
+        iconData = Icons.trending_up;
+        break;
+      case 'trending_down':
+        iconData = Icons.trending_down;
+        break;
+      case 'access_time':
+        iconData = Icons.access_time;
+        break;
+      case 'chevron_right':
+        iconData = Icons.chevron_right;
+        break;
+      case 'schedule':
+        iconData = Icons.schedule;
+        break;
+      case 'work':
+        iconData = Icons.work;
+        break;
+      case 'description':
+        iconData = Icons.description;
+        break;
       case 'favorite':
         iconData = Icons.favorite;
         break;
