@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
+import '../student/ongoing_courses.dart';
+import '../student/courses_lessons.dart';
 
 class StudentCoursesPage extends StatelessWidget {
   const StudentCoursesPage({super.key});
@@ -11,7 +13,6 @@ class StudentCoursesPage extends StatelessWidget {
       data: theme,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        // bottomNavigationBar: _BottomNavBar(),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
@@ -111,14 +112,22 @@ class _FilterTabs extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Container(
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppTheme.accentLight,
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Center(
-              child: Text('Ongoing', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const OngoingCoursesPage()),
+              );
+            },
+            child: Container(
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppTheme.accentLight,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Center(
+                child: Text('Ongoing', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
+              ),
             ),
           ),
         ),
@@ -169,102 +178,81 @@ class _CourseList extends StatelessWidget {
       separatorBuilder: (context, index) => const SizedBox(height: 18),
       itemBuilder: (context, index) {
         final course = courses[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.shadowLight,
-                blurRadius: 5,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
-                ),
-                child: Image.asset(
-                  course['image']!,
-                  height: 100,
-                  width: 80,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(course['category']!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange)),
-                      const SizedBox(height: 4),
-                      Text(course['title']!, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, size: 14, color: Colors.amber),
-                          const SizedBox(width: 4),
-                          Text(course['rating']!, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-                          const SizedBox(width: 12),
-                          Text(course['duration']!, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text('VIEW CERTIFICATE', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold))
-                    ],
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CourseLessonsPage()),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.shadowLight,
+                  blurRadius: 5,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    bottomLeft: Radius.circular(18),
+                  ),
+                  child: Image.asset(
+                    course['image']!,
+                    height: 100,
+                    width: 80,
+                    fit: BoxFit.cover,
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppTheme.successGreen,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(course['category']!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange)),
+                        const SizedBox(height: 4),
+                        Text(course['title']!, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.star, size: 14, color: Colors.amber),
+                            const SizedBox(width: 4),
+                            Text(course['rating']!, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                            const SizedBox(width: 12),
+                            Text(course['duration']!, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text('VIEW CERTIFICATE', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold))
+                      ],
+                    ),
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 14),
                 ),
-              )
-            ],
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.successGreen,
+                    ),
+                    child: const Icon(Icons.check, color: Colors.white, size: 14),
+                  ),
+                )
+              ],
+            ),
           ),
         );
       },
     );
   }
 }
-
-// class _BottomNavBar extends StatelessWidget {
-//   const _BottomNavBar();
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return BottomNavigationBar(
-//       currentIndex: 1,
-//       type: BottomNavigationBarType.fixed,
-//       selectedItemColor: const Color(0xFF006C66),
-//       unselectedItemColor: Colors.grey,
-//       onTap: (index) {
-//         if (index == 0) {
-//           Navigator.push(
-//             context,
-//             MaterialPageRoute(builder: (context) => const StudentDashboardPage()),
-//           );
-//         }
-//       },
-//       items: const [
-//         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
-//         BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'MY COURSES'),
-//         BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'INBOX'),
-//         BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'SCHEDULE'),
-//         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE'),
-//       ],
-//     );
-//   }
-// }

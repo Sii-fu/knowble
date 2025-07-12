@@ -82,6 +82,8 @@ flutter:
     - assets/images/gd1.jpg
     - assets/images/gd2.jpg
     - assets/images/web.png
+    - assets/images/
+    - assets/medal.png
     # Add other images as needed
 
   # An image asset can refer to one or more resolution-specific "variants", see
