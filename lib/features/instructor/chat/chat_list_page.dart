@@ -12,7 +12,7 @@ class ChatListPage extends StatefulWidget {
 }
 
 class _ChatListPageState extends State<ChatListPage> {
-  List<dynamic>? _chats;
+  Map<String, List<dynamic>> _groupedChats = {};
   bool _loading = true;
   String? _error;
 
@@ -30,8 +30,23 @@ class _ChatListPageState extends State<ChatListPage> {
       if (userId == null) throw Exception('Not logged in');
       final response = await Supabase.instance.client.rpc('get_student_chats', params: {'student_uuid': userId});
       if (!mounted) return;
+      
+      // Group chats by course title
+      final chats = response as List<dynamic>?;
+      final Map<String, List<dynamic>> grouped = {};
+      
+      if (chats != null) {
+        for (final chat in chats) {
+          final courseTitle = chat['course_title'] as String? ?? 'Unknown Course';
+          if (!grouped.containsKey(courseTitle)) {
+            grouped[courseTitle] = [];
+          }
+          grouped[courseTitle]!.add(chat);
+        }
+      }
+      
       setState(() {
-        _chats = response as List<dynamic>?;
+        _groupedChats = grouped;
         _loading = false;
       });
     } catch (e) {
@@ -66,98 +81,141 @@ class _ChatListPageState extends State<ChatListPage> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Chats'),
-          backgroundColor: theme.appBarTheme.backgroundColor,
-          foregroundColor: theme.appBarTheme.foregroundColor,
-          elevation: theme.appBarTheme.elevation,
+          backgroundColor: AppTheme.instructorPrimary,
+          foregroundColor: AppTheme.surfaceWhite,
+          elevation: 0,
         ),
-        backgroundColor: theme.scaffoldBackgroundColor,
+        backgroundColor: AppTheme.instructorbg,
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.instructorPrimary))
             : _error != null
                 ? Center(child: Text('Error: $_error', style: TextStyle(color: AppTheme.errorRed)))
-                : (_chats == null || _chats!.isEmpty)
+                : _groupedChats.isEmpty
                     ? Center(child: Text('No messages yet', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary)))
-                    : ListView.separated(
+                    : ListView.builder(
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                        itemCount: _chats!.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final chat = _chats![index];
-                          final courseId = chat['course_id'] as String?;
-                          final instructorId = chat['instructor_id'] as String?;
-                          final courseTitle = chat['course_title'] as String? ?? '';
-                          final instructorName = chat['instructor_name'] as String? ?? '';
-                          final profileImage = chat['instructor_profile_url'] as String?;
-                          final lastMessage = chat['last_message'] as String? ?? '';
-                          final lastTimestamp = chat['last_timestamp'] as String?;
-                          final dt = lastTimestamp != null ? DateTime.tryParse(lastTimestamp) : null;
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: AppTheme.accentLight,
-                              backgroundImage: (profileImage != null && profileImage.isNotEmpty)
-                                  ? NetworkImage(profileImage)
-                                  : null,
-                              child: (profileImage == null || profileImage.isEmpty)
-                                  ? Icon(Icons.person, color: AppTheme.primaryTeal)
-                                  : null,
-                            ),
-                            title: Text(
-                              instructorName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: AppTheme.primaryTeal,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  courseTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                        itemCount: _groupedChats.keys.length,
+                        itemBuilder: (context, courseIndex) {
+                          final courseTitle = _groupedChats.keys.elementAt(courseIndex);
+                          final courseChats = _groupedChats[courseTitle]!;
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Course Header
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.instructorPrimary,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                Text(
-                                  lastMessage,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                            trailing: Text(
-                              _formatTimestamp(dt),
-                              style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal),
-                            ),
-                            onTap: () {
-                              final user = Supabase.instance.client.auth.currentUser;
-                              if (user == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Session expired. Please log in again.')),
-                                );
-                                // Optionally, redirect to login page here
-                                return;
-                              }
-                              if (courseId != null && instructorId != null) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => ChatDetailPage(
-                                      courseId: courseId,
-                                      receiverId: instructorId,
-                                      instructorName: instructorName,
-                                      courseCode: courseTitle,
-                                      profileImage: profileImage,
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.school, color: AppTheme.surfaceWhite, size: 16),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        courseTitle,
+                                        style: const TextStyle(
+                                          color: AppTheme.surfaceWhite,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
                                     ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.surfaceWhite.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '${courseChats.length}',
+                                        style: const TextStyle(
+                                          color: AppTheme.surfaceWhite,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Chats for this course
+                              ...courseChats.asMap().entries.map((entry) {
+                                final chat = entry.value;
+                                final courseId = chat['course_id'] as String?;
+                                final instructorId = chat['instructor_id'] as String?;
+                                final instructorName = chat['instructor_name'] as String? ?? '';
+                                final profileImage = chat['instructor_profile_url'] as String?;
+                                final lastMessage = chat['last_message'] as String? ?? '';
+                                final lastTimestamp = chat['last_timestamp'] as String?;
+                                final dt = lastTimestamp != null ? DateTime.tryParse(lastTimestamp) : null;
+                                
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  child: ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: AppTheme.instructorAccent,
+                                      backgroundImage: (profileImage != null && profileImage.isNotEmpty)
+                                          ? NetworkImage(profileImage)
+                                          : null,
+                                      child: (profileImage == null || profileImage.isEmpty)
+                                          ? Icon(Icons.person, color: AppTheme.instructorPrimary)
+                                          : null,
+                                    ),
+                                    title: Text(
+                                      instructorName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        color: AppTheme.instructorPrimary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      lastMessage,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                    trailing: Text(
+                                      _formatTimestamp(dt),
+                                      style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.instructorPrimary),
+                                    ),
+                                    onTap: () {
+                                      final user = Supabase.instance.client.auth.currentUser;
+                                      if (user == null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Session expired. Please log in again.')),
+                                        );
+                                        return;
+                                      }
+                                      if (courseId != null && instructorId != null) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ChatDetailPage(
+                                              courseId: courseId,
+                                              receiverId: instructorId,
+                                              instructorName: instructorName,
+                                              courseCode: courseTitle,
+                                              profileImage: profileImage,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    tileColor: AppTheme.surfaceWhite,
                                   ),
                                 );
-                              }
-                            },
-                            contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            tileColor: AppTheme.surfaceWhite,
+                              }),
+                              const SizedBox(height: 16),
+                            ],
                           );
                         },
                       ),
@@ -165,3 +223,4 @@ class _ChatListPageState extends State<ChatListPage> {
     );
   }
 }
+  

@@ -27,9 +27,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   void initState() {
     super.initState();
     // Initialize with default values
-    _lessonNameController.text = 'High School Algebra I: Help and Review';
-    _chapterController.text = 'Algebraic Equations and Expressions';
-    _lesson1Controller.text = 'What is the Correct Setup to Solve Math Problems?: Writing Arith...';
+    _lessonNameController.text = '';
+    _chapterController.text = '';
+    _lesson1Controller.text = '';
   }
 
   @override
@@ -321,6 +321,35 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: InkWell(
+                onTap: () => _handleMediaUpload('Lesson 1'),
+                borderRadius: BorderRadius.circular(8),
+                child: const Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.upload, color: Colors.grey),
+                      SizedBox(width: 8),
+                      Text(
+                        'Add Media',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -163,16 +163,16 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          backgroundColor: theme.appBarTheme.backgroundColor,
-          foregroundColor: theme.appBarTheme.foregroundColor,
-          elevation: theme.appBarTheme.elevation,
+          backgroundColor: AppTheme.instructorPrimary,
+          foregroundColor: AppTheme.surfaceWhite,
+          elevation: 0,
           title: Row(
             children: [
               CircleAvatar(
                 radius: 18,
                 backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
-                backgroundColor: AppTheme.accentLight,
-                child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.primaryTeal) : null,
+                child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.instructorPrimary) : null,
+                backgroundColor: AppTheme.surfaceWhite,
               ),
               const SizedBox(width: 12),
               Column(
@@ -181,13 +181,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   Text(
                     widget.instructorName,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppTheme.primaryTeal,
+                      color: AppTheme.surfaceWhite,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   Text(
                     widget.courseCode,
-                    style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal),
+                    style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.surfaceWhite),
                   ),
                 ],
               ),
@@ -216,8 +216,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                           padding: const EdgeInsets.only(right: 6),
                           child: CircleAvatar(
                             radius: 14,
-                            backgroundColor: AppTheme.accentLight,
-                            child: Text(initials, style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal)),
+                            backgroundColor: AppTheme.instructorAccent,
+                            child: Text(initials, style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.instructorPrimary)),
                           ),
                         ),
                       Flexible(
@@ -249,7 +249,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                           hintText: 'Type a message...',
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           filled: true,
-                          fillColor: AppTheme.accentLight,
+                          fillColor: const Color.fromARGB(255, 241, 249, 255),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
                             borderSide: BorderSide.none,
@@ -264,10 +264,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         ? const SizedBox(
                             width: 32,
                             height: 32,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryTeal),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.instructorPrimary),
                           )
                         : IconButton(
-                            icon: const Icon(Icons.send, color: AppTheme.primaryTeal),
+                            icon: const Icon(Icons.send, color: AppTheme.instructorPrimary),
                             onPressed: _sendMessage,
                           ),
                   ],
@@ -297,7 +297,7 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor = isMe ? AppTheme.accentLight : AppTheme.surfaceWhite;
+    final bubbleColor = isMe ? AppTheme.instructorAccent : AppTheme.surfaceWhite;
     final align = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final radius = isMe
         ? const BorderRadius.only(
@@ -338,7 +338,7 @@ class ChatBubble extends StatelessWidget {
                 if (!isMe && sender != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 2),
-                    child: Text(sender!, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal)),
+                    child: Text(sender!, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.instructorPrimary)),
                   ),
                 Text(
                   text,
@@ -350,7 +350,7 @@ class ChatBubble extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             timeago.format(timestamp),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.instructorPrimary),
           ),
         ],
       ),

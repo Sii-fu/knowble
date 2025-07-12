@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'teacher_navbar.dart';
 
-class InstructorProfilePage2 extends StatelessWidget {
+class InstructorProfilePage2 extends StatefulWidget {
   const InstructorProfilePage2({super.key});
+
+  @override
+  State<InstructorProfilePage2> createState() => _InstructorProfilePage2State();
+}
+
+class _InstructorProfilePage2State extends State<InstructorProfilePage2> {
+  int _selectedIndex = 3;
 
   Future<void> _logout(BuildContext context) async {
     try {
@@ -28,85 +36,111 @@ class InstructorProfilePage2 extends StatelessWidget {
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            // Profile Image
-            CircleAvatar(
-              radius: 48,
-              backgroundImage: AssetImage('assets/Profile 2 (teacher).jpg'),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Samuel Prince',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '@samuel.prince123',
-              style: TextStyle(color: Colors.grey, fontSize: 15),
-            ),
-            const SizedBox(height: 40),
-            // Tabs
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/instructor_profile_page');
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40),
+                    // Profile Image
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundImage: AssetImage('assets/Profile 2 (teacher).jpg'),
                     ),
-                  ),
-                  child: const Text(
-                    'General',
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                TextButton(
-                  onPressed: null, // Disabled because this is the current page
-                  style: TextButton.styleFrom(
-                    backgroundColor: Color(0xFF5271FF),
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Samuel Prince',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  child: const Text(
-                    'Badges',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            // Badges List
-            _badgeItem('Good Teacher', 'Awarded for consistently high student ratings and positive feedback.'),
-            _badgeItem('Patient', 'Recognized for taking time to help every student understand.'),
-            _badgeItem('Responsive', 'Quick to answer questions and provide support.'),
-            _badgeItem('Story Teller', 'Engages students with creative and memorable lessons.'),
-            _badgeItem('Famous', 'Popular among students and faculty for outstanding teaching.'),
-            const SizedBox(height: 40),
-            // Log out
-            TextButton(
-              onPressed: () => _logout(context),
-              child: const Text(
-                'LOG OUT',
-                style: TextStyle(
-                  color: Color(0xFF5271FF),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                    const SizedBox(height: 4),
+                    const Text(
+                      '@samuel.prince123',
+                      style: TextStyle(color: Colors.grey, fontSize: 15),
+                    ),
+                    const SizedBox(height: 40),
+                    // Tabs
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              PageRouteBuilder(
+                                pageBuilder: (_, __, ___) => Navigator.of(context).widget,
+                                transitionDuration: Duration.zero,
+                                reverseTransitionDuration: Duration.zero,
+                              ),
+                            );
+                            Navigator.pushNamed(context, '/instructor_profile_page');
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'General',
+                            style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        TextButton(
+                          onPressed: null, // Disabled because this is the current page
+                          style: TextButton.styleFrom(
+                            backgroundColor: Color(0xFF5271FF),
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Badges',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    // Badges List
+                    _badgeItem('Good Teacher', 'Awarded for consistently high student ratings and positive feedback.'),
+                    _badgeItem('Patient', 'Recognized for taking time to help every student understand.'),
+                    _badgeItem('Responsive', 'Quick to answer questions and provide support.'),
+                    _badgeItem('Story Teller', 'Engages students with creative and memorable lessons.'),
+                    _badgeItem('Famous', 'Popular among students and faculty for outstanding teaching.'),
+                    const Spacer(),
+                    // Log out
+                    TextButton(
+                      onPressed: () => _logout(context),
+                      child: const Text(
+                        'LOG OUT',
+                        style: TextStyle(
+                          color: Color(0xFF5271FF),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
+          ),
         ),
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+          // Add navigation logic if needed
+        },
       ),
     );
   }
