@@ -120,8 +120,8 @@ class CourseScreen extends StatelessWidget {
             ),
           );
         },
-        backgroundColor: AppTheme.primaryTeal,
-        foregroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppTheme.instructorPrimary,
+        foregroundColor: AppTheme.instructorAccent,
         elevation: 8,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),

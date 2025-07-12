@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/theme.dart';
-import 'teacher_navbar.dart';
-import 'home_teacher.dart';
-import 'course_screen.dart';
 
 class InstructorProfilePage extends StatefulWidget {
   const InstructorProfilePage({super.key});
@@ -13,27 +10,6 @@ class InstructorProfilePage extends StatefulWidget {
 }
 
 class _InstructorProfilePageState extends State<InstructorProfilePage> {
-  int _selectedIndex = 3;
-
-  void _onTabSelected(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const TeacherHomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const CourseScreen()),
-      );
-    } else if (index == 3) {
-      // Already on profile
-    }
-  }
-
   Future<void> _logout(BuildContext context) async {
     try {
       await Supabase.instance.client.auth.signOut();
@@ -85,7 +61,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                 TextButton(
                   onPressed: null, // Disabled because this is the current page
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue[400],
+                    backgroundColor: AppTheme.instructorPrimary,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -102,7 +78,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                     Navigator.pushReplacementNamed(context, '/instructor_profile_page2');
                   },
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue[50],
+                    backgroundColor: AppTheme.instructorAccent,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -130,7 +106,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
               child: const Text(
                 'LOG OUT',
                 style: TextStyle(
-                  color: Colors.blue,
+                  color: AppTheme.instructorPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -151,10 +127,10 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: AppTheme.instructorAccent,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Colors.blue[400], size: 22),
+            child: Icon(icon, color: AppTheme.instructorPrimary, size: 22),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -175,7 +151,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
           else
             TextButton(
               onPressed: onEdit,
-              child: const Text('Edit', style: TextStyle(color: Colors.blue)),
+              child: const Text('Edit', style: TextStyle(color: AppTheme.instructorPrimary)),
             ),
         ],
       ),
