@@ -1,4 +1,7 @@
+
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:knowble_app/core/services/Instructor/course_service.dart';
 
 class CreateCourseScreen extends StatefulWidget {
   const CreateCourseScreen({super.key});
@@ -8,10 +11,18 @@ class CreateCourseScreen extends StatefulWidget {
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
-  final TextEditingController _lessonNameController = TextEditingController();
+  final CourseService _courseService = CourseService();
+  final TextEditingController _courseNameController = TextEditingController();
+  final TextEditingController _courseDescriptionController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _durationDaysController = TextEditingController();
   final TextEditingController _chapterController = TextEditingController();
+  final TextEditingController _chapterNameController = TextEditingController();
   final TextEditingController _lesson1Controller = TextEditingController();
-  
+  final TextEditingController _lessonCountController = TextEditingController();
+  List<TextEditingController> _lessonControllers = [];
+  List<TextEditingController> _lessonDescriptionControllers = [];
+
   String selectedLessonCount = '4 Lesson';
   
   final List<String> lessonCounts = [
@@ -26,18 +37,36 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize with default values
-    _lessonNameController.text = '';
+    _courseNameController.text = '';
+    _courseDescriptionController.text = '';
+    _priceController.text = '';
+    _durationDaysController.text = '';
     _chapterController.text = '';
+    _chapterNameController.text = '';
     _lesson1Controller.text = '';
+    _lessonCountController.text = '';
+    _updateLessonControllers();
   }
 
-  @override
-  void dispose() {
-    _lessonNameController.dispose();
-    _chapterController.dispose();
-    _lesson1Controller.dispose();
-    super.dispose();
+  void _updateLessonControllers() {
+    int lessonCount = int.tryParse(selectedLessonCount.split(' ')[0]) ?? 4;
+    // Add lesson title controllers
+    if (_lessonControllers.length < lessonCount) {
+      for (int i = _lessonControllers.length; i < lessonCount; i++) {
+        _lessonControllers.add(TextEditingController());
+      }
+    } else if (_lessonControllers.length > lessonCount) {
+      _lessonControllers = _lessonControllers.sublist(0, lessonCount);
+    }
+    // Add lesson description controllers
+    if (_lessonDescriptionControllers.length < lessonCount) {
+      for (int i = _lessonDescriptionControllers.length; i < lessonCount; i++) {
+        _lessonDescriptionControllers.add(TextEditingController());
+      }
+    } else if (_lessonDescriptionControllers.length > lessonCount) {
+      _lessonDescriptionControllers = _lessonDescriptionControllers.sublist(0, lessonCount);
+    }
+    setState(() {});
   }
 
   void _showSuccessDialog(String message) {
@@ -116,16 +145,78 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     );
   }
 
-  void _handleMediaUpload(String lessonName) {
-    _showSuccessDialog('$lessonName media uploaded successfully!');
+
+  Future<void> _handleMediaUpload(String lessonName) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null && result.files.isNotEmpty) {
+      // You can access the selected file using result.files.first
+      // For now, just show a success dialog with the file name
+      String fileName = result.files.first.name;
+      _showSuccessDialog('$lessonName: "$fileName" selected successfully!');
+    } else {
+      // User canceled the picker
+    }
   }
 
   void _handleQuestionUpload() {
     _showSuccessDialog('Question uploaded successfully!');
   }
 
-  void _handleFinalUpload() {
-    _showSuccessDialog('Course created and uploaded successfully!');
+  Future<void> _handleFinalUpload() async {
+    final title = _courseNameController.text.trim();
+    final description = _courseDescriptionController.text.trim();
+    final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final durationDays = int.tryParse(_durationDaysController.text.trim()) ?? 0;
+    final chapterOrder = int.tryParse(_chapterController.text.trim()) ?? 1;
+    final chapterName = _chapterNameController.text.trim();
+    final lessonCount = _lessonControllers.length;
+
+    if (title.isEmpty || chapterName.isEmpty) {
+      _showSuccessDialog('Course name and chapter name are required.');
+      return;
+    }
+
+    try {
+      // 1. Insert course
+      final courseId = await _courseService.createCourse(
+        title: title,
+        description: description,
+        price: price,
+        durationDays: durationDays,
+      );
+      if (courseId == null) {
+        _showSuccessDialog('Failed to create course.');
+        return;
+      }
+
+      // 2. Insert module (chapter)
+      final moduleId = await _courseService.createModule(
+        courseId: courseId,
+        title: chapterName,
+        order: chapterOrder,
+      );
+      if (moduleId == null) {
+        _showSuccessDialog('Failed to create module.');
+        return;
+      }
+
+      // 3. Insert sections (lessons)
+      for (int i = 0; i < lessonCount; i++) {
+        final lessonTitle = _lessonControllers[i].text.trim();
+        final lessonDescription = _lessonDescriptionControllers[i].text.trim();
+        if (lessonTitle.isEmpty) continue;
+        await _courseService.createSection(
+          moduleId: moduleId,
+          title: lessonTitle,
+          order: i + 1,
+          description: lessonDescription,
+        );
+      }
+
+      _showSuccessDialog('Course created and uploaded successfully!');
+    } catch (e) {
+      _showSuccessDialog('Error: ${e.toString()}');
+    }
   }
 
   @override
@@ -154,9 +245,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Lesson Name Section
+            // Course Name
             const Text(
-              'Lesson Name',
+              'Course Name',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -171,7 +262,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 border: Border.all(color: Colors.grey[300]!),
               ),
               child: TextField(
-                controller: _lessonNameController,
+                controller: _courseNameController,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
@@ -182,13 +273,106 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            // Course Description
+            const Text(
+              'Course Description',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: TextField(
+                controller: _courseDescriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Price
+            const Text(
+              'Price',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: TextField(
+                controller: _priceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                  hintText: 'Enter price',
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Duration (days)
+            const Text(
+              'Duration (days)',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: TextField(
+                controller: _durationDaysController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                  hintText: 'Enter duration in days',
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
-            
             // Chapter and Lesson Row
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // Chapter Section
-                Expanded(
+                SizedBox(
+                  width: 120,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -202,16 +386,21 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[300]!),
                         ),
-                        child: const Text(
-                          '1 Chapter',
-                          style: TextStyle(
-                            fontSize: 16,
+                        child: TextField(
+                          controller: _chapterController,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            hintText: 'Chapter 1',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 15,
                             color: Colors.black87,
                           ),
                         ),
@@ -219,9 +408,21 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.add, color: Colors.blue),
+                  padding: const EdgeInsets.only(left: 0, right: 4, bottom: 8),
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CreateCourseScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
                 // Lesson Section
-                Expanded(
+                SizedBox(
+                  width: 120,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -235,27 +436,32 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       ),
                       const SizedBox(height: 8),
                       Container(
+                        height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.grey[300]!),
                         ),
-                        child: DropdownButtonFormField<String>(
-                          value: selectedLessonCount,
+                        child: TextField(
+                          controller: _lessonCountController,
+                          keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            hintText: 'Number',
                           ),
-                          items: lessonCounts.map((String count) {
-                            return DropdownMenuItem<String>(
-                              value: count,
-                              child: Text(count),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              selectedLessonCount = newValue!;
-                            });
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.black87,
+                          ),
+                          onChanged: (value) {
+                            int lessonCount = int.tryParse(value) ?? 0;
+                            if (lessonCount > 0) {
+                              setState(() {
+                                selectedLessonCount = '$lessonCount Lesson';
+                                _updateLessonControllers();
+                              });
+                            }
                           },
                         ),
                       ),
@@ -264,11 +470,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            
-            // Chapter Text Field
+            const SizedBox(height: 24),
+            // Chapter Name
             const Text(
-              'Chapter',
+              'Chapter Name',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -283,7 +488,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 border: Border.all(color: Colors.grey[300]!),
               ),
               child: TextField(
-                controller: _chapterController,
+                controller: _chapterNameController,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.all(16),
@@ -295,185 +500,89 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            
-            // Lesson 1
-            const Text(
-              'Lesson 1',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: TextField(
-                controller: _lesson1Controller,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
+            // Dynamic Lesson Fields
+            for (int i = 0; i < _lessonControllers.length; i++) ...[
+              Text(
+                'Lesson ${i + 1}',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: InkWell(
-                onTap: () => _handleMediaUpload('Lesson 1'),
-                borderRadius: BorderRadius.circular(8),
-                child: const Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text(
-                        'Add Media',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: TextField(
+                  controller: _lessonControllers[i],
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(16),
+                    hintText: 'Lesson Title',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Lesson 2
-            const Text(
-              'Lesson 2',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: InkWell(
-                onTap: () => _handleMediaUpload('Lesson 2'),
-                borderRadius: BorderRadius.circular(8),
-                child: const Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text(
-                        'Add Media',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
+              const SizedBox(height: 8),
+              // Lesson Description Field
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: TextField(
+                  controller: _lessonDescriptionControllers[i],
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(16),
+                    hintText: 'Lesson Description',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Lesson 3
-            const Text(
-              'Lesson 3',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: InkWell(
-                onTap: () => _handleMediaUpload('Lesson 3'),
-                borderRadius: BorderRadius.circular(8),
-                child: const Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text(
-                        'Add Media',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
+              const SizedBox(height: 12),
+              Container(
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: InkWell(
+                  onTap: () => _handleMediaUpload('Lesson ${i + 1}'),
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.upload, color: Colors.grey),
+                        SizedBox(width: 8),
+                        Text(
+                          'Add Media',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Lesson 4
-            const Text(
-              'Lesson 4',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: InkWell(
-                onTap: () => _handleMediaUpload('Lesson 4'),
-                borderRadius: BorderRadius.circular(8),
-                child: const Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text(
-                        'Add Media',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 20),
+            ],
             
             // Question Section (Additional as requested)
             const Text(
