@@ -57,8 +57,15 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
     _loadRemindersForDate(selectedDate); // Load reminders when screen opens
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   // Load reminders for a specific date using ReminderService
   Future<void> _loadRemindersForDate(DateTime date) async {
+    if (!mounted) return; // Check if widget is still mounted
     setState(() {
       _isLoading = true; // Show loading state
       _errorMessage = null; // Clear any previous errors
@@ -68,6 +75,7 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
       // Fetch reminders from Supabase using ReminderService
       final reminders = await ReminderService.getRemindersForDate(date);
 
+      if (!mounted) return; // Check if widget is still mounted after async operation
       setState(() {
         _reminders = reminders; // Update reminders list
         _isLoading = false; // Hide loading state
@@ -79,6 +87,7 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
       );
     } catch (e) {
       // Handle errors gracefully
+      if (!mounted) return; // Check if widget is still mounted before setState
       setState(() {
         _errorMessage = 'Failed to load tasks. Please try again.';
         _isLoading = false;
@@ -90,6 +99,7 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
   }
 
   void _onDateSelected(DateTime date) {
+    if (!mounted) return; // Check if widget is still mounted
     setState(() {
       selectedDate = date;
     });
@@ -102,6 +112,7 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
             as DateTime?;
 
     if (selectedDateFromCalendar != null) {
+      if (!mounted) return; // Check if widget is still mounted after navigation
       setState(() {
         selectedDate = selectedDateFromCalendar;
       });

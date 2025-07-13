@@ -74,6 +74,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         .eq('course_id', widget.courseId)
         .or('sender_id.eq.$userId,receiver_id.eq.$userId')
         .order('timestamp', ascending: true);
+    
+    if (!mounted) return; // Check if widget is still mounted
     setState(() {
       _messages = List<Map<String, dynamic>>.from(data);
     });
@@ -81,31 +83,30 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   void _subscribeToRealtime() {
-  final userId = _currentUserId;
-  if (userId == null) return;
+    final userId = _currentUserId;
+    if (userId == null) return;
 
-  _realtimeChannel = Supabase.instance.client
-      .channel('realtime:public:chats') // ✅ Fix this line!
-      .onPostgresChanges(
-        event: PostgresChangeEvent.insert,
-        schema: 'public',
-        table: 'chats',
-        callback: (payload) {
-          final newMsg = payload.newRecord;
+    _realtimeChannel = Supabase.instance.client
+        .channel('realtime:public:chats')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'chats',
+          callback: (payload) {
+            final newMsg = payload.newRecord;
 
-          // print("📡 New realtime message received: $newMsg");
-
-          if (newMsg['course_id'] == widget.courseId &&
-              (newMsg['sender_id'] == userId || newMsg['receiver_id'] == userId)) {
-            setState(() {
-              _messages.add(Map<String, dynamic>.from(newMsg));
-            });
-            _scrollToBottom();
-          }
-        },
-      )
-      .subscribe();
-}
+            if (newMsg['course_id'] == widget.courseId &&
+                (newMsg['sender_id'] == userId || newMsg['receiver_id'] == userId)) {
+              if (!mounted) return; // Check if widget is still mounted
+              setState(() {
+                _messages.add(Map<String, dynamic>.from(newMsg));
+              });
+              _scrollToBottom();
+            }
+          },
+        )
+        .subscribe();
+  }
 
 
   void _scrollToBottom({bool animate = true}) {
@@ -128,9 +129,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _sending || _currentUserId == null) return;
+    
+    if (!mounted) return; // Check if widget is still mounted
     setState(() { _sending = true; });
+    
     try {
-      
       await Supabase.instance.client.from('chats').insert({
         'course_id': widget.courseId,
         'sender_id': _currentUserId,
@@ -138,19 +141,23 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         'message': text,
         'timestamp': DateTime.now().toIso8601String(),
       });
-      // await _loadMessages(); // reload messages
       _controller.clear();
       
       // Keep focus on text field after sending
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        FocusScope.of(context).requestFocus(_textFieldFocus);
+        if (mounted) { // Check before accessing context
+          FocusScope.of(context).requestFocus(_textFieldFocus);
+        }
       });
       
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send: ${e.toString()}')),
-      );
+      if (mounted) { // Check before showing SnackBar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send: ${e.toString()}')),
+        );
+      }
     } finally {
+      if (!mounted) return; // Check if widget is still mounted
       setState(() { _sending = false; });
     }
   }
