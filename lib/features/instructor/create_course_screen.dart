@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:knowble_app/core/services/Instructor/course_service.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 
 class CreateCourseScreen extends StatefulWidget {
   const CreateCourseScreen({super.key});
@@ -21,7 +23,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final TextEditingController _lesson1Controller = TextEditingController();
   final TextEditingController _lessonCountController = TextEditingController();
   List<TextEditingController> _lessonControllers = [];
-  List<TextEditingController> _lessonDescriptionControllers = [];
+
+  // Store picked PDF info for each lesson: { 'path': ..., 'bytes': ..., 'name': ... }
+  List<Map<String, dynamic>?> _lessonPdfInfos = [];
 
   String selectedLessonCount = '4 Lesson';
   
@@ -50,7 +54,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   void _updateLessonControllers() {
     int lessonCount = int.tryParse(selectedLessonCount.split(' ')[0]) ?? 4;
-    // Add lesson title controllers
     if (_lessonControllers.length < lessonCount) {
       for (int i = _lessonControllers.length; i < lessonCount; i++) {
         _lessonControllers.add(TextEditingController());
@@ -58,13 +61,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     } else if (_lessonControllers.length > lessonCount) {
       _lessonControllers = _lessonControllers.sublist(0, lessonCount);
     }
-    // Add lesson description controllers
-    if (_lessonDescriptionControllers.length < lessonCount) {
-      for (int i = _lessonDescriptionControllers.length; i < lessonCount; i++) {
-        _lessonDescriptionControllers.add(TextEditingController());
+    // Keep _lessonPdfPaths in sync
+    if (_lessonPdfInfos.length < lessonCount) {
+      for (int i = _lessonPdfInfos.length; i < lessonCount; i++) {
+        _lessonPdfInfos.add(null);
       }
-    } else if (_lessonDescriptionControllers.length > lessonCount) {
-      _lessonDescriptionControllers = _lessonDescriptionControllers.sublist(0, lessonCount);
+    } else if (_lessonPdfInfos.length > lessonCount) {
+      _lessonPdfInfos = _lessonPdfInfos.sublist(0, lessonCount);
     }
     setState(() {});
   }
@@ -146,15 +149,25 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   }
 
 
-  Future<void> _handleMediaUpload(String lessonName) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
+  Future<void> _handlePdfUpload(int lessonIndex) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
     if (result != null && result.files.isNotEmpty) {
-      // You can access the selected file using result.files.first
-      // For now, just show a success dialog with the file name
-      String fileName = result.files.first.name;
-      _showSuccessDialog('$lessonName: "$fileName" selected successfully!');
-    } else {
-      // User canceled the picker
+      final file = result.files.single;
+      Map<String, dynamic> pdfInfo = {
+        'name': file.name,
+      };
+      if (kIsWeb) {
+        pdfInfo['bytes'] = file.bytes;
+      } else {
+        pdfInfo['path'] = file.path;
+      }
+      setState(() {
+        if (_lessonPdfInfos.length <= lessonIndex) {
+          _lessonPdfInfos.length = lessonIndex + 1;
+        }
+        _lessonPdfInfos[lessonIndex] = pdfInfo;
+      });
+      _showSuccessDialog('Lesson ${lessonIndex + 1}: PDF selected successfully!');
     }
   }
 
@@ -201,16 +214,54 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       }
 
       // 3. Insert sections (lessons)
+      List<String?> sectionIds = [];
       for (int i = 0; i < lessonCount; i++) {
         final lessonTitle = _lessonControllers[i].text.trim();
-        final lessonDescription = _lessonDescriptionControllers[i].text.trim();
-        if (lessonTitle.isEmpty) continue;
-        await _courseService.createSection(
+        if (lessonTitle.isEmpty) {
+          sectionIds.add(null);
+          continue;
+        }
+        final sectionId = await _courseService.createSection(
           moduleId: moduleId,
           title: lessonTitle,
           order: i + 1,
-          description: lessonDescription,
         );
+        sectionIds.add(sectionId);
+      }
+
+      // 4. Insert PDF content for each lesson if selected
+      for (int i = 0; i < lessonCount; i++) {
+        final pdfInfo = i < _lessonPdfInfos.length ? _lessonPdfInfos[i] : null;
+        final sectionId = sectionIds[i];
+        if (pdfInfo != null && sectionId != null) {
+          String? publicUrl;
+          if (kIsWeb && pdfInfo['bytes'] != null) {
+            publicUrl = await _courseService.uploadPdfToStorage(
+              bytes: pdfInfo['bytes'],
+              fileName: pdfInfo['name'],
+            );
+          } else if (!kIsWeb && pdfInfo['path'] != null) {
+            publicUrl = await _courseService.uploadPdfToStorage(
+              filePath: pdfInfo['path'],
+              fileName: pdfInfo['name'],
+            );
+          }
+          if (publicUrl == null) {
+            print('PDF upload failed for lesson $i');
+            _showSuccessDialog('PDF upload failed for lesson ${i + 1}');
+            continue;
+          }
+          final contentId = await _courseService.createContent(
+            sectionId: sectionId,
+            type: 'pdf',
+            url: publicUrl,
+            order: 1,
+          );
+          if (contentId == null) {
+            print('Failed to insert content for lesson $i');
+            _showSuccessDialog('Failed to insert content for lesson ${i + 1}');
+          }
+        }
       }
 
       _showSuccessDialog('Course created and uploaded successfully!');
@@ -231,7 +282,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Create New Chapter',
+          'Create New Course',
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -530,28 +581,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              // Lesson Description Field
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: TextField(
-                  controller: _lessonDescriptionControllers[i],
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
-                    hintText: 'Lesson Description',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
               const SizedBox(height: 12),
               Container(
                 height: 60,
@@ -561,18 +590,18 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: InkWell(
-                  onTap: () => _handleMediaUpload('Lesson ${i + 1}'),
+                  onTap: () => _handlePdfUpload(i),
                   borderRadius: BorderRadius.circular(8),
-                  child: const Center(
+                  child: Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.upload, color: Colors.grey),
-                        SizedBox(width: 8),
+                        Icon(Icons.picture_as_pdf, color: Colors.red[400]),
+                        const SizedBox(width: 8),
                         Text(
-                          'Add Media',
+                          _lessonPdfInfos[i] != null ? 'PDF Selected' : 'Upload PDF',
                           style: TextStyle(
-                            color: Colors.grey,
+                            color: _lessonPdfInfos[i] != null ? Colors.red[400] : Colors.grey,
                             fontSize: 16,
                           ),
                         ),
