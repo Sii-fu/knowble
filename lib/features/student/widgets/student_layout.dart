@@ -26,6 +26,7 @@ class _StudentLayoutState extends State<StudentLayout> {
     ChatListPage(),
     CalendarDashboard(),
     StudentProfilePage(),
+    OngoingCoursesPage(),
   ];
 
   void _onNavTap(int index) {
