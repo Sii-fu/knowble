@@ -1,10 +1,39 @@
-import 'package:flutter/material.dart';
-import 'course_detail_screen.dart';
-import 'create_course_screen.dart';
-import '../../config/theme.dart';
 
-class CourseScreen extends StatelessWidget {
+
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'course_detail_screen.dart'; // Ensure this path is correct
+import '../../config/theme.dart';
+import '../../core/services/Instructor/course_service.dart';
+
+
+class CourseScreen extends StatefulWidget {
   const CourseScreen({super.key});
+
+  @override
+  State<CourseScreen> createState() => _CourseScreenState();
+}
+
+class _CourseScreenState extends State<CourseScreen> {
+  List<Map<String, dynamic>> _courses = [];
+  bool _loading = true;
+  final CourseService _courseService = CourseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourses();
+  }
+
+  Future<void> _fetchCourses() async {
+    setState(() => _loading = true);
+    final courses = await _courseService.fetchInstructorCourses();
+    setState(() {
+      _courses = courses;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,51 +95,33 @@ class CourseScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: ListView(
-                children: [
-                  CourseCard(
-                    subject: 'Biology',
-                    title: 'Bacterial Biology Overview',
-                    subtitle: 'for College',
-                    students: '2.4k Students',
-                    duration: '3h 30m',
-                    illustration: Icons.biotech,
-                  ),
-                  const SizedBox(height: 16),
-                  CourseCard(
-                    subject: 'Biology',
-                    title: 'Metabolic Biochemistry for High School',
-                    subtitle: '',
-                    students: '1k Students',
-                    duration: '2h 30m',
-                    illustration: Icons.science,
-                  ),
-                  const SizedBox(height: 16),
-                  CourseCard(
-                    subject: 'Biology',
-                    title: 'Mendelian Genetics & Mechanisms of Heredity',
-                    subtitle: '',
-                    students: '3k Students',
-                    duration: '2h 45m',
-                    illustration: Icons.psychology,
-                  ),
-                  const SizedBox(height: 16),
-                  CourseCard(
-                    subject: 'Mathematics',
-                    title: 'High School Algebra I: Help and Review',
-                    subtitle: '',
-                    students: '2.6k Students',
-                    duration: '4h 30m',
-                    illustration: Icons.calculate,
-                  ),
-                  const SizedBox(height: 80), // Extra space for floating button
-                ],
-              ),
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _courses.isEmpty
+                      ? const Center(child: Text('No courses found.'))
+                      : ListView.separated(
+                          itemCount: _courses.length,
+                          separatorBuilder: (context, idx) => const SizedBox(height: 16),
+                          itemBuilder: (context, idx) {
+                            final course = _courses[idx];
+                            return CourseCard(
+                              title: course['title'] ?? '',
+                              duration: course['duration_days'] != null ? '${course['duration_days']} days' : '',
+                              onView: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CourseDetailScreen(courseId: course['id']),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
             ),
           ],
         ),
       ),
-      // Floating Action Button - Updated to use app theme
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
@@ -118,7 +129,7 @@ class CourseScreen extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => const CreateCourseScreen(),
             ),
-          );
+          ).then((_) => _fetchCourses());
         },
         backgroundColor: AppTheme.instructorPrimary,
         foregroundColor: AppTheme.instructorAccent,
@@ -139,37 +150,19 @@ class CourseScreen extends StatelessWidget {
   }
 }
 
+
+
 class CourseCard extends StatelessWidget {
-  final String subject;
   final String title;
-  final String subtitle;
-  final String students;
   final String duration;
-  final IconData illustration;
+  final VoidCallback onView;
 
   const CourseCard({
     super.key,
-    required this.subject,
     required this.title,
-    required this.subtitle,
-    required this.students,
     required this.duration,
-    required this.illustration,
+    required this.onView,
   });
-
-  void _showCourseDetail(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CourseDetailScreen(
-        title: title,
-        subject: subject,
-        students: students,
-        duration: duration,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -187,156 +180,63 @@ class CourseCard extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left side - Illustration and subject tag
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.blue[600],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Stack(
-                  children: [
-                    // Background illustration
-                    Positioned.fill(
-                      child: Icon(
-                        illustration,
-                        color: Colors.white.withOpacity(0.3),
-                        size: 40,
-                      ),
-                    ),
-                    // Subject tag
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          subject,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Default picture
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.blue[100],
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 16),
-              // Middle - Course details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+              child: const Icon(Icons.menu_book, color: Colors.blue, size: 32),
+            ),
+            const SizedBox(width: 16),
+            // Course details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
-                    if (subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
                       Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        duration,
+                        style: const TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                     ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 4,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.people_outline,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              students,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              duration,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Right side - Action buttons
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton(
-                    onPressed: () => _showCourseDetail(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'View',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 16),
+            // View button
+            ElevatedButton(
+              onPressed: onView,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+              child: const Text('View'),
+            ),
+          ],
         ),
       ),
     );

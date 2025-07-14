@@ -9,6 +9,17 @@ class CourseService {
   final supabase = Supabase.instance.client;
   final uuid = const Uuid();
 
+  Future<List<Map<String, dynamic>>> fetchInstructorCourses() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return [];
+    final response = await supabase
+        .from('courses')
+        .select('id, title, duration_days')
+        .eq('instructor_id', user.id)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   Future<String?> uploadPdfToStorage({String? filePath, Uint8List? bytes, required String fileName}) async {
     dynamic response;
     if (kIsWeb) {
