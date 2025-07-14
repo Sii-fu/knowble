@@ -1,9 +1,9 @@
 
 
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'course_detail_screen.dart'; // Ensure this path is correct
+import 'create_course_screen.dart';
+import 'course_detail_screen.dart';
 import '../../config/theme.dart';
 import '../../core/services/Instructor/course_service.dart';
 
@@ -111,7 +111,12 @@ class _CourseScreenState extends State<CourseScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => CourseDetailScreen(courseId: course['id']),
+                                    builder: (context) => CourseDetailScreen(
+                                      title: course['title'] ?? '',
+                                      subject: course['subject']?.toString() ?? 'N/A',
+                                      students: course['students']?.toString() ?? '0',
+                                      duration: course['duration_days'] != null ? '${course['duration_days']} days' : '',
+                                    ),
                                   ),
                                 );
                               },
