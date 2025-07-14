@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../config/theme.dart';
 
 class CourseDetailPage extends StatelessWidget {
   const CourseDetailPage({super.key});
@@ -6,7 +7,7 @@ class CourseDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,9 +24,9 @@ class CourseDetailPage extends StatelessWidget {
                   top: 16,
                   left: 16,
                   child: CircleAvatar(
-                    backgroundColor: Colors.white,
+                    backgroundColor: AppTheme.surfaceWhite,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back),
+                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
                       onPressed: () {
                         Navigator.pop(context);
                       },
@@ -39,8 +40,8 @@ class CourseDetailPage extends StatelessWidget {
                   child: Center(
                     child: CircleAvatar(
                       radius: 30,
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.play_arrow, size: 30, color: Colors.black),
+                      backgroundColor: AppTheme.surfaceWhite,
+                      child: Icon(Icons.play_arrow, size: 30, color: AppTheme.primaryTeal),
                     ),
                   ),
                 )
@@ -53,23 +54,33 @@ class CourseDetailPage extends StatelessWidget {
                 children: [
                   Text(
                     'High School Algebra I: Help and Review',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18, 
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
                   SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Mathematics'),
+                      Text(
+                        'Mathematics',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
                       Row(
                         children: [
-                          Text('5/12'),
+                          Text(
+                            '5/12',
+                            style: TextStyle(color: AppTheme.textSecondary),
+                          ),
                           SizedBox(width: 8),
                           SizedBox(
                             width: 100,
                             child: LinearProgressIndicator(
                               value: 5 / 12,
-                              backgroundColor: Color.fromARGB(255, 224, 224, 224),
-                              color: Colors.teal,
+                              backgroundColor: AppTheme.borderSubtle,
+                              color: AppTheme.primaryTeal,
                             ),
                           ),
                         ],
@@ -77,16 +88,31 @@ class CourseDetailPage extends StatelessWidget {
                     ],
                   ),
                   SizedBox(height: 16),
-                  Text('Description', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Description', 
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
                   SizedBox(height: 6),
                   Text(
                     'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Habitasse dolor etiam sed ante donec quis sapien. Malesuada rhoncus nullam eleifend lorem egestas mauris massa massa.',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: AppTheme.textSecondary),
                   ),
                   SizedBox(height: 4),
-                  Text('More', style: TextStyle(color: Colors.teal)),
+                  Text(
+                    'More', 
+                    style: TextStyle(color: AppTheme.primaryTeal),
+                  ),
                   SizedBox(height: 16),
-                  Text('Next Chapter', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    'Next Chapter', 
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -102,7 +128,7 @@ class CourseDetailPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    backgroundColor: Colors.teal,
+                    backgroundColor: AppTheme.primaryTeal,
                   ),
                   onPressed: () {},
                   child: Row(
@@ -110,10 +136,13 @@ class CourseDetailPage extends StatelessWidget {
                     children: const [
                       Text(
                         'Start Course',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: AppTheme.surfaceWhite, 
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, color: Colors.white),
+                      Icon(Icons.arrow_forward, color: AppTheme.surfaceWhite),
                     ],
                   ),
                 ),
@@ -135,39 +164,57 @@ class ChapterList extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         const ListTile(
-          title: Text('Basic Arithmetic'),
-          trailing: Icon(Icons.add),
+          title: Text(
+            'Basic Arithmetic',
+            style: TextStyle(color: AppTheme.textPrimary),
+          ),
+          trailing: Icon(Icons.add, color: AppTheme.textSecondary),
         ),
         const ListTile(
-          title: Text('Solving Math Word Problems'),
-          trailing: Icon(Icons.remove),
+          title: Text(
+            'Solving Math Word Problems',
+            style: TextStyle(color: AppTheme.textPrimary),
+          ),
+          trailing: Icon(Icons.remove, color: AppTheme.textSecondary),
         ),
         LessonTile(title: 'Lesson 1: Solving Word Problems: Steps & Examples'),
         LessonTile(title: 'Lesson 2: Solving Word Problems with Multiple Steps'),
         LessonTile(title: 'Lesson 3: Restating Word Problems Using Words or Images'),
         const ListTile(
-          title: Text('Quiz'),
-          trailing: Icon(Icons.remove),
+          title: Text(
+            'Quiz',
+            style: TextStyle(color: AppTheme.textPrimary),
+          ),
+          trailing: Icon(Icons.remove, color: AppTheme.textSecondary),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Practicing Mixture Problems in Algebra'),
+              const Text(
+                'Practicing Mixture Problems in Algebra',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
               TextButton(
                 onPressed: () {},
                 style: TextButton.styleFrom(
-                  backgroundColor: Colors.teal.shade50,
+                  backgroundColor: AppTheme.accentLight,
                 ),
-                child: const Text('Take Quiz'),
+                child: const Text(
+                  'Take Quiz',
+                  style: TextStyle(color: AppTheme.primaryTeal),
+                ),
               )
             ],
           ),
         ),
         const ListTile(
-          title: Text('Decimals and Fractions'),
-          trailing: Icon(Icons.add),
+          title: Text(
+            'Decimals and Fractions',
+            style: TextStyle(color: AppTheme.textPrimary),
+          ),
+          trailing: Icon(Icons.add, color: AppTheme.textSecondary),
         ),
       ],
     );
@@ -182,8 +229,17 @@ class LessonTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 32, right: 8),
-      title: Text(title, style: const TextStyle(fontSize: 14)),
-      trailing: const Icon(Icons.play_circle_fill, color: Colors.teal),
+      title: Text(
+        title, 
+        style: const TextStyle(
+          fontSize: 14,
+          color: AppTheme.textSecondary,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.play_circle_fill, 
+        color: AppTheme.primaryTeal,
+      ),
     );
   }
 }
