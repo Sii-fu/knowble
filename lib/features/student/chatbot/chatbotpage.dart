@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../config/theme.dart';
+  import '../../../core/services/gemini/chatbot.dart';
+import '../../../core/config/api_config.dart';
 
 class ChatBotPage extends StatefulWidget {
   const ChatBotPage({super.key});
@@ -15,31 +17,32 @@ class _ChatBotPageState extends State<ChatBotPage> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
   
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   bool _isTyping = false;
   String? _selectedOption;
+  
+  // Initialize Gemini service
+  late final GeminiService _geminiService;
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize Gemini service
+    _geminiService = GeminiService();
+
     // Add welcome message
-    _messages.add(
-      ChatMessage(
-        message: """# 🤖 Welcome to Your AI Study Assistant!
+//     _messages.add(
+//       ChatMessage(
+//         message: """# 🤖 Welcome to Your AI Study Assistant!
+// ## What I Can Help With:
 
-Hello! I'm here to help you with your **academic questions** and make learning easier.
-
-## What I Can Help With:
-- 🧮 **Mathematics** - Algebra, geometry, calculus
-- 🔬 **Science** - Physics, chemistry, biology  
-- 📚 **History** - World events, timelines
-- ✍️ **English** - Writing, literature, grammar
-
-Just ask me anything about your studies! 📖✨""",
-        isUser: false,
-        timestamp: DateTime.now(),
-      ),
-    );
+// Just ask me anything about your studies! 📖✨
+//         """,
+//         isUser: false,
+//         timestamp: DateTime.now(),
+//       ),
+//     );
   }
 
   @override
@@ -62,16 +65,11 @@ Just ask me anything about your studies! 📖✨""",
       _selectedOption = null;
     });
 
-    // Combine selected option with user message
-    final finalMessage = selectedPrefix != null 
-        ? "$selectedPrefix: $userMessage"
-        : userMessage;
-
     // Add user message
     setState(() {
       _messages.add(
         ChatMessage(
-          message: finalMessage,
+          message: userMessage,
           isUser: true,
           timestamp: DateTime.now(),
         ),
@@ -81,213 +79,60 @@ Just ask me anything about your studies! 📖✨""",
 
     _scrollToBottom();
 
-    // Simulate AI response delay
-    await Future.delayed(const Duration(milliseconds: 1500));
+    try {
+      // Get AI response from Gemini
+      String aiResponse;
+      
+      // Check if user has selected a specific option for better context
+      if (selectedPrefix != null) {
+        // Determine subject based on the selected option
+        // aiResponse = await _geminiService.generateContentWithFallback(selectedPrefix, userMessage);
+        aiResponse = await _geminiService.generateContentWithFallback( userMessage);
+      } else {
+        // Use general educational prompt with fallback
+        aiResponse = await _geminiService.generateContentWithFallback(userMessage);
+      }
 
-    // Add AI response (placeholder - replace with actual AI integration)
-    if (mounted) {
+      // Add AI response
+      if (mounted) {
+        setState(() {
+          _messages.add(
+            ChatMessage(
+              message: aiResponse,
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          );
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      // Handle errors gracefully
+      print('Error generating response: $e');
+
       setState(() {
         _messages.add(
           ChatMessage(
-            message: _generateAIResponse(finalMessage),
+            message: 'Sorry, something went wrong. Please try again.',
             isUser: false,
             timestamp: DateTime.now(),
           ),
         );
         _isTyping = false;
       });
+
       _scrollToBottom();
     }
   }
+
+
 
   void _selectOption(String option) {
     setState(() {
       _selectedOption = _selectedOption == option ? null : option;
     });
     _focusNode.requestFocus();
-  }
-
-  String _generateAIResponse(String userMessage) {
-    // Enhanced response logic with markdown formatting
-    final message = userMessage.toLowerCase();
-    
-    if (message.contains('math') || message.contains('algebra') || message.contains('calculate')) {
-      return """# 🧮 Mathematics Help
-
-I'd be happy to help you with **math**! Here's what I can assist you with:
-
-## Subjects I Cover:
-- **Algebra** - Equations, polynomials, factoring
-- **Geometry** - Shapes, angles, area, volume
-- **Calculus** - Derivatives, integrals, limits
-- **Statistics** - Data analysis, probability
-- **Trigonometry** - Sin, cos, tan functions
-
-## Example Questions:
-> "Solve for x: 2x + 5 = 15"
-> "What is the area of a circle with radius 7?"
-> "Explain the quadratic formula"
-
-💡 **Tip**: Be specific with your math questions for better help!""";
-
-    } else if (message.contains('science') || message.contains('physics') || message.contains('chemistry') || message.contains('biology')) {
-      return """# 🔬 Science Assistance
-
-Science is fascinating! I can help you understand various scientific concepts:
-
-## Areas of Expertise:
-### Physics ⚡
-- Mechanics, thermodynamics, electromagnetism
-- Newton's laws, energy, waves
-
-### Chemistry 🧪  
-- Periodic table, chemical reactions
-- Acids, bases, organic chemistry
-
-### Biology 🧬
-- Cell structure, genetics, evolution
-- Human anatomy, ecosystems
-
-## How I Can Help:
-- ✅ Explain complex theories
-- ✅ Break down experiments
-- ✅ Clarify scientific principles
-- ✅ Provide study guides
-
-What specific topic interests you?""";
-
-    } else if (message.contains('history')) {
-      return """# 📚 History Explorer
-
-History is full of **fascinating stories** and important lessons!
-
-## What I Can Help With:
-
-### Time Periods 🕰️
-- Ancient civilizations
-- Medieval times  
-- Renaissance & Enlightenment
-- Modern era
-
-### Key Topics 🌍
-- **World Wars** - Causes, events, consequences
-- **Revolutions** - American, French, Industrial
-- **Empires** - Roman, British, Ottoman
-- **Important Figures** - Leaders, inventors, reformers
-
-### Study Support 📖
-- Timeline creation
-- Cause and effect analysis
-- Historical context explanation
-- Essay writing tips
-
-*Which period or event would you like to explore?*""";
-
-    } else if (message.contains('english') || message.contains('literature') || message.contains('writing')) {
-      return """# ✍️ English & Literature Guide
-
-I'm here to enhance your **English skills**!
-
-## Writing Skills 📝
-- **Essay Writing** - Structure, arguments, conclusions
-- **Grammar** - Punctuation, sentence structure
-- **Creative Writing** - Stories, poems, narratives
-
-## Literature Analysis 📚
-- **Poetry** - Metaphors, themes, literary devices
-- **Novels** - Character development, plot analysis
-- **Drama** - Shakespeare, modern plays
-
-## Communication 💬
-- **Public Speaking** - Confidence, clarity
-- **Vocabulary** - Word choice, synonyms
-- **Reading Comprehension** - Understanding texts
-
-### Quick Tips:
-> 1. Always outline before writing
-> 2. Read your work aloud
-> 3. Use active voice when possible
-
-What aspect of English would you like to work on?""";
-
-    } else if (message.contains('hello') || message.contains('hi') || message.contains('hey')) {
-      return """# 👋 Welcome to Your AI Study Assistant!
-
-Hello there! I'm excited to help you learn and grow academically.
-
-## What I Can Do:
-- 📊 **Mathematics** - From basic arithmetic to calculus
-- 🔬 **Science** - Physics, chemistry, biology
-- 📜 **History** - World events, timelines, analysis  
-- ✍️ **English** - Writing, literature, grammar
-- 🌍 **Geography** - Countries, capitals, physical features
-- 💻 **Computer Science** - Programming, algorithms
-
-## How to Get Started:
-1. Ask me a **specific question**
-2. Request **step-by-step explanations**
-3. Ask for **examples** to clarify concepts
-4. Feel free to ask **follow-up questions**
-
-### Example Questions:
-> "Explain photosynthesis step by step"
-> "Help me solve this algebra problem"
-> "What caused World War I?"
-
-*What subject would you like to explore today?* 🚀""";
-
-    } else if (message.contains('help') || message.contains('how') || message.contains('what can you do')) {
-      return """# 🤖 How I Can Help You Study
-
-## My Capabilities:
-
-### 📚 **Academic Subjects**
-| Subject | What I Cover |
-|---------|-------------|
-| Math | Algebra, Geometry, Calculus, Statistics |
-| Science | Physics, Chemistry, Biology |
-| History | World history, timelines, analysis |
-| English | Writing, literature, grammar |
-
-### 🎯 **Study Methods**
-- **Step-by-step solutions**
-- **Concept explanations**
-- **Practice problems**
-- **Study guides**
-- **Memory techniques**
-
-### 💡 **Best Practices**
-1. Be **specific** with your questions
-2. Ask for **examples** when confused
-3. Request **different explanations** if needed
-4. Practice with **similar problems**
-
-Ready to learn something new? Just ask me a question! 🌟""";
-
-    } else {
-      return """# 🤔 Let's Explore Together!
-
-That's an interesting question! I'm here to help you **learn and understand** various topics.
-
-## To Give You Better Help:
-- 🎯 **Be specific** about the subject area
-- 📝 **Share the exact problem** you're working on  
-- 🔍 **Mention your grade level** if relevant
-- ❓ **Ask follow-up questions** freely
-
-## Popular Study Areas:
-- 🧮 **Mathematics** - Equations, geometry, calculus
-- 🔬 **Sciences** - Physics, chemistry, biology  
-- 📚 **Humanities** - History, literature, writing
-- 💻 **Technology** - Programming, digital skills
-
-### Quick Examples:
-> "Explain the water cycle"
-> "How do I factor this polynomial?"
-> "What's the theme of Romeo and Juliet?"
-
-*What would you like to learn about today?* ✨""";
-    }
   }
 
   void _scrollToBottom() {
@@ -459,62 +304,94 @@ That's an interesting question! I'm here to help you **learn and understand** va
   }
 
   List<Map<String, dynamic>> _getContextualSuggestions() {
-    // Check if we have previous messages to get context
-    if (_messages.isEmpty) {
-      return _getDefaultSuggestions();
+    if (_messages.isEmpty) return _getDefaultSuggestions();
+
+    final lastBotMessage = _messages.reversed.firstWhere(
+      (msg) => !msg.isUser,
+      orElse: () => _messages.first,
+    );
+
+    final message = lastBotMessage.message.toLowerCase();
+
+    if (message.contains('math') || message.contains('algebra') || message.contains('equation')) {
+      return [
+        {'icon': Icons.calculate, 'text': 'Solve', 'prefix': 'Solve this math problem:', 'placeholder': 'e.g. Solve: 2x + 5 = 15'},
+        {'icon': Icons.lightbulb_outline, 'text': 'Concept', 'prefix': 'Explain this math concept:', 'placeholder': 'e.g. What is the quadratic formula?'},
+        {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': 'e.g. Polynomial equations'},
+        {'icon': Icons.format_list_bulleted, 'text': 'Steps', 'prefix': 'Show me how to solve', 'placeholder': 'e.g. a system of linear equations'},
+        {'icon': Icons.auto_awesome, 'text': 'Trick', 'prefix': 'What’s a trick to solve', 'placeholder': 'e.g. factoring quadratic expressions'},
+      ];
+    } else if (message.contains('science') || message.contains('biology') || message.contains('physics')) {
+      return [
+        {'icon': Icons.science, 'text': 'Explain', 'prefix': 'Explain this scientific concept:', 'placeholder': 'e.g. How does photosynthesis work?'},
+        {'icon': Icons.bolt, 'text': 'Break it down', 'prefix': 'Simplify', 'placeholder': 'e.g. Newton\'s Third Law of Motion'},
+        {'icon': Icons.timeline, 'text': 'Process', 'prefix': 'Describe the process of', 'placeholder': 'e.g. Cell division (mitosis)'},
+        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare and contrast', 'placeholder': 'e.g. Mitosis vs Meiosis'},
+        {'icon': Icons.lightbulb, 'text': 'Why?', 'prefix': 'Why does', 'placeholder': 'e.g. Salt dissolve in water?'},
+      ];
+    } else if (message.contains('history') || message.contains('revolution') || message.contains('war')) {
+      return [
+        {'icon': Icons.timeline, 'text': 'Timeline', 'prefix': 'Create a timeline for', 'placeholder': 'e.g. Key events of World War II'},
+        {'icon': Icons.flag, 'text': 'Event', 'prefix': 'What happened during', 'placeholder': 'e.g. The French Revolution'},
+        {'icon': Icons.person, 'text': 'Figure', 'prefix': 'Tell me about', 'placeholder': 'e.g. Napoleon Bonaparte'},
+        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. WWI and WWII'},
+        {'icon': Icons.public, 'text': 'Impact', 'prefix': 'What was the impact of', 'placeholder': 'e.g. The Cold War on global politics'},
+      ];
+    } else if (message.contains('english') || message.contains('literature') || message.contains('poem')) {
+      return [
+        {'icon': Icons.edit, 'text': 'Analyze', 'prefix': 'Analyze this line:', 'placeholder': 'e.g. "To be or not to be" from Hamlet'},
+        {'icon': Icons.format_quote, 'text': 'Theme', 'prefix': 'What is the main theme of', 'placeholder': 'e.g. Romeo and Juliet'},
+        {'icon': Icons.create, 'text': 'Essay Help', 'prefix': 'Help me write an essay about', 'placeholder': 'e.g. The role of fate in Macbeth'},
+        {'icon': Icons.spellcheck, 'text': 'Grammar', 'prefix': 'Check the grammar:', 'placeholder': 'e.g. This sentence have a mistake.'},
+        {'icon': Icons.quiz_outlined, 'text': 'Figurative', 'prefix': 'Give me examples of', 'placeholder': 'e.g. Metaphors in modern poetry'},
+      ];
+    } else if (message.contains('computer') || message.contains('coding') || message.contains('programming')) {
+      return [
+        {'icon': Icons.code, 'text': 'Debug', 'prefix': 'What’s wrong with this code?', 'placeholder': 'e.g. for (int i = 0; i <= n; i--)'},
+        {'icon': Icons.psychology, 'text': 'Explain', 'prefix': 'Explain this code concept:', 'placeholder': 'e.g. How recursion works in Dart'},
+        {'icon': Icons.build, 'text': 'How to', 'prefix': 'How do I build', 'placeholder': 'e.g. A login system in Flutter'},
+        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. Dart and JavaScript differences'},
+        {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Show code examples of', 'placeholder': 'e.g. Firebase CRUD in Flutter'},
+      ];
+    } else if (message.contains('business') || message.contains('marketing') || message.contains('startup')) {
+      return [
+        {'icon': Icons.trending_up, 'text': 'Strategy', 'prefix': 'What is a good strategy for', 'placeholder': 'e.g. Launching a new SaaS startup'},
+        {'icon': Icons.lightbulb_outline, 'text': 'Idea', 'prefix': 'Give me business ideas about', 'placeholder': 'e.g. AI in education'},
+        {'icon': Icons.query_stats, 'text': 'Explain', 'prefix': 'Explain this marketing term:', 'placeholder': 'e.g. Conversion rate optimization'},
+        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. B2B vs B2C models'},
+        {'icon': Icons.help_outline, 'text': 'Plan', 'prefix': 'Create a business plan for', 'placeholder': 'e.g. A local food delivery app'},
+      ];
     }
-    
-    final lastBotMessage = _messages.reversed
-        .firstWhere((msg) => !msg.isUser, orElse: () => _messages.first);
-    
-    // Return context-aware suggestions based on the last bot response
-    if (lastBotMessage.message.toLowerCase().contains('math')) {
-      return [
-        {'icon': Icons.calculate, 'text': 'Solve', 'prefix': 'Solve this math problem:', 'placeholder': ' 2x + 5 = 15'},
-        {'icon': Icons.lightbulb_outline, 'text': 'Explain', 'prefix': 'Explain this concept:', 'placeholder': ' quadratic formula'},
-        {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': ' polynomial equations'},
-        {'icon': Icons.format_list_bulleted, 'text': 'Steps', 'prefix': 'Show me step-by-step how to', 'placeholder': ' factor polynomials'},
-        {'icon': Icons.help_outline, 'text': 'Practice', 'prefix': 'Give me practice problems for', 'placeholder': ' algebra'},
-      ];
-    } else if (lastBotMessage.message.toLowerCase().contains('science')) {
-      return [
-        {'icon': Icons.science, 'text': 'Explain', 'prefix': 'Explain this scientific concept:', 'placeholder': ' photosynthesis'},
-        {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': ' chemical reactions'},
-        {'icon': Icons.format_list_bulleted, 'text': 'Process', 'prefix': 'Show me the process of', 'placeholder': ' cellular respiration'},
-        {'icon': Icons.psychology, 'text': 'Simplify', 'prefix': 'Explain in simple terms:', 'placeholder': ' DNA structure'},
-        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare and contrast', 'placeholder': ' mitosis vs meiosis'},
-      ];
-    } else if (lastBotMessage.message.toLowerCase().contains('history')) {
-      return [
-        {'icon': Icons.timeline, 'text': 'Timeline', 'prefix': 'Create a timeline for', 'placeholder': ' World War II'},
-        {'icon': Icons.person, 'text': 'Biography', 'prefix': 'Tell me about', 'placeholder': ' Napoleon Bonaparte'},
-        {'icon': Icons.quiz_outlined, 'text': 'Causes', 'prefix': 'What caused', 'placeholder': ' the French Revolution'},
-        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': ' WWI and WWII'},
-        {'icon': Icons.explore, 'text': 'Context', 'prefix': 'Explain the historical context of', 'placeholder': ' the Industrial Revolution'},
-      ];
-    } else if (lastBotMessage.message.toLowerCase().contains('english') || lastBotMessage.message.toLowerCase().contains('literature')) {
-      return [
-        {'icon': Icons.edit, 'text': 'Analyze', 'prefix': 'Analyze this text:', 'placeholder': ' "To be or not to be"'},
-        {'icon': Icons.format_quote, 'text': 'Theme', 'prefix': 'What is the main theme of', 'placeholder': ' Romeo and Juliet'},
-        {'icon': Icons.create, 'text': 'Write', 'prefix': 'Help me write', 'placeholder': ' an essay about'},
-        {'icon': Icons.spellcheck, 'text': 'Grammar', 'prefix': 'Check the grammar:', 'placeholder': ' [paste your text]'},
-        {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': ' metaphors'},
-      ];
-    }
-    
+
+
     return _getDefaultSuggestions();
   }
 
+
   List<Map<String, dynamic>> _getDefaultSuggestions() {
-    return [
-      {'icon': Icons.lightbulb_outline, 'text': 'Explain', 'prefix': 'Explain', 'placeholder': ' [your topic]'},
-      {'icon': Icons.format_list_bulleted, 'text': 'Step-by-step', 'prefix': 'Show me step-by-step how to', 'placeholder': ' [your task]'},
-      {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': ' [your topic]'},
-      {'icon': Icons.psychology, 'text': 'Simplify', 'prefix': 'Explain in simple terms', 'placeholder': ' [complex topic]'},
-      {'icon': Icons.calculate, 'text': 'Solve', 'prefix': 'Solve this problem:', 'placeholder': ' [your problem]'},
-      {'icon': Icons.summarize, 'text': 'Summarize', 'prefix': 'Summarize', 'placeholder': ' [your text/topic]'},
+   return [
+      {'icon': Icons.lightbulb_outline, 'text': 'Explain', 'prefix': 'Explain', 'placeholder': 'e.g. What is machine learning?'},
+      {'icon': Icons.format_list_bulleted, 'text': 'Steps', 'prefix': 'Show me step-by-step how to', 'placeholder': 'e.g. Solve a quadratic equation'},
+      {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': 'e.g. Renewable energy sources'},
+      {'icon': Icons.psychology, 'text': 'Simplify', 'prefix': 'Explain in simple terms:', 'placeholder': 'e.g. Blockchain technology'},
+      {'icon': Icons.calculate, 'text': 'Solve', 'prefix': 'Solve this problem:', 'placeholder': 'e.g. 3x² + 5x - 2 = 0'},
+      {'icon': Icons.summarize, 'text': 'Summarize', 'prefix': 'Summarize this:', 'placeholder': 'e.g. The plot of Inception'},
+      {'icon': Icons.create, 'text': 'Write', 'prefix': 'Help me write', 'placeholder': 'e.g. A paragraph about climate change'},
+      {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. iOS vs Android'},
+
+      // 🆕 Extra Suggestions:
+      {'icon': Icons.question_answer, 'text': 'Ask Anything', 'prefix': 'I have a question about', 'placeholder': 'e.g. The stock market'},
+      {'icon': Icons.translate, 'text': 'Translate', 'prefix': 'Translate this into English:', 'placeholder': 'e.g. Je suis étudiant'},
+      {'icon': Icons.tips_and_updates, 'text': 'Tips', 'prefix': 'Give me tips on', 'placeholder': 'e.g. Time management'},
+      {'icon': Icons.edit_note, 'text': 'Improve Writing', 'prefix': 'Make this sound better:', 'placeholder': 'e.g. I went to the shop'},
+      {'icon': Icons.light_mode, 'text': 'ELI5', 'prefix': 'Explain like I\'m 5:', 'placeholder': 'e.g. Quantum mechanics'},
+      {'icon': Icons.star, 'text': 'Pros & Cons', 'prefix': 'List pros and cons of', 'placeholder': 'e.g. Online learning'},
+      {'icon': Icons.extension, 'text': 'Use Cases', 'prefix': 'What are some real-life uses of', 'placeholder': 'e.g. Artificial Intelligence'},
+      {'icon': Icons.school, 'text': 'Study Help', 'prefix': 'Help me study', 'placeholder': 'e.g. For my biology test tomorrow'},
     ];
+
   }
+
 
   Widget _buildMessageInput() {
     return Container(
@@ -538,13 +415,15 @@ That's an interesting question! I'm here to help you **learn and understand** va
                 controller: _messageController,
                 focusNode: _focusNode,
                 decoration: InputDecoration(
-                  hintText: _selectedOption != null 
-                      ? "Type your message..."
+                  hintText: _selectedOption != null
+                      ? (_getContextualSuggestions().firstWhere(
+                          (s) => s['prefix'] == _selectedOption,
+                          orElse: () => {'placeholder': 'Ask me anything about your studies...'},
+                        )['placeholder'] as String)
                       : 'Ask me anything about your studies...',
                   hintStyle: const TextStyle(color: AppTheme.textSecondary),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  
                 ),
                 style: const TextStyle(color: AppTheme.textPrimary),
                 maxLines: null,
@@ -761,21 +640,21 @@ class ChatBubble extends StatelessWidget {
           // Customize heading styles
           const H1Config(
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: AppTheme.textPrimary,
             ),
           ),
           const H2Config(
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 20,
               fontWeight: FontWeight.w600,
               color: AppTheme.textPrimary,
             ),
           ),
           const H3Config(
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 18,
               fontWeight: FontWeight.w600,
               color: AppTheme.textPrimary,
             ),
@@ -783,15 +662,15 @@ class ChatBubble extends StatelessWidget {
           // Customize paragraph style
           const PConfig(
             textStyle: TextStyle(
-              fontSize: 14,
+              fontSize: 16,
               color: AppTheme.textPrimary,
-              height: 1.4,
+              height: 1.5,
             ),
           ),
           // Customize code blocks
           CodeConfig(
             style: const TextStyle(
-              fontSize: 13,
+              fontSize: 15,
               color: AppTheme.textPrimary,
               fontFamily: 'Courier',
             ),

@@ -251,39 +251,38 @@ class CourseLessonsPage extends StatelessWidget {
           ],
         ),
       ),
-              floatingActionButton: Container(
-              decoration: BoxDecoration(
-                gradient: AppTheme.gradient,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryTeal.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ChatBotPage(),
-                    ),
-                  );
-                },
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                child: const Icon(
-                  Icons.chat_bubble_outline,
-                  color: AppTheme.surfaceWhite,
-                  size: 28,
-                ),
-              ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.gradient,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryTeal.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-            floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ChatBotPage(),
+              ),
+            );
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(
+            Icons.chat_bubble_outline,
+            color: AppTheme.surfaceWhite,
+            size: 28,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
