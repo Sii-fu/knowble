@@ -151,7 +151,7 @@ Return only the JSON array.
     for (final question in questionsJson) {
       final insertedQuestion = await _supabase.from('questions').insert({
         'assessment_id': assessmentId,
-        'text': question['question'],
+        'question_text': question['question'],
         'type': type,
       }).select().single();
       final questionId = insertedQuestion['id'];
