@@ -158,7 +158,7 @@ Return only the JSON array.
       for (int i = 0; i < question['options'].length; i++) {
         await _supabase.from('options').insert({
           'question_id': questionId,
-          'text': question['options'][i],
+          'option_text': question['options'][i],
           'is_correct': i == question['answer_index'],
         });
       }
