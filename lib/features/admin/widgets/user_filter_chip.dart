@@ -22,7 +22,7 @@ class UserFilterChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primaryTeal : AppTheme.surfaceWhite,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(2),
           border: Border.all(
             color: isSelected ? AppTheme.primaryTeal : AppTheme.borderSubtle,
             width: 1,

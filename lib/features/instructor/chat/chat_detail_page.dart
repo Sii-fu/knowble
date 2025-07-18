@@ -171,8 +171,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               CircleAvatar(
                 radius: 18,
                 backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
-                child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.instructorPrimary) : null,
                 backgroundColor: AppTheme.surfaceWhite,
+                child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.instructorPrimary) : null,
               ),
               const SizedBox(width: 12),
               Column(

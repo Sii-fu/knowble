@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:knowble_app/config/theme.dart';
 import './widgets/admin_info_card.dart';
 import './widgets/admin_list_item_card.dart';
@@ -132,6 +133,21 @@ class _AdminDashboardState extends State<AdminDashboard>
     super.dispose();
   }
 
+  Future<void> _logout(BuildContext context) async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
+      }
+    }
+  }
+
   Future<void> _handleRefresh() async {
     if (_isRefreshing) return;
 
@@ -220,22 +236,22 @@ class _AdminDashboardState extends State<AdminDashboard>
                 context: context,
                 builder:
                     (context) => AlertDialog(
-                      title: Text('Logout'),
-                      content: Text('Are you sure you want to logout?'),
+                      title: const Text('Logout'),
+                      content: const Text('Are you sure you want to logout?'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel'),
+                          child: const Text('Cancel'),
                         ),
                         ElevatedButton(
                           onPressed: () {
                             Navigator.pop(context);
-                            // Implement logout logic here
+                            _logout(context);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.errorRed,
                           ),
-                          child: Text('Logout'),
+                          child: const Text('Logout'),
                         ),
                       ],
                     ),

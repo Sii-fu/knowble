@@ -54,6 +54,7 @@ class UserListItemCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       elevation: 2.0,
+      color: AppTheme.surfaceWhite,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: InkWell(
         onTap: onTap,
