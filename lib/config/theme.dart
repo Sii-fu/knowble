@@ -17,20 +17,27 @@ class AppTheme {
   static const Color accentLight = Color(0xFFF0FDFA);
   static const Color gradientStart = Color(0xFF087E8B);
   static const Color gradientEnd = Color(0xFF0B3954);
-  
+
   // Instructor theme colors
   static const Color instructorPrimary = Color(0xFF42A5F5); // Blue[400]
   static const Color instructorAccent = Color(0xFFE3F2FD); // Blue[50]
-  static const Color instructorbg = Color.fromARGB(255, 221, 229, 235); // Blue[50]
-  
-  static const Color instructorSecondary = Color(0xFF1976D2); // Blue[700] for darker elements
-  
+  static const Color instructorbg = Color.fromARGB(
+    255,
+    221,
+    229,
+    235,
+  ); // Blue[50]
+
+  static const Color instructorSecondary = Color(
+    0xFF1976D2,
+  ); // Blue[700] for darker elements
+
   static LinearGradient gradient = LinearGradient(
     colors: [gradientStart, gradientEnd],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   static LinearGradient instructorGradient = LinearGradient(
     colors: [instructorPrimary, instructorSecondary],
     begin: Alignment.topLeft,
@@ -53,6 +60,7 @@ class AppTheme {
 
   /// Light theme - Contemporary Educational Minimalism
   static ThemeData lightTheme = ThemeData(
+    useMaterial3: false,
     brightness: Brightness.light,
     colorScheme: ColorScheme(
       brightness: Brightness.light,
@@ -105,9 +113,7 @@ class AppTheme {
       color: surfaceWhite,
       elevation: 2.0,
       shadowColor: shadowLight,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     ),
 
@@ -182,9 +188,7 @@ class AppTheme {
         foregroundColor: primaryTeal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         minimumSize: const Size(88, 44),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         textStyle: const TextStyle(
           fontFamily: 'Jost',
           fontSize: 16,
@@ -267,9 +271,7 @@ class AppTheme {
       }),
       checkColor: WidgetStateProperty.all(surfaceWhite),
       side: const BorderSide(color: borderSubtle, width: 2),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(4),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
     ),
 
     // Radio theme
@@ -342,9 +344,7 @@ class AppTheme {
       ),
       actionTextColor: primaryTeal,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       elevation: 4,
     ),
     dialogTheme: DialogThemeData(backgroundColor: surfaceWhite),
@@ -352,6 +352,7 @@ class AppTheme {
 
   /// Dark theme - Contemporary Educational Minimalism (Dark Mode)
   static ThemeData darkTheme = ThemeData(
+    useMaterial3: false,
     brightness: Brightness.dark,
     colorScheme: ColorScheme(
       brightness: Brightness.dark,
@@ -404,9 +405,7 @@ class AppTheme {
       color: cardDark,
       elevation: 2.0,
       shadowColor: shadowDark,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     ),
 
@@ -481,9 +480,7 @@ class AppTheme {
         foregroundColor: primaryTeal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         minimumSize: const Size(88, 44),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         textStyle: const TextStyle(
           fontFamily: 'Jost',
           fontSize: 16,
@@ -566,9 +563,7 @@ class AppTheme {
       }),
       checkColor: WidgetStateProperty.all(surfaceWhite),
       side: const BorderSide(color: borderDark, width: 2),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(4),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
     ),
 
     // Radio theme - Dark mode
@@ -641,9 +636,7 @@ class AppTheme {
       ),
       actionTextColor: primaryTeal,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       elevation: 4,
     ),
     dialogTheme: DialogThemeData(backgroundColor: cardDark),
@@ -654,9 +647,10 @@ class AppTheme {
     final Color textHighEmphasis = isLight ? textPrimary : textPrimaryDark;
     final Color textMediumEmphasis =
         isLight ? textSecondary : textSecondaryDark;
-    final Color textDisabled = isLight
-        ? textSecondary.withValues(alpha: 0.6)
-        : textSecondaryDark.withValues(alpha: 0.6);
+    final Color textDisabled =
+        isLight
+            ? textSecondary.withValues(alpha: 0.6)
+            : textSecondaryDark.withValues(alpha: 0.6);
 
     return TextTheme(
       // Display styles - Large headings
