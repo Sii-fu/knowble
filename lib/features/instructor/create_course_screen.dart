@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:knowble_app/core/services/Instructor/course_service.dart';
+import 'package:knowble_app/core/services/Instructor/questionai_service.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 
@@ -13,6 +14,20 @@ class CreateCourseScreen extends StatefulWidget {
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
+  String? _createdCourseId;
+  // Question section controllers
+  final TextEditingController _questionTitleController = TextEditingController();
+  final TextEditingController _questionMarksController = TextEditingController();
+
+  // Helper to get the current courseId (you may want to store this after course creation)
+  Future<String?> _getCurrentCourseId() async {
+    return _createdCourseId;
+  }
+  // Gemini API key (replace with your actual key or load from secure storage)
+  final String _geminiApiKey = 'AIzaSyAUoA_MGBSzZHSIQsMRZ4BgM6vQcKhM9pI';
+  late final QuestionAIService _questionAIService;
+
+
   final CourseService _courseService = CourseService();
   final TextEditingController _courseNameController = TextEditingController();
   final TextEditingController _courseDescriptionController = TextEditingController();
@@ -28,7 +43,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   List<Map<String, dynamic>?> _lessonPdfInfos = [];
 
   String selectedLessonCount = '4 Lesson';
-  
+  String _selectedQuestionType = 'Mcq';
+
   final List<String> lessonCounts = [
     '1 Lesson',
     '2 Lesson',
@@ -50,6 +66,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     _lesson1Controller.text = '';
     _lessonCountController.text = '';
     _updateLessonControllers();
+
+    _questionAIService = QuestionAIService(geminiApiKey: _geminiApiKey);
   }
 
   void _updateLessonControllers() {
@@ -201,6 +219,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         _showSuccessDialog('Failed to create course.');
         return;
       }
+      setState(() {
+        _createdCourseId = courseId;
+      });
 
       // 2. Insert module (chapter)
       final moduleId = await _courseService.createModule(
@@ -613,7 +634,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
               const SizedBox(height: 20),
             ],
             
-            // Question Section (Additional as requested)
+            // Question Section
             const Text(
               'Question',
               style: TextStyle(
@@ -623,33 +644,143 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
               ),
             ),
             const SizedBox(height: 8),
+            // Title Field
             Container(
-              height: 60,
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey[300]!),
               ),
-              child: InkWell(
-                onTap: _handleQuestionUpload,
-                borderRadius: BorderRadius.circular(8),
-                child: const Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload, color: Colors.grey),
-                      SizedBox(width: 8),
-                      Text(
-                        'Upload Question',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
+              child: TextField(
+                controller: _questionTitleController,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                  hintText: 'Question Title',
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            // Type Dropdown
+            Row(
+              children: [
+                const Text(
+                  'Type:',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedQuestionType,
+                    items: const [
+                      DropdownMenuItem(value: 'Mcq', child: Text('Mcq')),
+                      DropdownMenuItem(value: 'Code', child: Text('Code')),
+                      DropdownMenuItem(value: 'Text', child: Text('Text')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedQuestionType = value!;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Total Marks Field
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: TextField(
+                controller: _questionMarksController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                  hintText: 'Total Marks',
+                ),
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      // Example: Use course name as assessment title, type as selected, total marks from field
+                      final courseId = await _getCurrentCourseId();
+                      if (courseId == null) {
+                        _showSuccessDialog('Please create the course first.');
+                        return;
+                      }
+                      try {
+                        await _questionAIService.generateAndStoreMCQs(
+                          courseId: courseId,
+                          assessmentTitle: _questionTitleController.text.trim(),
+                          type: _selectedQuestionType.toLowerCase(),
+                          totalMarks: int.tryParse(_questionMarksController.text.trim()) ?? 0,
+                        );
+                        _showSuccessDialog('AI-generated questions uploaded!');
+                      } catch (e) {
+                        _showSuccessDialog('AI generation failed: ${e.toString()}');
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Generate Question Using AI',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _handleQuestionUpload,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[600],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Upload your Question',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 32),
             
