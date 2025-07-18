@@ -29,6 +29,9 @@ class _ChatListPageState extends State<ChatListPage> {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception('Not logged in');
       final response = await Supabase.instance.client.rpc('get_student_chats', params: {'student_uuid': userId});
+      print('================== $userId');
+      print('================== $response');
+      
       if (!mounted) return;
       setState(() {
         _chats = response as List<dynamic>?;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-// import 'courses_page.dart';
+import '../student/courses_lessons.dart';
+import '../student/Course_Details.dart';
 
 class StudentDashboardPage extends StatelessWidget {
   const StudentDashboardPage({super.key});
@@ -12,7 +13,6 @@ class StudentDashboardPage extends StatelessWidget {
       data: theme,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        // bottomNavigationBar: const _BottomNavBar(),
         body: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
@@ -185,34 +185,39 @@ class _CourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: theme.colorScheme.surface,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              image,
-              width: double.infinity,
-              height: 80,
-              fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseLessonsPage()));
+      },
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: theme.colorScheme.surface,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                image,
+                width: double.infinity,
+                height: 80,
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-          const SizedBox(height: 6),
-          LinearProgressIndicator(value: progress / total, color: theme.colorScheme.primary),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text("$progress/$total", style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
-          )
-        ],
+            const SizedBox(height: 6),
+            Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(value: progress / total, color: theme.colorScheme.primary),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text("$progress/$total", style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -229,40 +234,45 @@ class _RecommendedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: theme.colorScheme.surface,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              image,
-              width: double.infinity,
-              height: 80,
-              fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseDetailPage()));
+      },
+      child: Container(
+        width: 150,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: theme.colorScheme.surface,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                image,
+                width: double.infinity,
+                height: 80,
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(lessons, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
-              const Spacer(),
-              if (duration.isNotEmpty) ...[
-                Icon(Icons.access_time, size: 12, color: AppTheme.textSecondary),
-                const SizedBox(width: 4),
-                Text(duration, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary))
-              ]
-            ],
-          )
-        ],
+            const SizedBox(height: 6),
+            Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text(lessons, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
+                const Spacer(),
+                if (duration.isNotEmpty) ...[
+                  Icon(Icons.access_time, size: 12, color: AppTheme.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(duration, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary))
+                ]
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
@@ -312,32 +322,3 @@ class _TaskCard extends StatelessWidget {
     );
   }
 }
-
-// class _BottomNavBar extends StatelessWidget {
-//   const _BottomNavBar();
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return BottomNavigationBar(
-//       currentIndex: 0,
-//       type: BottomNavigationBarType.fixed,
-//       selectedItemColor: const Color(0xFF006C66),
-//       unselectedItemColor: Colors.grey,
-//       onTap: (index) {
-//         if (index == 1) {
-//           Navigator.push(
-//             context,
-//             MaterialPageRoute(builder: (context) => const StudentCoursesPage()),
-//           );
-//         }
-//       },
-//       items: const [
-//         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'HOME'),
-//         BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'MY COURSES'),
-//         BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'INBOX'),
-//         BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'SCHEDULE'),
-//         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILE'),
-//       ],
-//     );
-//   }
-// }

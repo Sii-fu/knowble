@@ -152,7 +152,7 @@ class _CourseList extends StatelessWidget {
       },
       {
         'category': 'Graphic Design',
-        'title': 'Advance Diploma in Gra..',
+        'title': 'Advance Diploma in Graphic Design-10203910938209',
         'rating': '4.7',
         'duration': '3 Hrs 28 Mins',
         'image': 'assets/images/gd2.jpg'

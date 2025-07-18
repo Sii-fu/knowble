@@ -1,4 +1,5 @@
 {
-    "cmake.sourceDirectory": "C:/Users/ACER/Documents/codes/knowble/windows",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "cmake.sourceDirectory": "G:/knowble/linux",
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "cmake.ignoreCMakeListsMissing": true
 }

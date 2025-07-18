@@ -204,12 +204,12 @@ class LessonCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(subtitle, style: const TextStyle(color: Colors.grey)),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF0D47A1))),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
           const Spacer(),
           LinearProgressIndicator(value: progress),
-          Text("${(progress * 10).toInt()}/10"),
+          Text("${(progress * 10).toInt()}/10", style: const TextStyle(color: Color(0xFF0D47A1))),
         ],
       ),
     );

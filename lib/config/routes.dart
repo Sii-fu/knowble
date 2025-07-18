@@ -45,6 +45,7 @@ import '../features/student/scheduler/task_creation_modal.dart';
 import '../features/student/scheduler/task_edit_modal.dart';
 import '../features/student/scheduler/task_detail_view.dart';
 import '../features/student/scheduler/full_month_calendar_view.dart';
+import '../features/student/chatbot/chatbotpage.dart';
 
 // AppRoutes holds all route names and their corresponding widget builders.
 class AppRoutes {
@@ -90,6 +91,7 @@ class AppRoutes {
     '/home_teacher': (context) => const TeacherHomePage(),
     '/instructor_profile_page2': (context) => const InstructorProfilePage2(), 
     '/instructor_profile_page': (context) => const InstructorProfilePage(), 
+    '/chatbot': (context) => const ChatBotPage(),
     
   };
 }

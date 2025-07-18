@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../config/theme.dart';
+import 'chatbot/chatbotpage.dart';
 
 class CourseLessonsPage extends StatelessWidget {
   const CourseLessonsPage({super.key});
@@ -26,7 +28,7 @@ class CourseLessonsPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F9FF),
+      backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
         child: Column(
           children: [
@@ -34,12 +36,19 @@ class CourseLessonsPage extends StatelessWidget {
               padding: const EdgeInsets.all(20.0),
               child: Row(
                 children: [
-                  const Icon(Icons.arrow_back_ios),
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_back_ios, 
+                      color: AppTheme.textPrimary,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Lessons',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
                         ),
                   ),
                 ],
@@ -50,7 +59,7 @@ class CourseLessonsPage extends StatelessWidget {
               child: Container(
                 height: 45,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppTheme.surfaceWhite,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -58,8 +67,9 @@ class CourseLessonsPage extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextField(
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: '3D Design Illustration',
+                          hintStyle: TextStyle(color: AppTheme.textSecondary),
                           border: InputBorder.none,
                         ),
                       ),
@@ -68,10 +78,10 @@ class CourseLessonsPage extends StatelessWidget {
                       margin: const EdgeInsets.only(right: 12),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF006C66),
+                        color: AppTheme.primaryTeal,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.search, color: Colors.white, size: 20),
+                      child: const Icon(Icons.search, color: AppTheme.surfaceWhite, size: 20),
                     ),
                   ],
                 ),
@@ -94,11 +104,17 @@ class CourseLessonsPage extends StatelessWidget {
                         children: [
                           Text(
                             section['section'] as String,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
                           ),
                           Text(
                             section['totalTime'] as String,
-                            style: const TextStyle(color: Color(0xFF007C77), fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: AppTheme.primaryTeal, 
+                              fontWeight: FontWeight.w600,
+                            ),
                           )
                         ],
                       ),
@@ -107,11 +123,11 @@ class CourseLessonsPage extends StatelessWidget {
                             margin: const EdgeInsets.only(bottom: 14),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppTheme.surfaceWhite,
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.05),
+                                  color: AppTheme.shadowLight,
                                   spreadRadius: 2,
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
@@ -122,10 +138,13 @@ class CourseLessonsPage extends StatelessWidget {
                               children: [
                                 CircleAvatar(
                                   radius: 20,
-                                  backgroundColor: const Color(0xFFEAF3FF),
+                                  backgroundColor: AppTheme.accentLight,
                                   child: Text(
                                     lesson['number'],
-                                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                      color: AppTheme.textPrimary, 
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -135,24 +154,37 @@ class CourseLessonsPage extends StatelessWidget {
                                     children: [
                                       Text(
                                         lesson['title'],
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.textPrimary,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         lesson['duration'],
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: AppTheme.textSecondary,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.play_circle_fill, color: Colors.teal, size: 28),
+                                  icon: const Icon(
+                                    Icons.play_circle_fill, 
+                                    color: AppTheme.primaryTeal, 
+                                    size: 28,
+                                  ),
                                   onPressed: () {
                                     // Play video logic
                                   },
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.deepOrange, size: 26),
+                                  icon: const Icon(
+                                    Icons.picture_as_pdf_outlined, 
+                                    color: AppTheme.errorRed, 
+                                    size: 26,
+                                  ),
                                   onPressed: () {
                                     // Open PDF logic
                                   },
@@ -168,10 +200,10 @@ class CourseLessonsPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: const BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surfaceWhite,
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x22000000),
+                    color: AppTheme.shadowLight,
                     blurRadius: 10,
                     offset: Offset(0, -2),
                   ),
@@ -182,10 +214,13 @@ class CourseLessonsPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFEAF3FF),
+                      color: AppTheme.accentLight,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.assignment_turned_in_outlined, color: Colors.teal),
+                    child: const Icon(
+                      Icons.assignment_turned_in_outlined, 
+                      color: AppTheme.primaryTeal,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -193,18 +228,19 @@ class CourseLessonsPage extends StatelessWidget {
                       height: 50,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(30),
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF009688), Color(0xFF006C66)],
-                        ),
+                        gradient: AppTheme.gradient,
                       ),
                       child: TextButton.icon(
                         onPressed: () {
                           // TODO: Implement restart course logic
                         },
-                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        icon: const Icon(Icons.refresh, color: AppTheme.surfaceWhite),
                         label: const Text(
                           'Start Course Again',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: AppTheme.surfaceWhite, 
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -215,6 +251,38 @@ class CourseLessonsPage extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: AppTheme.gradient,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryTeal.withOpacity(0.3),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ChatBotPage(),
+              ),
+            );
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(
+            Icons.chat_bubble_outline,
+            color: AppTheme.surfaceWhite,
+            size: 28,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

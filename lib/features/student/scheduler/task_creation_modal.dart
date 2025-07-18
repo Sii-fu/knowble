@@ -77,7 +77,7 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
       },
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) { // Check if widget is still mounted
       setState(() {
         _startTime = picked;
         // Reset end time if it's now invalid
@@ -93,12 +93,14 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
 
   Future<void> _selectEndTime() async {
     if (_startTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select start time first'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (mounted) { // Check before accessing context
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select start time first'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       return;
     }
 
@@ -123,7 +125,7 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
       },
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) { // Check if widget is still mounted
       // Validate end time is after start time
       if (picked.hour > _startTime!.hour ||
           (picked.hour == _startTime!.hour &&
@@ -132,12 +134,14 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
           _endTime = picked;
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('End time must be after start time'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (mounted) { // Check before accessing context
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('End time must be after start time'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }
@@ -166,6 +170,7 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
   Future<void> _saveTask() async {
     if (!_isFormValid) return;
 
+    if (!mounted) return; // Check if widget is still mounted
     setState(() {
       _isLoading = true;
     });
@@ -186,23 +191,26 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
       'createdAt': DateTime.now(),
     };
 
+    if (!mounted) return; // Check if widget is still mounted after async operation
     setState(() {
       _isLoading = false;
     });
 
     // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Task "${_titleController.text.trim()}" created successfully',
+    if (mounted) { // Check before accessing context
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Task "${_titleController.text.trim()}" created successfully',
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.primaryTeal,
         ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppTheme.primaryTeal,
-      ),
-    );
+      );
 
-    // Navigate back to calendar
-    Navigator.of(context).pop(taskData);
+      // Navigate back to calendar
+      Navigator.of(context).pop(taskData);
+    }
   }
 
   @override
