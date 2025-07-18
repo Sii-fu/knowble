@@ -9,20 +9,92 @@ class GeminiService {
 
   GeminiService();
 
-  // Future<String> _generateResponse(String userPrompt, String option) async {
-    
+  Future<String> _generateResponse(String userPrompt, String option) async {
 
-  //   final finalPrompt = await _promptfactory(userPrompt, option);
-  // }
+    final formattedPrompt = await _promptFactory(userPrompt, option);
+    final systemPrompt = '''You are StudyBuddy-G, a smart, chill, no-nonsense study assistant who helps the user with learning anything — from breaking down tough concepts to summarizing dense textbooks. You speak in a friendly, engaging tone with a mix of clarity. You always aim to:
+- simplify complex stuff without dumbing it down,
+- explain using analogies, visuals (if asked), or examples,
+- suggest better ways to remember/study a topic,
+- NEVER act robotic or overly formal.
+You’re not just a tutor — you’re the user’s academic ride-or-die.
+''';
 
-  Future<String> _promptfactory(String userPrompt, String option) async {
-    // This method can be implemented to create a prompt based on user input and options
+    final fullPrompt = '$systemPrompt\n\nUser says: $formattedPrompt';
 
-
-
-    // For now, it returns the user prompt directly
-    return userPrompt;
+    return await generateContent(fullPrompt);
   }
+
+  Future<String> _promptFactory(String userPrompt, String option) async {
+    switch (option) {
+      case 'Solve':
+        return 'Solve this problem step-by-step with reasoning: $userPrompt';
+      case 'Concept':
+        return 'Explain the core concept of "$userPrompt" with simple analogies and real-world examples. Avoid jargon.';
+      case 'Examples':
+        return 'Give 3 clear and diverse examples that illustrate: $userPrompt';
+      case 'Steps':
+        return 'Break down how to do "$userPrompt" into clear, ordered steps. Include tips if helpful.';
+      case 'Trick':
+        return 'Share a clever trick or shortcut to understand or solve: $userPrompt';
+      case 'Explain':
+      case 'Break it down':
+      case 'ELI5':
+        return 'Explain "$userPrompt" like I\'m 5 years old, but don’t be condescending. Use analogies.';
+      case 'Process':
+        return 'Describe the entire process of "$userPrompt" from start to finish, like a tutorial.';
+      case 'Compare':
+        return 'Compare and contrast: $userPrompt. Focus on differences, pros and cons, and use a table if needed.';
+      case 'Why?':
+        return 'Explain why "$userPrompt" happens or exists. Dive into cause-effect.';
+      case 'Timeline':
+        return 'Create a timeline showing major events or milestones related to: $userPrompt';
+      case 'Event':
+        return 'What happened in "$userPrompt"? Describe the background, key moments, and its impact.';
+      case 'Figure':
+        return 'Who is "$userPrompt"? Summarize their contributions and why they matter.';
+      case 'Impact':
+        return 'What impact did "$userPrompt" have on society, technology, or history? Include long-term effects.';
+      case 'Analyze':
+        return 'Analyze "$userPrompt" like a lit teacher with a magnifying glass. Go deep—language, intent, message, impact.';
+      case 'Theme':
+        return 'What is the underlying theme or message behind "$userPrompt"? Give a thoughtful explanation.';
+      case 'Essay Help':
+        return 'Help me structure and write an essay about: "$userPrompt". Include outline + thesis suggestion.';
+      case 'Grammar':
+      case 'Improve Writing':
+        return 'Correct grammar, fix clarity, and improve the tone of this writing: "$userPrompt"';
+      case 'Figurative':
+        return 'Find and explain the figurative language and hidden meanings in: "$userPrompt"';
+      case 'Debug':
+        return 'Find and fix the error in this code or logic: "$userPrompt". Explain why it was wrong.';
+      case 'How to':
+        return 'Teach me how to: $userPrompt. Make it clear, practical, and beginner-friendly.';
+      case 'Plan':
+        return 'Create a detailed plan for: "$userPrompt" including steps, timeline, and resources needed.';
+      case 'Simplify':
+        return 'Simplify "$userPrompt" into basic terms for someone just starting out.';
+      case 'Summarize':
+        return 'Give a short, sharp summary of: "$userPrompt". Keep it under 100 words if possible.';
+      case 'Write':
+        return 'Write something creative based on "$userPrompt" — story, poem, or scene.';
+      case 'Ask Anything':
+        return 'Answer this thoughtfully and helpfully: "$userPrompt"';
+      case 'Translate':
+        return 'Translate the following text into English or another language: "$userPrompt"';
+      case 'Tips':
+        return 'Give actionable tips and advice about: "$userPrompt"';
+      case 'Pros & Cons':
+        return 'List the pros and cons of "$userPrompt" with explanations for each.';
+      case 'Use Cases':
+        return 'What are some real-world use cases of "$userPrompt"? Include industries or scenarios.';
+      case 'Study Help':
+        return 'Help me study and understand this topic: "$userPrompt". Use summaries, questions, and mnemonics if useful.';
+      default:
+        return userPrompt;
+    }
+  }
+
 
   /// Generate content using Gemini API with retry mechanism
   Future<String> generateContent(String prompt, {int maxRetries = 3}) async {
@@ -40,9 +112,9 @@ class GeminiService {
           ],
           'generationConfig': {
             'temperature': 0.9,
-            'topK': 1,
+            'topK': 10,
             'topP': 0.8,
-            'maxOutputTokens': 512,
+            'maxOutputTokens': 1500,
             'stopSequences': []
           }
         };
@@ -99,9 +171,9 @@ class GeminiService {
 
 
   /// Try with fallback model if primary model fails
-  Future<String> generateContentWithFallback(String prompt) async {
+  Future<String> generateContentWithFallback(String prompt, String option) async {
     // First try the primary model
-    String response = await generateContent(prompt, maxRetries: 2);
+    String response = await _generateResponse(prompt, option);
     return response;
   }
 
@@ -110,43 +182,5 @@ class GeminiService {
   // }
 
   /// Generate educational content with context
-  Future<String> generateEducationalResponse(String subject, String question) async {
-    final educationalPrompt = '''
-You are an AI study assistant helping students learn. Please provide a helpful, educational response to this question.
-
-Subject: $subject
-Question: $question
-
-Guidelines:
-- Provide clear, accurate information
-- Use examples when helpful
-- Break down complex concepts into simple terms
-- Be encouraging and supportive
-- Use markdown formatting for better readability
-- Include step-by-step explanations when appropriate
-
-Response:''';
-
-    return await generateContent(educationalPrompt);
-  }
-
-  /// Generate study tips and explanations
-  Future<String> generateStudyHelp(String topic, String difficulty) async {
-    final studyPrompt = '''
-As an educational AI assistant, help a student understand this topic:
-
-Topic: $topic
-Difficulty Level: $difficulty
-
-Please provide:
-1. A clear explanation of the concept
-2. Key points to remember
-3. Common mistakes to avoid
-4. Study tips specific to this topic
-5. Practice suggestions
-
-Format your response using markdown for better readability.''';
-
-    return await generateContent(studyPrompt);
-  }
+  
 }
