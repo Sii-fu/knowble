@@ -1,245 +1,157 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
+import '../../core/services/student/course_services.dart';
+import '../../data/models/course.dart';
+import '../../data/models/module.dart';
+import '../../data/models/section.dart';
+import '../../data/models/content.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class CourseDetailPage extends StatelessWidget {
-  const CourseDetailPage({super.key});
+class CourseDetailPage extends StatefulWidget {
+  final String courseId;
+  const CourseDetailPage({required this.courseId, super.key});
+
+  @override
+  State<CourseDetailPage> createState() => _CourseDetailPageState();
+}
+
+class _CourseDetailPageState extends State<CourseDetailPage> {
+  final CourseServices _service = CourseServices();
+  Course? _course;
+  List<Module> _modules = [];
+  List<Section> _sections = [];
+  List<Content> _contents = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourseDetails();
+  }
+
+  Future<void> _loadCourseDetails() async {
+    final course = await _service.fetchCourseById(widget.courseId);
+    List<Module> modules = [];
+    List<Section> allSections = [];
+    List<Content> allContents = [];
+    if (course != null) {
+      modules = await _service.fetchModules(course.id);
+      for (final module in modules) {
+        final sections = await _service.fetchSections(module.id);
+        allSections.addAll(sections);
+        for (final section in sections) {
+          final contents = await _service.fetchContents(section.id);
+          allContents.addAll(contents);
+        }
+      }
+    }
+    setState(() {
+      _course = course;
+      _modules = modules;
+      _sections = allSections;
+      _contents = allContents;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_course == null) {
+      return const Scaffold(body: Center(child: Text('Course not found')));
+    }
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.asset(
-                  'assets/images/algebra1.jpg', // Replace with actual path
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
+                // Banner image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: _course!.banner.startsWith('http')
+                      ? Image.network(_course!.banner, width: double.infinity, height: 180, fit: BoxFit.cover)
+                      : Image.asset('assets/images/default_course.jpg', width: double.infinity, height: 180, fit: BoxFit.cover),
                 ),
-                Positioned(
-                  top: 16,
-                  left: 16,
-                  child: CircleAvatar(
-                    backgroundColor: AppTheme.surfaceWhite,
-                    child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                const SizedBox(height: 16),
+                Text(_course!.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                // Removed progress bar and 5/12
+                const SizedBox(height: 16),
+                const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Text(
+                  _course!.description,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                const Text('Chapters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 12),
+
+                // Dynamic modules/sections/contents
+                ..._modules.asMap().entries.map((moduleEntry) {
+                  final moduleIndex = moduleEntry.key;
+                  final module = moduleEntry.value;
+                  return ExpansionTile(
+                    title: Text('Chapter ${moduleIndex + 1}: ${module.title}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                    children: [
+                      ..._sections.where((section) => section.moduleId == module.id).map((section) => ExpansionTile(
+                        title: Text(section.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400)),
+                        children: [
+                          ..._contents.where((content) => content.sectionId == section.id && content.type == 'pdf').map((content) => ListTile(
+                            leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                            title: Text(content.title),
+                            onTap: () {
+                              // Open PDF URL
+                              // launch(content.url);
+                            },
+                          )),
+                        ],
+                      )),
+                    ],
+                  );
+                }),
+
+                const SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 14),
+                    ),
+                    onPressed: () {},
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Start Course', style: TextStyle(fontSize: 16)),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward),
+                      ],
                     ),
                   ),
                 ),
-                const Positioned(
-                  top: 80,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: CircleAvatar(
-                      radius: 30,
-                      backgroundColor: AppTheme.surfaceWhite,
-                      child: Icon(Icons.play_arrow, size: 30, color: AppTheme.primaryTeal),
-                    ),
-                  ),
-                )
+                const SizedBox(height: 20),
               ],
             ),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'High School Algebra I: Help and Review',
-                    style: TextStyle(
-                      fontSize: 18, 
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Mathematics',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            '5/12',
-                            style: TextStyle(color: AppTheme.textSecondary),
-                          ),
-                          SizedBox(width: 8),
-                          SizedBox(
-                            width: 100,
-                            child: LinearProgressIndicator(
-                              value: 5 / 12,
-                              backgroundColor: AppTheme.borderSubtle,
-                              color: AppTheme.primaryTeal,
-                            ),
-                          ),
-                        ],
-                      )
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Description', 
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Habitasse dolor etiam sed ante donec quis sapien. Malesuada rhoncus nullam eleifend lorem egestas mauris massa massa.',
-                    style: TextStyle(color: AppTheme.textSecondary),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'More', 
-                    style: TextStyle(color: AppTheme.primaryTeal),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Next Chapter', 
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Expanded(
-              child: ChapterList(),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    backgroundColor: AppTheme.primaryTeal,
-                  ),
-                  onPressed: () {},
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        'Start Course',
-                        style: TextStyle(
-                          color: AppTheme.surfaceWhite, 
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, color: AppTheme.surfaceWhite),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class ChapterList extends StatelessWidget {
-  const ChapterList({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        const ListTile(
-          title: Text(
-            'Basic Arithmetic',
-            style: TextStyle(color: AppTheme.textPrimary),
-          ),
-          trailing: Icon(Icons.add, color: AppTheme.textSecondary),
-        ),
-        const ListTile(
-          title: Text(
-            'Solving Math Word Problems',
-            style: TextStyle(color: AppTheme.textPrimary),
-          ),
-          trailing: Icon(Icons.remove, color: AppTheme.textSecondary),
-        ),
-        LessonTile(title: 'Lesson 1: Solving Word Problems: Steps & Examples'),
-        LessonTile(title: 'Lesson 2: Solving Word Problems with Multiple Steps'),
-        LessonTile(title: 'Lesson 3: Restating Word Problems Using Words or Images'),
-        const ListTile(
-          title: Text(
-            'Quiz',
-            style: TextStyle(color: AppTheme.textPrimary),
-          ),
-          trailing: Icon(Icons.remove, color: AppTheme.textSecondary),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Practicing Mixture Problems in Algebra',
-                style: TextStyle(color: AppTheme.textPrimary),
-              ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  backgroundColor: AppTheme.accentLight,
-                ),
-                child: const Text(
-                  'Take Quiz',
-                  style: TextStyle(color: AppTheme.primaryTeal),
-                ),
-              )
-            ],
-          ),
-        ),
-        const ListTile(
-          title: Text(
-            'Decimals and Fractions',
-            style: TextStyle(color: AppTheme.textPrimary),
-          ),
-          trailing: Icon(Icons.add, color: AppTheme.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-class LessonTile extends StatelessWidget {
-  final String title;
-  const LessonTile({required this.title, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 32, right: 8),
-      title: Text(
-        title, 
-        style: const TextStyle(
-          fontSize: 14,
-          color: AppTheme.textSecondary,
-        ),
-      ),
-      trailing: const Icon(
-        Icons.play_circle_fill, 
-        color: AppTheme.primaryTeal,
-      ),
-    );
-  }
-}

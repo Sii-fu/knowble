@@ -1,10 +1,39 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-import '../student/courses_lessons.dart';
-import '../student/Course_Details.dart';
+import '../../core/services/student/course_services.dart';
+import '../../data/models/course.dart';
+import '../../data/models/module.dart'; // Import the Module type
+import 'Course_Details.dart';
+import 'courses_lessons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class StudentDashboardPage extends StatelessWidget {
+class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
+
+  @override
+  State<StudentDashboardPage> createState() => _StudentDashboardPageState();
+}
+
+class _StudentDashboardPageState extends State<StudentDashboardPage> {
+  final CourseServices _courseServices = CourseServices();
+  List<Course> _recommendedCourses = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecommendedCourses();
+  }
+
+  Future<void> _loadRecommendedCourses() async {
+    // Replace with actual studentId from auth
+    final studentId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final courses = await _courseServices.fetchRecommendedCourses(studentId);
+    setState(() {
+      _recommendedCourses = courses;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +60,9 @@ class StudentDashboardPage extends StatelessWidget {
                   const SizedBox(height: 24),
                   const _SectionTitle(title: 'Recommended'),
                   const SizedBox(height: 12),
-                  const _RecommendedCourses(),
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _RecommendedCoursesList(courses: _recommendedCourses),
                   const SizedBox(height: 24),
                   const _SectionTitle(title: "Today's Task"),
                   const SizedBox(height: 12),
@@ -54,6 +85,43 @@ class StudentDashboardPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RecommendedCoursesList extends StatelessWidget {
+  final List<Course> courses;
+  const _RecommendedCoursesList({required this.courses});
+
+  @override
+  Widget build(BuildContext context) {
+    if (courses.isEmpty) {
+      return Text('No recommended courses found.', style: Theme.of(context).textTheme.bodyMedium);
+    }
+    return SizedBox(
+      height: 170,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: courses.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final course = courses[index];
+          // Show chapter count (modules) on the left of duration
+          return FutureBuilder<List<Module>>(
+            future: CourseServices().fetchModules(course.id),
+            builder: (context, snapshot) {
+              final chapterCount = snapshot.hasData ? snapshot.data!.length : 0;
+              return _RecommendedCard(
+                title: course.title,
+                lessons: chapterCount > 0 ? '$chapterCount Chapters' : '',
+                duration: '${course.durationDays} Days',
+                image: course.banner.isNotEmpty ? course.banner : 'assets/images/default_course.jpg',
+                courseId: course.id,
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -153,27 +221,6 @@ class _RecentLearning extends StatelessWidget {
   }
 }
 
-class _RecommendedCourses extends StatelessWidget {
-  const _RecommendedCourses();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 170,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: const [
-          _RecommendedCard(title: 'Bacterial Biology Overview', lessons: '12 Lessons', duration: '12h 20m', image: 'assets/images/bio1.jpg'),
-          SizedBox(width: 12),
-          _RecommendedCard(title: 'Mendelian Genetics & Mechanisms of Her...', lessons: '14 Lessons', duration: '18h 20m', image: 'assets/images/bio2.jpg'),
-          SizedBox(width: 12),
-          _RecommendedCard(title: 'Metabolic Biochemistry for High School', lessons: '12 Lessons', duration: '', image: 'assets/images/bio3.png'),
-        ],
-      ),
-    );
-  }
-}
-
 class _CourseCard extends StatelessWidget {
   final String title;
   final String image;
@@ -228,15 +275,26 @@ class _RecommendedCard extends StatelessWidget {
   final String lessons;
   final String duration;
   final String image;
+  final String courseId; // Add this
 
-  const _RecommendedCard({required this.title, required this.lessons, required this.duration, required this.image});
+  const _RecommendedCard({
+    required this.title,
+    required this.lessons,
+    required this.duration,
+    required this.image,
+    required this.courseId, // Add this
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isNetworkImage = image.startsWith('http');
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseDetailPage()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: courseId)), // Use courseId here
+        );
       },
       child: Container(
         width: 150,
@@ -250,12 +308,25 @@ class _RecommendedCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                image,
-                width: double.infinity,
-                height: 80,
-                fit: BoxFit.cover,
-              ),
+              child: isNetworkImage
+                  ? Image.network(
+                      image,
+                      width: double.infinity,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Image.asset(
+                        'assets/images/default_course.jpg',
+                        width: double.infinity,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : Image.asset(
+                      image,
+                      width: double.infinity,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    ),
             ),
             const SizedBox(height: 6),
             Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -265,7 +336,7 @@ class _RecommendedCard extends StatelessWidget {
                 Text(lessons, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
                 const Spacer(),
                 if (duration.isNotEmpty) ...[
-                  Icon(Icons.access_time, size: 12, color: AppTheme.textSecondary),
+                  Icon(Icons.access_time, size: 14, color: AppTheme.textSecondary),
                   const SizedBox(width: 4),
                   Text(duration, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary))
                 ]
@@ -322,3 +393,4 @@ class _TaskCard extends StatelessWidget {
     );
   }
 }
+
