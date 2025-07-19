@@ -17,6 +17,7 @@ class StudentDashboardPage extends StatefulWidget {
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   final CourseServices _courseServices = CourseServices();
   List<Course> _recommendedCourses = [];
+  List<Course> _recentLearningCourses = [];
   bool _isLoading = true;
 
   @override
@@ -26,11 +27,12 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   }
 
   Future<void> _loadRecommendedCourses() async {
-    // Replace with actual studentId from auth
     final studentId = Supabase.instance.client.auth.currentUser?.id ?? '';
-    final courses = await _courseServices.fetchRecommendedCourses(studentId);
+    final recommended = await _courseServices.fetchRecommendedCourses(studentId);
+    final recentLearning = await _courseServices.fetchRecentLearningCourses(studentId);
     setState(() {
-      _recommendedCourses = courses;
+      _recommendedCourses = recommended;
+      _recentLearningCourses = recentLearning;
       _isLoading = false;
     });
   }
@@ -56,7 +58,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                   const SizedBox(height: 24),
                   const _SectionTitle(title: 'Recent learning'),
                   const SizedBox(height: 12),
-                  const _RecentLearning(),
+                  _RecentLearning(courses: _recentLearningCourses),
                   const SizedBox(height: 24),
                   const _SectionTitle(title: 'Recommended'),
                   const SizedBox(height: 12),
@@ -193,82 +195,73 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _RecentLearning extends StatelessWidget {
-  const _RecentLearning();
+  final List<Course> courses;
+  const _RecentLearning({required this.courses});
 
   @override
   Widget build(BuildContext context) {
+    if (courses.isEmpty) {
+      return Text('No recent learning courses.', style: Theme.of(context).textTheme.bodyMedium);
+    }
     return SizedBox(
-      height: 180,
-      child: ListView(
+      height: 120,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        children: const [
-          _CourseCard(
-            title: 'High School Algebra I: Help and Review',
-            image: 'assets/images/algebra1.jpg',
-            progress: 5,
-            total: 10,
-          ),
-          SizedBox(width: 12),
-          _CourseCard(
-            title: 'Enlargement to Trigonometry',
-            image: 'assets/images/trig.jpg',
-            progress: 5,
-            total: 10,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CourseCard extends StatelessWidget {
-  final String title;
-  final String image;
-  final int progress;
-  final int total;
-
-  const _CourseCard({required this.title, required this.image, required this.progress, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseLessonsPage()));
-      },
-      child: Container(
-        width: 220,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: theme.colorScheme.surface,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                image,
-                width: double.infinity,
-                height: 80,
-                fit: BoxFit.cover,
+        itemCount: courses.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final course = courses[index];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: course.id)),
+              );
+            },
+            child: Container(
+              width: 120,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: Theme.of(context).colorScheme.surface,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: course.banner.startsWith('http')
+                        ? Image.network(
+                            course.banner,
+                            width: double.infinity,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Image.asset(
+                              'assets/images/default_course.jpg',
+                              width: double.infinity,
+                              height: 60,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Image.asset(
+                            course.banner.isNotEmpty ? course.banner : 'assets/images/default_course.jpg',
+                            width: double.infinity,
+                            height: 60,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(course.title, style: Theme.of(context).textTheme.bodyMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
+                ],
               ),
             ),
-            const SizedBox(height: 6),
-            Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-            const SizedBox(height: 6),
-            LinearProgressIndicator(value: progress / total, color: theme.colorScheme.primary),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text("$progress/$total", style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
-            )
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
+
 
 class _RecommendedCard extends StatelessWidget {
   final String title;

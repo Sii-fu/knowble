@@ -16,6 +16,7 @@ class CourseDetailPage extends StatefulWidget {
 }
 
 class _CourseDetailPageState extends State<CourseDetailPage> {
+  bool _enrolled = false;
   final CourseServices _service = CourseServices();
   Course? _course;
   List<Module> _modules = [];
@@ -44,6 +45,11 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           allContents.addAll(contents);
         }
       }
+      // Check enrollment
+      final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      final enrollments = await _service.fetchUserEnrollments(userId);
+      final enrolled = enrollments.any((e) => e.courseId == widget.courseId);
+      _enrolled = enrolled;
     }
     setState(() {
       _course = course;
@@ -101,50 +107,106 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                 const Text('Chapters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
 
-                // Dynamic modules/sections/contents
+                // Dynamic modules/sections/contents with access logic
                 ..._modules.asMap().entries.map((moduleEntry) {
                   final moduleIndex = moduleEntry.key;
                   final module = moduleEntry.value;
-                  return ExpansionTile(
-                    title: Text('Chapter ${moduleIndex + 1}: ${module.title}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                    children: [
-                      ..._sections.where((section) => section.moduleId == module.id).map((section) => ExpansionTile(
-                        title: Text(section.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400)),
+                  final isFirstChapter = moduleIndex == 0;
+                  final isSecondChapter = moduleIndex == 1;
+                  final isLocked = !_enrolled && moduleIndex > 1;
+                  final isBlurred = !_enrolled && isSecondChapter;
+                  return Opacity(
+                    opacity: isBlurred ? 0.5 : 1.0,
+                    child: ExpansionTile(
+                      title: Row(
                         children: [
-                          ..._contents.where((content) => content.sectionId == section.id && content.type == 'pdf').map((content) => ListTile(
-                            leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                            title: Text(content.title),
-                            onTap: () {
-                              // Open PDF URL
-                              // launch(content.url);
-                            },
-                          )),
+                          Text('Chapter ${moduleIndex + 1}: ${module.title}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                          if (!_enrolled && (isLocked || isBlurred))
+                            const Icon(Icons.lock, color: Colors.red, size: 18),
                         ],
-                      )),
-                    ],
+                      ),
+                      initiallyExpanded: isFirstChapter || (_enrolled && !isLocked),
+                      children: [
+                        ..._sections.where((section) => section.moduleId == module.id).toList().asMap().entries.map((sectionEntry) {
+                          final sectionIndex = sectionEntry.key;
+                          final section = sectionEntry.value;
+                          final isFirstSection = isFirstChapter && sectionIndex == 0;
+                          final sectionLocked = !_enrolled && isFirstChapter && !isFirstSection;
+                          final showSection = _enrolled || isFirstChapter || isSecondChapter;
+                          if (!showSection) {
+                            return ListTile(
+                              leading: const Icon(Icons.lock, color: Colors.red),
+                              title: Text(section.title, style: const TextStyle(color: Colors.grey)),
+                              enabled: false,
+                            );
+                          }
+                          return ExpansionTile(
+                            title: Row(
+                              children: [
+                                Text(section.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400)),
+                                if (sectionLocked || (isBlurred && !_enrolled))
+                                  const Icon(Icons.lock, color: Colors.red, size: 18),
+                              ],
+                            ),
+                            initiallyExpanded: isFirstSection,
+                            children: [
+                              ..._contents.where((content) => content.sectionId == section.id && content.type == 'pdf').map((content) {
+                                final contentLocked = sectionLocked || (isBlurred && !_enrolled);
+                                return ListTile(
+                                  leading: contentLocked
+                                      ? const Icon(Icons.lock, color: Colors.red)
+                                      : const Icon(Icons.picture_as_pdf, color: Colors.red),
+                                  title: Text(content.title),
+                                  enabled: _enrolled || isFirstSection,
+                                  onTap: (_enrolled || isFirstSection)
+                                      ? () {
+                                          // Open PDF URL
+                                          // launch(content.url);
+                                        }
+                                      : null,
+                                  subtitle: contentLocked
+                                      ? const Text('Locked', style: TextStyle(color: Colors.red))
+                                      : null,
+                                );
+                              }),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
                   );
                 }),
 
-                const SizedBox(height: 20),
-                Center(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryTeal,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 14),
-                    ),
-                    onPressed: () {},
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Start Course', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward),
-                      ],
+                if (!_enrolled) ...[
+                  const SizedBox(height: 20),
+                  Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 14),
+                      ),
+                      onPressed: () async {
+                        if (!_enrolled) {
+                          final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+                          await _service.enrollCourse(userId, widget.courseId);
+                          setState(() {
+                            _enrolled = true;
+                          });
+                        }
+                      },
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Start Course', style: TextStyle(fontSize: 16)),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
+                ],
               ],
             ),
           ),
