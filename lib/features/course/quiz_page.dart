@@ -24,12 +24,20 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   }
 
   Future<void> _fetchQuizData() async {
-    // Replace 'yourCourseId' with the actual course ID or required argument
-    final data = await QuizService().fetchQuizData(courseid);
-    // print('Fetched quiz data: $data');
-    setState(() {
-      quizData = data;
-    });
+    try {
+      // Replace 'yourCourseId' with the actual course ID or required argument
+      final data = await QuizService().fetchQuizData(courseid);
+      // print('Fetched quiz data: $data');
+      setState(() {
+        quizData = data;
+        isLoading = false; // Set loading to false when data is loaded
+      });
+    } catch (e) {
+      print('Error fetching quiz data: $e');
+      setState(() {
+        isLoading = false; // Set loading to false even on error
+      });
+    }
   }
   // 🔧 State management
   int currentQuestionIndex = 0;
@@ -38,6 +46,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   bool isAnswered = false;
   bool showFeedback = false;
   bool quizCompleted = false;
+  bool isLoading = true; // Add loading state
   
 
   // Animation controllers
@@ -132,10 +141,14 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       isAnswered = false;
       showFeedback = false;
       quizCompleted = false;
+      isLoading = true; // Set loading when restarting
     });
     
     _slideController.reset();
     _slideController.forward();
+    
+    // Refetch quiz data
+    _fetchQuizData();
   }
 
   @override
@@ -152,11 +165,95 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         elevation: 0,
         centerTitle: true,
       ),
-      body: quizCompleted ? _buildCompletionScreen() : _buildQuizScreen(),
+      body: isLoading 
+          ? _buildLoadingScreen()
+          : quizData.isEmpty 
+              ? _buildErrorScreen()
+              : quizCompleted 
+                  ? _buildCompletionScreen() 
+                  : _buildQuizScreen(),
+    );
+  }
+
+  Widget _buildLoadingScreen() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: Color(0xFF0EA5E9),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading Quiz...',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorScreen() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Color(0xFFEF4444),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No Quiz Available',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'There are no quiz questions available for this course.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF64748B),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  isLoading = true;
+                });
+                _fetchQuizData();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0EA5E9),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildQuizScreen() {
+    if (quizData.isEmpty) return _buildErrorScreen();
+    
     final currentQuestion = quizData[currentQuestionIndex];
     
     return FadeTransition(
