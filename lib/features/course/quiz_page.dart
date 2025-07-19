@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/services/student/generate_course_specific_quiz.dart';
 
 class QuizPage extends StatefulWidget {
   const QuizPage({super.key});
@@ -9,34 +10,27 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   // 💾 Quiz data
-  final List<Map<String, dynamic>> quizData = [
-    {
-      'question': 'What is the capital of France?',
-      'options': ['Paris', 'London', 'Berlin', 'Madrid'],
-      'answer': 'Paris',
-    },
-    {
-      'question': 'Which planet is known as the Red Planet?',
-      'options': ['Earth', 'Mars', 'Jupiter', 'Saturn'],
-      'answer': 'Mars',
-    },
-    {
-      'question': 'What is the largest mammal in the world?',
-      'options': ['Elephant', 'Blue Whale', 'Giraffe', 'Hippopotamus'],
-      'answer': 'Blue Whale',
-    },
-    {
-      'question': 'In which year did World War II end?',
-      'options': ['1943', '1944', '1945', '1946'],
-      'answer': '1945',
-    },
-    {
-      'question': 'What is the chemical symbol for gold?',
-      'options': ['Go', 'Gd', 'Au', 'Ag'],
-      'answer': 'Au',
-    },
-  ];
+  final String courseid = '9c341deb-5373-4a42-89df-867faa4f63d3';
+  
 
+  List<Map<String, dynamic>> quizData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initAnimations();
+    _fetchQuizData();
+
+  }
+
+  Future<void> _fetchQuizData() async {
+    // Replace 'yourCourseId' with the actual course ID or required argument
+    final data = await QuizService().fetchQuizData(courseid);
+    // print('Fetched quiz data: $data');
+    setState(() {
+      quizData = data;
+    });
+  }
   // 🔧 State management
   int currentQuestionIndex = 0;
   String? selectedOption;
@@ -45,17 +39,13 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   bool showFeedback = false;
   bool quizCompleted = false;
   
+
   // Animation controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  @override
-  void initState() {
-    super.initState();
-    _initAnimations();
-  }
 
   void _initAnimations() {
     _fadeController = AnimationController(

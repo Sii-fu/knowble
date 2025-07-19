@@ -116,7 +116,7 @@ class _RecommendedCoursesList extends StatelessWidget {
                 title: course.title,
                 lessons: chapterCount > 0 ? '$chapterCount Chapters' : '',
                 duration: '${course.durationDays} Days',
-                image: course.banner.isNotEmpty ? course.banner : 'assets/images/default_course.jpg',
+                image: course.banner.isNotEmpty ? course.banner : 'assets/images/geo.jpg',
                 courseId: course.id,
               );
             },
@@ -315,7 +315,7 @@ class _RecommendedCard extends StatelessWidget {
                       height: 80,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Image.asset(
-                        'assets/images/default_course.jpg',
+                        'assets/images/geo.jpg',
                         width: double.infinity,
                         height: 80,
                         fit: BoxFit.cover,
