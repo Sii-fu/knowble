@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../../data/models/course.dart';
 import '../../../data/models/module.dart';
 import '../../../data/models/section.dart';
@@ -6,6 +7,12 @@ import '../../../data/models/content.dart';
 import '../../../data/models/enrollment.dart';
 
 class CourseServices {
+  Future<List<Course>> fetchRecentLearningCourses(String studentId) async {
+    final enrollments = await fetchUserEnrollments(studentId);
+    final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
+    final allCourses = await fetchAllCourses();
+    return allCourses.where((c) => enrolledCourseIds.contains(c.id)).toList();
+  }
   final _client = Supabase.instance.client;
 
   Future<List<Course>> fetchAllCourses() async {
@@ -51,8 +58,7 @@ class CourseServices {
         .select()
         .eq('id', courseId)
         .single();
-    if (response == null) return null;
-    return Course.fromMap(response as Map<String, dynamic>);
+    return Course.fromMap(response);
   }
 
   Future<List<Module>> fetchModules(String courseId) async {
@@ -80,5 +86,15 @@ class CourseServices {
         .eq('section_id', sectionId);
     final data = response as List<dynamic>? ?? [];
     return data.map((c) => Content.fromMap(c as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> enrollCourse(String userId, String courseId) async {
+    final uuid = Uuid();
+    await _client.from('enrollments').insert({
+      'id': uuid.v4(),
+      'student_id': userId,
+      'course_id': courseId,
+      'enrolled_at': DateTime.now().toIso8601String(),
+    });
   }
 }
