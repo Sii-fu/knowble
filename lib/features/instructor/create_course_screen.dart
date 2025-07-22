@@ -32,8 +32,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final TextEditingController _courseDescriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationDaysController = TextEditingController();
-  final TextEditingController _chapterController = TextEditingController();
+  final TextEditingController _tagController = TextEditingController();
+  final TextEditingController _totalChaptersController = TextEditingController();
+  final TextEditingController _totalLessonsController = TextEditingController();
   final TextEditingController _chapterNameController = TextEditingController();
+  // Store parsed chapter names
+  List<String> _chapterNames = [];
+  int _currentChapterIndex = 0;
   final TextEditingController _lesson1Controller = TextEditingController();
   final TextEditingController _lessonCountController = TextEditingController();
   List<TextEditingController> _lessonControllers = [];
@@ -60,7 +65,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     _courseDescriptionController.text = '';
     _priceController.text = '';
     _durationDaysController.text = '';
-    _chapterController.text = '';
+    _tagController.text = '';
+    _totalChaptersController.text = '';
+    _totalLessonsController.text = '';
     _chapterNameController.text = '';
     _lesson1Controller.text = '';
     _lessonCountController.text = '';
@@ -197,8 +204,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     final description = _courseDescriptionController.text.trim();
     final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
     final durationDays = int.tryParse(_durationDaysController.text.trim()) ?? 0;
-    final chapterOrder = int.tryParse(_chapterController.text.trim()) ?? 1;
-    final chapterName = _chapterNameController.text.trim();
+    final chapterOrder = _currentChapterIndex + 1;
+    final chapterName = (_chapterNames.isNotEmpty && _currentChapterIndex < _chapterNames.length)
+        ? _chapterNames[_currentChapterIndex]
+        : '';
     final lessonCount = _lessonControllers.length;
 
     if (title.isEmpty || chapterName.isEmpty) {
@@ -316,299 +325,151 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Course Name
-            const Text(
-              'Course Name',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: TextField(
-                controller: _courseNameController,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
+            if (_currentChapterIndex == 0) ...[
+              // Only show course meta fields on first page
+              const Text('Course Name', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+                child: TextField(
+                  controller: _courseNameController,
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter course name'),
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Course Description
-            const Text(
-              'Course Description',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: TextField(
-                controller: _courseDescriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
+              const SizedBox(height: 16),
+              const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+                child: TextField(
+                  controller: _courseDescriptionController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter description'),
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Price
-            const Text(
-              'Price',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: TextField(
-                controller: _priceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                  hintText: 'Enter price',
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
+              const SizedBox(height: 16),
+              const Text('Price', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+                child: TextField(
+                  controller: _priceController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter price'),
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Duration (days)
-            const Text(
-              'Duration (days)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: TextField(
-                controller: _durationDaysController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                  hintText: 'Enter duration in days',
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
+              const SizedBox(height: 16),
+              const Text('Duration (days)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+                child: TextField(
+                  controller: _durationDaysController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter duration in days'),
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // Chapter and Lesson Row
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Chapter Section
-                SizedBox(
-                  width: 120,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Chapter',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: TextField(
-                          controller: _chapterController,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            hintText: 'Chapter 1',
-                          ),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 16),
+              const Text('Tag', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+                child: TextField(
+                  controller: _tagController,
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter tag'),
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add, color: Colors.blue),
-                  padding: const EdgeInsets.only(left: 0, right: 4, bottom: 8),
-                  constraints: const BoxConstraints(),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CreateCourseScreen()),
-                    );
+              ),
+              const SizedBox(height: 16),
+              const Text('Total Chapters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+                child: TextField(
+                  controller: _totalChaptersController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter total chapters'),
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                  onChanged: (value) {
+                    int count = int.tryParse(value) ?? 0;
+                    if (count > 0) {
+                      setState(() {
+                        _chapterNames = List.generate(count, (i) => '');
+                        _currentChapterIndex = 0;
+                      });
+                    }
                   },
                 ),
-                const SizedBox(width: 8),
-                // Lesson Section
-                SizedBox(
-                  width: 120,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Lesson',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: TextField(
-                          controller: _lessonCountController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            hintText: 'Number',
-                          ),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.black87,
-                          ),
-                          onChanged: (value) {
-                            int lessonCount = int.tryParse(value) ?? 0;
-                            if (lessonCount > 0) {
-                              setState(() {
-                                selectedLessonCount = '$lessonCount Lesson';
-                                _updateLessonControllers();
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Chapter Name
-            const Text(
-              'Chapter Name',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
               ),
-            ),
+              const SizedBox(height: 16),
+            ],
+            // Per-chapter fields
+            Text('Chapter ${_currentChapterIndex + 1} Name', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
             const SizedBox(height: 8),
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
               child: TextField(
                 controller: _chapterNameController,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
+                decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter chapter name'),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                onChanged: (value) {
+                  if (_chapterNames.isNotEmpty && _currentChapterIndex < _chapterNames.length) {
+                    setState(() {
+                      _chapterNames[_currentChapterIndex] = value;
+                    });
+                  }
+                },
               ),
             ),
-            const SizedBox(height: 24),
-            // Dynamic Lesson Fields
+            const SizedBox(height: 16),
+            const Text('Total Lessons under this Chapter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+              child: TextField(
+                controller: _totalLessonsController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter total lessons for this chapter'),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                onChanged: (value) {
+                  int lessonCount = int.tryParse(value) ?? 0;
+                  if (lessonCount > 0) {
+                    setState(() {
+                      selectedLessonCount = '$lessonCount Lesson';
+                      _updateLessonControllers();
+                    });
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
             for (int i = 0; i < _lessonControllers.length; i++) ...[
-              Text(
-                'Lesson ${i + 1}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+              Text('Lesson ${i + 1} Name', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
+                child: TextField(
+                  controller: _lessonControllers[i],
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter lesson name'),
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ),
               const SizedBox(height: 8),
               Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
                 child: TextField(
-                  controller: _lessonControllers[i],
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
-                    hintText: 'Lesson Title',
-                  ),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                  ),
+                  decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Enter lesson description'),
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ),
               const SizedBox(height: 12),
               Container(
                 height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
+                decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
                 child: InkWell(
                   onTap: () => _handlePdfUpload(i),
                   borderRadius: BorderRadius.circular(8),
@@ -618,13 +479,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       children: [
                         Icon(Icons.picture_as_pdf, color: Colors.red[400]),
                         const SizedBox(width: 8),
-                        Text(
-                          _lessonPdfInfos[i] != null ? 'PDF Selected' : 'Upload PDF',
-                          style: TextStyle(
-                            color: _lessonPdfInfos[i] != null ? Colors.red[400] : Colors.grey,
-                            fontSize: 16,
-                          ),
-                        ),
+                        Text(_lessonPdfInfos[i] != null ? 'PDF Selected' : 'Upload PDF', style: TextStyle(color: _lessonPdfInfos[i] != null ? Colors.red[400] : Colors.grey, fontSize: 16)),
                       ],
                     ),
                   ),
@@ -632,49 +487,21 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
               ),
               const SizedBox(height: 20),
             ],
-            
             // Question Section
-            const Text(
-              'Question',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
+            const Text('Question', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
             const SizedBox(height: 8),
-            // Title Field
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
               child: TextField(
                 controller: _questionTitleController,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                  hintText: 'Question Title',
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
+                decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Question Title'),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
               ),
             ),
             const SizedBox(height: 12),
-            // Type Dropdown
             Row(
               children: [
-                const Text(
-                  'Type:',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
+                const Text('Type:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.black87)),
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
@@ -689,122 +516,52 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         _selectedQuestionType = value!;
                       });
                     },
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
+                    decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            // Total Marks Field
             Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey[300]!)),
               child: TextField(
                 controller: _questionMarksController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                  hintText: 'Total Marks',
-                ),
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                ),
+                decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.all(16), hintText: 'Total Marks'),
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
               ),
             ),
             const SizedBox(height: 20),
             Row(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      // Example: Use course name as assessment title, type as selected, total marks from field
-                      final courseId = await _getCurrentCourseId();
-                      if (courseId == null) {
-                        _showSuccessDialog('Please create the course first.');
-                        return;
-                      }
-                      try {
-                        await _questionAIService.generateAndStoreMCQs(
-                          courseId: courseId,
-                          assessmentTitle: _questionTitleController.text.trim(),
-                          type: _selectedQuestionType.toLowerCase(),
-                          totalMarks: int.tryParse(_questionMarksController.text.trim()) ?? 0,
-                        );
-                        _showSuccessDialog('AI-generated questions uploaded!');
-                      } catch (e) {
-                        _showSuccessDialog('AI generation failed: ${e.toString()}');
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Generate Question Using AI',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                if (_currentChapterIndex < _chapterNames.length - 1)
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _currentChapterIndex++;
+                          // Clear chapter name and lesson fields for new chapter
+                          _chapterNameController.clear();
+                          _totalLessonsController.clear();
+                          _lessonControllers.clear();
+                          _lessonPdfInfos.clear();
+                          selectedLessonCount = '4 Lesson';
+                          _updateLessonControllers();
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[600], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0),
+                      child: const Text('Next', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _handleQuestionUpload,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[600],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Upload your Question',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                if (_currentChapterIndex == _chapterNames.length - 1)
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _handleFinalUpload,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green[600], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0),
+                      child: const Text('Upload All Chapters', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
-                ),
               ],
-            ),
-            const SizedBox(height: 32),
-            
-            // Upload Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _handleFinalUpload,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Upload',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             ),
             const SizedBox(height: 20),
           ],

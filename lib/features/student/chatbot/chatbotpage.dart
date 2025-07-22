@@ -56,7 +56,6 @@ class _ChatBotPageState extends State<ChatBotPage> {
     if (_messageController.text.trim().isEmpty) return;
 
     final userMessage = _messageController.text.trim();
-    final selectedPrefix = _selectedOption;
     _messageController.clear();
     
     // Clear selected option after sending
@@ -80,17 +79,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
 
     try {
       // Get AI response from Gemini
-      String aiResponse;
-      
-      // Check if user has selected a specific option for better context
-      if (selectedPrefix != null) {
-        // Determine subject based on the selected option
-        // aiResponse = await _geminiService.generateContentWithFallback(selectedPrefix, userMessage);
-        aiResponse = await _geminiService.generateContentWithFallback( userMessage);
-      } else {
-        // Use general educational prompt with fallback
-        aiResponse = await _geminiService.generateContentWithFallback(userMessage);
-      }
+      final aiResponse = await _geminiService.generateContentWithFallback(userMessage, _selectedOption ?? '');
 
       // Add AI response
       if (mounted) {
@@ -255,8 +244,8 @@ class _ChatBotPageState extends State<ChatBotPage> {
               itemCount: suggestions.length,
               itemBuilder: (context, index) {
                 final suggestion = suggestions[index];
-                final prefix = suggestion['prefix'] as String;
-                final isSelected = _selectedOption == prefix;
+                final text = suggestion['text'] as String;
+                final isSelected = _selectedOption == text;
                 
                 return Container(
                   margin: const EdgeInsets.only(right: 8),
@@ -271,7 +260,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          suggestion['text'] as String,
+                          text,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -281,7 +270,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
                       ],
                     ),
                     selected: isSelected,
-                    onSelected: (selected) => _selectOption(prefix),
+                    onSelected: (selected) => _selectOption(text),
                     selectedColor: AppTheme.primaryTeal,
                     backgroundColor: AppTheme.accentLight,
                     side: BorderSide(
@@ -309,84 +298,81 @@ class _ChatBotPageState extends State<ChatBotPage> {
       (msg) => !msg.isUser,
       orElse: () => _messages.first,
     );
-
     final message = lastBotMessage.message.toLowerCase();
 
     if (message.contains('math') || message.contains('algebra') || message.contains('equation')) {
       return [
-        {'icon': Icons.calculate, 'text': 'Solve', 'prefix': 'Solve this math problem:', 'placeholder': 'e.g. Solve: 2x + 5 = 15'},
-        {'icon': Icons.lightbulb_outline, 'text': 'Concept', 'prefix': 'Explain this math concept:', 'placeholder': 'e.g. What is the quadratic formula?'},
-        {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': 'e.g. Polynomial equations'},
-        {'icon': Icons.format_list_bulleted, 'text': 'Steps', 'prefix': 'Show me how to solve', 'placeholder': 'e.g. a system of linear equations'},
-        {'icon': Icons.auto_awesome, 'text': 'Trick', 'prefix': 'What’s a trick to solve', 'placeholder': 'e.g. factoring quadratic expressions'},
+      {'icon': Icons.calculate, 'text': 'Solve', 'placeholder': 'e.g. Solve: 2x + 5 = 15'},
+      {'icon': Icons.lightbulb_outline, 'text': 'Concept', 'placeholder': 'e.g. What is the quadratic formula?'},
+      {'icon': Icons.quiz_outlined, 'text': 'Examples', 'placeholder': 'e.g. Polynomial equations'},
+      {'icon': Icons.format_list_bulleted, 'text': 'Steps', 'placeholder': 'e.g. a system of linear equations'},
+      {'icon': Icons.auto_awesome, 'text': 'Trick', 'placeholder': 'e.g. factoring quadratic expressions'},
       ];
     } else if (message.contains('science') || message.contains('biology') || message.contains('physics')) {
       return [
-        {'icon': Icons.science, 'text': 'Explain', 'prefix': 'Explain this scientific concept:', 'placeholder': 'e.g. How does photosynthesis work?'},
-        {'icon': Icons.bolt, 'text': 'Break it down', 'prefix': 'Simplify', 'placeholder': 'e.g. Newton\'s Third Law of Motion'},
-        {'icon': Icons.timeline, 'text': 'Process', 'prefix': 'Describe the process of', 'placeholder': 'e.g. Cell division (mitosis)'},
-        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare and contrast', 'placeholder': 'e.g. Mitosis vs Meiosis'},
-        {'icon': Icons.lightbulb, 'text': 'Why?', 'prefix': 'Why does', 'placeholder': 'e.g. Salt dissolve in water?'},
+      {'icon': Icons.science, 'text': 'Explain', 'placeholder': 'e.g. How does photosynthesis work?'},
+      {'icon': Icons.bolt, 'text': 'Break it down', 'placeholder': 'e.g. Newton\'s Third Law of Motion'},
+      {'icon': Icons.timeline, 'text': 'Process', 'placeholder': 'e.g. Cell division (mitosis)'},
+      {'icon': Icons.compare_arrows, 'text': 'Compare', 'placeholder': 'e.g. Mitosis vs Meiosis'},
+      {'icon': Icons.lightbulb, 'text': 'Why?', 'placeholder': 'e.g. Salt dissolve in water?'},
       ];
     } else if (message.contains('history') || message.contains('revolution') || message.contains('war')) {
       return [
-        {'icon': Icons.timeline, 'text': 'Timeline', 'prefix': 'Create a timeline for', 'placeholder': 'e.g. Key events of World War II'},
-        {'icon': Icons.flag, 'text': 'Event', 'prefix': 'What happened during', 'placeholder': 'e.g. The French Revolution'},
-        {'icon': Icons.person, 'text': 'Figure', 'prefix': 'Tell me about', 'placeholder': 'e.g. Napoleon Bonaparte'},
-        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. WWI and WWII'},
-        {'icon': Icons.public, 'text': 'Impact', 'prefix': 'What was the impact of', 'placeholder': 'e.g. The Cold War on global politics'},
+      {'icon': Icons.timeline, 'text': 'Timeline', 'placeholder': 'e.g. Key events of World War II'},
+      {'icon': Icons.flag, 'text': 'Event', 'placeholder': 'e.g. The French Revolution'},
+      {'icon': Icons.person, 'text': 'Figure', 'placeholder': 'e.g. Napoleon Bonaparte'},
+      {'icon': Icons.compare_arrows, 'text': 'Compare', 'placeholder': 'e.g. WWI and WWII'},
+      {'icon': Icons.public, 'text': 'Impact', 'placeholder': 'e.g. The Cold War on global politics'},
       ];
     } else if (message.contains('english') || message.contains('literature') || message.contains('poem')) {
       return [
-        {'icon': Icons.edit, 'text': 'Analyze', 'prefix': 'Analyze this line:', 'placeholder': 'e.g. "To be or not to be" from Hamlet'},
-        {'icon': Icons.format_quote, 'text': 'Theme', 'prefix': 'What is the main theme of', 'placeholder': 'e.g. Romeo and Juliet'},
-        {'icon': Icons.create, 'text': 'Essay Help', 'prefix': 'Help me write an essay about', 'placeholder': 'e.g. The role of fate in Macbeth'},
-        {'icon': Icons.spellcheck, 'text': 'Grammar', 'prefix': 'Check the grammar:', 'placeholder': 'e.g. This sentence have a mistake.'},
-        {'icon': Icons.quiz_outlined, 'text': 'Figurative', 'prefix': 'Give me examples of', 'placeholder': 'e.g. Metaphors in modern poetry'},
+      {'icon': Icons.edit, 'text': 'Analyze', 'placeholder': 'e.g. "To be or not to be" from Hamlet'},
+      {'icon': Icons.format_quote, 'text': 'Theme', 'placeholder': 'e.g. Romeo and Juliet'},
+      {'icon': Icons.create, 'text': 'Essay Help', 'placeholder': 'e.g. The role of fate in Macbeth'},
+      {'icon': Icons.spellcheck, 'text': 'Grammar', 'placeholder': 'e.g. This sentence have a mistake.'},
+      {'icon': Icons.quiz_outlined, 'text': 'Figurative', 'placeholder': 'e.g. Metaphors in modern poetry'},
       ];
     } else if (message.contains('computer') || message.contains('coding') || message.contains('programming')) {
       return [
-        {'icon': Icons.code, 'text': 'Debug', 'prefix': 'What’s wrong with this code?', 'placeholder': 'e.g. for (int i = 0; i <= n; i--)'},
-        {'icon': Icons.psychology, 'text': 'Explain', 'prefix': 'Explain this code concept:', 'placeholder': 'e.g. How recursion works in Dart'},
-        {'icon': Icons.build, 'text': 'How to', 'prefix': 'How do I build', 'placeholder': 'e.g. A login system in Flutter'},
-        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. Dart and JavaScript differences'},
-        {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Show code examples of', 'placeholder': 'e.g. Firebase CRUD in Flutter'},
+      {'icon': Icons.code, 'text': 'Debug', 'placeholder': 'e.g. for (int i = 0; i <= n; i--)'},
+      {'icon': Icons.psychology, 'text': 'Explain', 'placeholder': 'e.g. How recursion works in Dart'},
+      {'icon': Icons.build, 'text': 'How to', 'placeholder': 'e.g. A login system in Flutter'},
+      {'icon': Icons.compare_arrows, 'text': 'Compare', 'placeholder': 'e.g. Dart and JavaScript differences'},
+      {'icon': Icons.quiz_outlined, 'text': 'Examples', 'placeholder': 'e.g. Firebase CRUD in Flutter'},
       ];
     } else if (message.contains('business') || message.contains('marketing') || message.contains('startup')) {
       return [
-        {'icon': Icons.trending_up, 'text': 'Strategy', 'prefix': 'What is a good strategy for', 'placeholder': 'e.g. Launching a new SaaS startup'},
-        {'icon': Icons.lightbulb_outline, 'text': 'Idea', 'prefix': 'Give me business ideas about', 'placeholder': 'e.g. AI in education'},
-        {'icon': Icons.query_stats, 'text': 'Explain', 'prefix': 'Explain this marketing term:', 'placeholder': 'e.g. Conversion rate optimization'},
-        {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. B2B vs B2C models'},
-        {'icon': Icons.help_outline, 'text': 'Plan', 'prefix': 'Create a business plan for', 'placeholder': 'e.g. A local food delivery app'},
+      {'icon': Icons.trending_up, 'text': 'Strategy', 'placeholder': 'e.g. Launching a new SaaS startup'},
+      {'icon': Icons.lightbulb_outline, 'text': 'Idea', 'placeholder': 'e.g. AI in education'},
+      {'icon': Icons.query_stats, 'text': 'Explain', 'placeholder': 'e.g. Conversion rate optimization'},
+      {'icon': Icons.compare_arrows, 'text': 'Compare', 'placeholder': 'e.g. B2B vs B2C models'},
+      {'icon': Icons.help_outline, 'text': 'Plan', 'placeholder': 'e.g. A local food delivery app'},
       ];
     }
-
-
     return _getDefaultSuggestions();
   }
 
 
   List<Map<String, dynamic>> _getDefaultSuggestions() {
    return [
-      {'icon': Icons.lightbulb_outline, 'text': 'Explain', 'prefix': 'Explain', 'placeholder': 'e.g. What is machine learning?'},
-      {'icon': Icons.format_list_bulleted, 'text': 'Steps', 'prefix': 'Show me step-by-step how to', 'placeholder': 'e.g. Solve a quadratic equation'},
-      {'icon': Icons.quiz_outlined, 'text': 'Examples', 'prefix': 'Give me examples of', 'placeholder': 'e.g. Renewable energy sources'},
-      {'icon': Icons.psychology, 'text': 'Simplify', 'prefix': 'Explain in simple terms:', 'placeholder': 'e.g. Blockchain technology'},
-      {'icon': Icons.calculate, 'text': 'Solve', 'prefix': 'Solve this problem:', 'placeholder': 'e.g. 3x² + 5x - 2 = 0'},
-      {'icon': Icons.summarize, 'text': 'Summarize', 'prefix': 'Summarize this:', 'placeholder': 'e.g. The plot of Inception'},
-      {'icon': Icons.create, 'text': 'Write', 'prefix': 'Help me write', 'placeholder': 'e.g. A paragraph about climate change'},
-      {'icon': Icons.compare_arrows, 'text': 'Compare', 'prefix': 'Compare', 'placeholder': 'e.g. iOS vs Android'},
+      {'icon': Icons.lightbulb_outline, 'text': 'Explain', 'placeholder': 'e.g. What is machine learning?'},
+      {'icon': Icons.format_list_bulleted, 'text': 'Steps', 'placeholder': 'e.g. Solve a quadratic equation'},
+      {'icon': Icons.quiz_outlined, 'text': 'Examples', 'placeholder': 'e.g. Renewable energy sources'},
+      {'icon': Icons.psychology, 'text': 'Simplify', 'placeholder': 'e.g. Blockchain technology'},
+      {'icon': Icons.calculate, 'text': 'Solve', 'placeholder': 'e.g. 3x² + 5x - 2 = 0'},
+      {'icon': Icons.summarize, 'text': 'Summarize', 'placeholder': 'e.g. The plot of Inception'},
+      {'icon': Icons.create, 'text': 'Write', 'placeholder': 'e.g. A paragraph about climate change'},
+      {'icon': Icons.compare_arrows, 'text': 'Compare', 'placeholder': 'e.g. iOS vs Android'},
 
       // 🆕 Extra Suggestions:
-      {'icon': Icons.question_answer, 'text': 'Ask Anything', 'prefix': 'I have a question about', 'placeholder': 'e.g. The stock market'},
-      {'icon': Icons.translate, 'text': 'Translate', 'prefix': 'Translate this into English:', 'placeholder': 'e.g. Je suis étudiant'},
-      {'icon': Icons.tips_and_updates, 'text': 'Tips', 'prefix': 'Give me tips on', 'placeholder': 'e.g. Time management'},
-      {'icon': Icons.edit_note, 'text': 'Improve Writing', 'prefix': 'Make this sound better:', 'placeholder': 'e.g. I went to the shop'},
-      {'icon': Icons.light_mode, 'text': 'ELI5', 'prefix': 'Explain like I\'m 5:', 'placeholder': 'e.g. Quantum mechanics'},
-      {'icon': Icons.star, 'text': 'Pros & Cons', 'prefix': 'List pros and cons of', 'placeholder': 'e.g. Online learning'},
-      {'icon': Icons.extension, 'text': 'Use Cases', 'prefix': 'What are some real-life uses of', 'placeholder': 'e.g. Artificial Intelligence'},
-      {'icon': Icons.school, 'text': 'Study Help', 'prefix': 'Help me study', 'placeholder': 'e.g. For my biology test tomorrow'},
+      {'icon': Icons.question_answer, 'text': 'Ask Anything', 'placeholder': 'e.g. The stock market'},
+      {'icon': Icons.translate, 'text': 'Translate', 'placeholder': 'e.g. Je suis étudiant'},
+      {'icon': Icons.tips_and_updates, 'text': 'Tips', 'placeholder': 'e.g. Time management'},
+      {'icon': Icons.edit_note, 'text': 'Improve Writing', 'placeholder': 'e.g. I went to the shop'},
+      {'icon': Icons.light_mode, 'text': 'ELI5', 'placeholder': 'e.g. Quantum mechanics'},
+      {'icon': Icons.star, 'text': 'Pros & Cons', 'placeholder': 'e.g. Online learning'},
+      {'icon': Icons.extension, 'text': 'Use Cases', 'placeholder': 'e.g. Artificial Intelligence'},
+      {'icon': Icons.school, 'text': 'Study Help', 'placeholder': 'e.g. For my biology test tomorrow'},
     ];
 
   }
@@ -416,7 +402,7 @@ class _ChatBotPageState extends State<ChatBotPage> {
                 decoration: InputDecoration(
                   hintText: _selectedOption != null
                       ? (_getContextualSuggestions().firstWhere(
-                          (s) => s['prefix'] == _selectedOption,
+                          (s) => s['text'] == _selectedOption,
                           orElse: () => {'placeholder': 'Ask me anything about your studies...'},
                         )['placeholder'] as String)
                       : 'Ask me anything about your studies...',
@@ -790,3 +776,4 @@ class _TypingIndicatorState extends State<TypingIndicator>
     );
   }
 }
+

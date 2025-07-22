@@ -8,6 +8,7 @@ class Course {
   final bool isPaid;
   final int durationDays;
   final DateTime createdAt;
+  final String banner;
 
   Course({
     required this.id,
@@ -18,6 +19,7 @@ class Course {
     required this.isPaid,
     required this.durationDays,
     required this.createdAt,
+    required this.banner,
   });
 
   factory Course.fromMap(Map<String, dynamic> map) {
@@ -30,6 +32,7 @@ class Course {
       isPaid: map['is_paid'] ?? false,
       durationDays: map['duration_days'] ?? 0,
       createdAt: DateTime.parse(map['created_at']),
+      banner: map['banner'] ?? 'banner',
     );
   }
 
@@ -65,6 +68,7 @@ class Course {
       isPaid: isPaid ?? this.isPaid,
       durationDays: durationDays ?? this.durationDays,
       createdAt: createdAt ?? this.createdAt,
+      banner: this.banner, 
     );
   }
 }

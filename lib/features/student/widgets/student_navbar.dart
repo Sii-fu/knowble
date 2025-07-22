@@ -23,20 +23,21 @@ class StudentBottomNavbar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        // Removed boxShadow to eliminate navbar shadow
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: Colors.black.withOpacity(0.07),
+        //     blurRadius: 12,
+        //     offset: const Offset(0, -2),
+        //   ),
+        // ],
         // borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
       ),
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: currentIndex,
         onTap: onTap,
-        elevation: 12,
+        elevation: 0, // Set to 0 to remove Material elevation shadow
         backgroundColor: Colors.transparent,
         selectedItemColor: theme.primaryColor,
         unselectedItemColor: Colors.grey[500],
