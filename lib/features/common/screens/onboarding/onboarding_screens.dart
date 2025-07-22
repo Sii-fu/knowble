@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth/login_screen.dart';
+import '../auth/login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,12 +21,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingData(
       imagePath: 'assets/images/teacher chat.png',
       title: 'Direct Connection',
-      description: 'Dive into rich course materials and connect directly with expert teachers for support.',
+      description:
+          'Dive into rich course materials and connect directly with expert teachers for support.',
     ),
     _OnboardingData(
       imagePath: 'assets/images/chatbot gif.gif',
       title: 'AI Learning Assistant',
-      description: 'Get Instant Module Summaries, Practice with Auto-Generated Quizzes, and Ask for Clarifications Anytime',
+      description:
+          'Get Instant Module Summaries, Practice with Auto-Generated Quizzes, and Ask for Clarifications Anytime',
     ),
   ];
 
@@ -38,7 +40,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _onNext() {
     if (_currentPage < _pages.length - 1) {
-      _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.ease);
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.ease,
+      );
     } else {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
@@ -47,8 +52,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           transitionsBuilder: (_, animation, __, child) {
             const begin = Offset(1.0, 0.0);
             const end = Offset.zero;
-            final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: Curves.ease));
-            return SlideTransition(position: animation.drive(tween), child: child);
+            final tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: Curves.ease));
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: child,
+            );
           },
         ),
       );
@@ -95,7 +106,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _DotsIndicator(currentIndex: _currentPage, count: _pages.length),
+                  _DotsIndicator(
+                    currentIndex: _currentPage,
+                    count: _pages.length,
+                  ),
                   const SizedBox(height: 24),
                   Center(
                     child: _NavigationButton(
@@ -117,7 +131,11 @@ class _OnboardingData {
   final String imagePath;
   final String title;
   final String description;
-  const _OnboardingData({required this.imagePath, required this.title, required this.description});
+  const _OnboardingData({
+    required this.imagePath,
+    required this.title,
+    required this.description,
+  });
 }
 
 class _OnboardingPage extends StatelessWidget {
@@ -154,7 +172,15 @@ class _OnboardingPage extends StatelessWidget {
             alignment: Alignment.topRight,
             child: TextButton(
               onPressed: onSkip,
-              child: const Text('Skip', style: TextStyle(color: Color(0xFF087E8B), fontWeight: FontWeight.bold, fontFamily: 'Jost', fontSize: 18)),
+              child: const Text(
+                'Skip',
+                style: TextStyle(
+                  color: Color(0xFF087E8B),
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Jost',
+                  fontSize: 18,
+                ),
+              ),
             ),
           ),
           SizedBox(height: size.height * 0.04),
@@ -240,7 +266,15 @@ class _NavigationButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
-              Text('Get Started', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Jost', fontSize: 18)),
+              Text(
+                'Get Started',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Jost',
+                  fontSize: 18,
+                ),
+              ),
               SizedBox(width: 8),
               Icon(Icons.arrow_forward, color: Colors.white, size: 24),
             ],
@@ -263,4 +297,4 @@ class _NavigationButton extends StatelessWidget {
       );
     }
   }
-} 
+}

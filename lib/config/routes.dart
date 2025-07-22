@@ -17,21 +17,31 @@ import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
 import '../features/instructor/home_teacher.dart';
 import '../features/instructor/instructor_profile_page2.dart';
-import '../features/instructor/instructor_profile_page.dart'; 
+import '../features/instructor/instructor_profile_page.dart';
 import '../features/admin/admin_dashboard.dart';
 import '../features/admin/admin_users_management.dart';
 import '../features/admin/admin_courses_management.dart';
 import '../features/admin/admin_instructors_management.dart';
 
-import '../features/common/splash_screen.dart';
-import '../features/common/settings_page.dart';
-import '../features/common/onboarding_screens.dart';
-import '../features/common/onboarding_screen_1/onboarding_screen_1.dart';
-import '../features/common/onboarding_screen_2/onboarding_screen_2.dart';
-import '../features/common/onboarding_screen_3/onboarding_screen_3.dart';
-import '../features/common/auth/login_screen.dart';
-import '../features/common/auth/registration_screen.dart';
+import '../features/common/screens/splash_screen.dart';
+import '../features/common/screens/settings_page.dart';
+import '../features/common/screens/onboarding/onboarding_screens.dart';
+import '../features/common/screens/onboarding/onboarding_screen_1/onboarding_screen_1.dart';
+import '../features/common/screens/onboarding/onboarding_screen_2/onboarding_screen_2.dart';
+import '../features/common/screens/onboarding/onboarding_screen_3/onboarding_screen_3.dart';
+import '../features/common/screens/auth/login_screen.dart';
+import '../features/common/screens/auth/registration_screen.dart';
+import '../features/common/screens/auth/profile_completion/student_interest_selection_screen.dart';
+import '../features/common/screens/auth/profile_completion/teacher_profile_completion_screen.dart';
+import '../features/instructor/verification/teacher_verification_pending_screen.dart';
 
+// Forgot Password Screens
+import '../features/common/screens/forgot_password/email_selection_screen.dart';
+import '../features/common/screens/forgot_password/otp_verification_screen.dart';
+import '../features/common/screens/forgot_password/new_password_creation_screen.dart';
+
+// Notifications Screen
+import '../features/common/screens/notifications/notifications_screen.dart';
 
 import '../features/instructor/widgets/instructor_layout.dart';
 import '../features/student/widgets/student_layout.dart';
@@ -60,6 +70,10 @@ class AppRoutes {
     '/onboarding-screen-3': (context) => const OnboardingScreen3(),
     '/login': (context) => const LoginScreen(),
     '/registration': (context) => const RegistrationScreen(),
+    '/student-interest': (context) => const StudentInterestSelectionScreen(),
+    '/teacher-profile': (context) => const TeacherProfileCompletionScreen(),
+    '/teacher-verification': (context) =>
+        const TeacherVerificationPendingScreen(),
     '/settings': (context) => const SettingsPage(),
     '/courses': (context) => const CourseListPage(),
     '/course_detail': (context) => const CourseDetailPage(),
@@ -89,9 +103,19 @@ class AppRoutes {
     '/task-detail-view': (context) => const TaskDetailView(),
     '/full-month-calendar-view': (context) => const FullMonthCalendarView(),
     '/home_teacher': (context) => const TeacherHomePage(),
-    '/instructor_profile_page2': (context) => const InstructorProfilePage2(), 
-    '/instructor_profile_page': (context) => const InstructorProfilePage(), 
+    '/instructor_profile_page2': (context) => const InstructorProfilePage2(),
+    '/instructor_profile_page': (context) => const InstructorProfilePage(),
     '/chatbot': (context) => const ChatBotPage(),
-    
+
+    // Forgot Password routes
+    '/forgot-password': (context) =>
+        const EmailSelectionScreen(),
+    '/forgot-password/otp-verification': (context) =>
+        const OtpVerificationScreen(),
+    '/forgot-password/new-password': (context) =>
+        const NewPasswordCreationScreen(),
+
+    // Notifications route
+    '/notifications': (context) => const NotificationsScreen(),
   };
 }

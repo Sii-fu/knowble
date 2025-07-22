@@ -258,7 +258,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             value: _selectedUserType,
                             onChanged: (value) {
                               setState(() {
-                                _selectedUserType = value?.toLowerCase();
+                                _selectedUserType = value;
                               });
                             },
                           ),
@@ -395,33 +395,86 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         );
         return;
       }
-      // Supabase sign up integration
-      final authResponse = await Supabase.instance.client.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      final userId = authResponse.user?.id;
-      if (userId != null) {
-        await Supabase.instance.client.from('users').insert({
-          'id': userId,
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'role': _selectedUserType,
-          'profile_pic': '',
-          'bio': '',
-          'is_verified': false,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please check your email.'),
-          ),
+
+      try {
+        // Step 1: Create user in Supabase Auth (auth.users)
+        final authResponse = await Supabase.instance.client.auth.signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
-        Navigator.pushReplacementNamed(context, '/login');
-      } else {
+
+        final authUserId = authResponse.user?.id;
+        if (authUserId != null) {
+          try {
+            // Step 2: Insert user profile data into custom users table
+            // The ID will be the same as the auth user ID for consistency
+            await Supabase.instance.client.from('users').insert({
+              'id': authUserId, // Use the same ID from auth.users
+              'name': _nameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'role': _selectedUserType
+                  ?.toLowerCase(), // Convert to lowercase for database
+              'profile_pic': '', // Empty for now
+              'bio': '', // Empty for now
+              'is_verified': false, // Default to false
+              'created_at': DateTime.now().toIso8601String(),
+            });
+
+            print(
+              '✅ User successfully created in both auth.users and users table',
+            );
+            print('   Auth ID: $authUserId');
+            print('   Email: ${_emailController.text.trim()}');
+            print('   Role: ${_selectedUserType?.toLowerCase()}');
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Registration successful! Please check your email to verify your account.',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.pushReplacementNamed(context, '/login');
+          } catch (dbError) {
+            // If users table insertion fails, we should clean up the auth user
+            print('❌ Database insertion failed: $dbError');
+            print('🧹 Attempting to clean up auth user...');
+
+            try {
+              // Clean up the auth user since we couldn't create the profile
+              await Supabase.instance.client.auth.admin.deleteUser(authUserId);
+              print('✅ Auth user cleaned up successfully');
+            } catch (cleanupError) {
+              print('❌ Failed to clean up auth user: $cleanupError');
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Registration failed: Could not create user profile. ${dbError.toString()}',
+                ),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+        } else {
+          print('❌ Auth signup failed: No user ID returned');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration failed. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (authError) {
+        // Handle authentication errors
+        print('❌ Auth signup error: $authError');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration failed. Please try again.'),
+          SnackBar(
+            content: Text('Registration failed: ${authError.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
       }

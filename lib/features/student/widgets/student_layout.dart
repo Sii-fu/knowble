@@ -4,7 +4,6 @@ import 'package:knowble_app/features/student/dashboard_page.dart';
 import 'package:knowble_app/features/student/chat/chat_list_page.dart';
 import 'package:knowble_app/features/student/calendar_dashboard.dart';
 import 'package:knowble_app/features/student/profile_page.dart';
-import 'package:knowble_app/features/student/courses_page.dart';
 import 'package:knowble_app/features/student/ongoing_courses.dart';
 import 'package:knowble_app/features/student/courses_page_refactored.dart';
 /// StudentLayout is a root wrapper for all student-facing pages with a persistent bottom navbar.

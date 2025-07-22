@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
 
-
 class UserTypeDropdownWidget extends StatefulWidget {
   final String? value;
   final Function(String?) onChanged;
@@ -17,11 +16,7 @@ class UserTypeDropdownWidget extends StatefulWidget {
 }
 
 class _UserTypeDropdownWidgetState extends State<UserTypeDropdownWidget> {
-  final List<String> _userTypes = [
-    'Student',
-    'Instructor',
-    'Admin',
-  ];
+  final List<String> _userTypes = ['Student', 'Instructor', 'Admin'];
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +29,7 @@ class _UserTypeDropdownWidgetState extends State<UserTypeDropdownWidget> {
       ),
       child: DropdownButtonFormField<String>(
         value: widget.value,
+        isExpanded: true, // This prevents overflow by expanding the dropdown
         decoration: const InputDecoration(
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -59,6 +55,7 @@ class _UserTypeDropdownWidgetState extends State<UserTypeDropdownWidget> {
                 fontWeight: FontWeight.w400,
                 color: Colors.grey,
               ),
+              overflow: TextOverflow.ellipsis, // Handle text overflow
             ),
           );
         }).toList(),

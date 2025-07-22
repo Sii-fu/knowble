@@ -22,36 +22,110 @@ class AuthManager {
 
   /// Checks auth state and navigates accordingly (call on app launch)
   /// Now fetches user role from Supabase and redirects to the correct dashboard
-  static Future<void> handleInitialAuth(BuildContext context) async {
+  ///
+  /// CRITICAL: This relies on auth.users.id being IDENTICAL to public.users.id
+  /// Registration process MUST insert the same UUID into both tables
+  static Future<void> handleInitialAuth(
+    BuildContext context, {
+    bool fromLogin = false,
+  }) async {
     // Show splash/loading while checking
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(
+      Duration(milliseconds: fromLogin ? 1000 : 500),
+    ); // Longer delay after login
+
     if (currentUser != null) {
-      // Fetch user role from Supabase users table
+      // Get the user ID from Supabase Auth - this comes from auth.users.id
       final userId = currentUserId;
+      final userEmail = currentUserEmail;
+
+      print('🔍 AuthManager: Checking authentication for user:');
+      print('   Auth User ID: $userId');
+      print('   Auth Email: $userEmail');
+      print('   Called from login: $fromLogin');
+
       if (userId != null) {
-        final response =
-            await _client
-                .from('users')
-                .select('role')
-                .eq('id', userId)
-                .single();
-        final role = response['role'] as String?;
-        if (role == 'student') {
-          Navigator.pushReplacementNamed(context, '/student');
-        } else if (role == 'instructor') {
-          Navigator.pushReplacementNamed(context, '/instructor');
-        } else if (role == 'admin') {
-          Navigator.pushReplacementNamed(context, '/admin/dashboard');
-        } else {
-          print('User role is unknown, redirecting to login');
+        try {
+          // Look up user profile using the SAME ID from auth.users
+          // This will only work if registration created both records with identical IDs
+          final response = await _client
+              .from('users')
+              .select('id, email, role')
+              .eq('id', userId)
+              .maybeSingle(); // Use maybeSingle instead of single to handle missing users
+
+          if (response == null) {
+            // User exists in auth.users but not in public.users table
+            // This indicates a broken registration or data inconsistency
+            print('❌ ID MISMATCH DETECTED!');
+            print('   ✅ User exists in auth.users with ID: $userId');
+            print('   ❌ No matching record in public.users with ID: $userId');
+            print(
+              '   🔧 This suggests registration failed to create users table entry',
+            );
+            print('   🔄 Redirecting to logout for cleanup...');
+            await logout(context);
+            return;
+          }
+
+          // Verify data consistency
+          final dbUserId = response['id'] as String?;
+          final dbUserEmail = response['email'] as String?;
+
+          print('✅ ID CONSISTENCY VERIFIED!');
+          print('   Auth ID: $userId');
+          print('   DB ID: $dbUserId');
+          print('   Auth Email: $userEmail');
+          print('   DB Email: $dbUserEmail');
+          print('   IDs Match: ${userId == dbUserId}');
+          print('   Emails Match: ${userEmail == dbUserEmail}');
+
+          final role = response['role'] as String?;
+          print('   User Role: $role');
+          print('');
+
+          if (role == 'student') {
+            print('🎓 Redirecting to student dashboard');
+            Navigator.pushReplacementNamed(context, '/student');
+          } else if (role == 'instructor') {
+            // Check if instructor has completed their profile
+            // This uses the same consistent user ID
+            final instructorResponse = await _client
+                .from('instructor_info')
+                .select('id')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (instructorResponse == null) {
+              // Instructor hasn't completed profile, redirect to completion screen
+              print(
+                '📝 Instructor profile incomplete - redirecting to completion',
+              );
+              Navigator.pushReplacementNamed(context, '/teacher-profile');
+            } else {
+              // Instructor has completed profile, redirect to instructor dashboard
+              print('👨‍🏫 Redirecting to instructor dashboard');
+              Navigator.pushReplacementNamed(context, '/instructor');
+            }
+          } else if (role == 'admin') {
+            print('🔧 Redirecting to admin dashboard');
+            Navigator.pushReplacementNamed(context, '/admin/dashboard');
+          } else {
+            print('❓ Unknown user role: $role - redirecting to login');
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+        } catch (e) {
+          // Handle database errors
+          print('❌ Error fetching user role: $e');
+          print('🔄 Redirecting to login due to database error');
           Navigator.pushReplacementNamed(context, '/login');
         }
       } else {
-        print('User ID is null, redirecting to login');
+        print('❌ User ID is null - redirecting to login');
         Navigator.pushReplacementNamed(context, '/login');
       }
     } else {
-      print('No user logged in, redirecting to login');
+      print('🔐 No user logged in - redirecting to login');
       Navigator.pushReplacementNamed(context, '/login');
     }
   }

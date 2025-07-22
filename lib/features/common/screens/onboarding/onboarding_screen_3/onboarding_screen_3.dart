@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import '../../../config/theme.dart';
+import '../../../../../config/theme.dart';
 import './widgets/onboarding_content_widget.dart';
 import './widgets/onboarding_illustration_widget.dart';
 import './widgets/onboarding_navigation_widget.dart';
@@ -32,8 +32,10 @@ class OnboardingScreen3 extends StatelessWidget {
                     },
                     style: TextButton.styleFrom(
                       foregroundColor: AppTheme.textSecondary,
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 3.w,
+                        vertical: 1.h,
+                      ),
                     ),
                     child: Text(
                       'Skip',

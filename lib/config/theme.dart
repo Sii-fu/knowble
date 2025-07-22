@@ -15,6 +15,9 @@ class AppTheme {
   static const Color warningAmber = Color(0xFFF59E0B);
   static const Color errorRed = Color(0xFFEF4444);
   static const Color accentLight = Color(0xFFF0FDFA);
+  static const Color accentPurple = Color(
+    0xFF6B46C1,
+  ); // Purple accent for gradients
   static const Color gradientStart = Color(0xFF087E8B);
   static const Color gradientEnd = Color(0xFF0B3954);
 
@@ -645,12 +648,12 @@ class AppTheme {
   /// Helper method to build text theme with Jost font family
   static TextTheme _buildTextTheme({required bool isLight}) {
     final Color textHighEmphasis = isLight ? textPrimary : textPrimaryDark;
-    final Color textMediumEmphasis =
-        isLight ? textSecondary : textSecondaryDark;
-    final Color textDisabled =
-        isLight
-            ? textSecondary.withValues(alpha: 0.6)
-            : textSecondaryDark.withValues(alpha: 0.6);
+    final Color textMediumEmphasis = isLight
+        ? textSecondary
+        : textSecondaryDark;
+    final Color textDisabled = isLight
+        ? textSecondary.withValues(alpha: 0.6)
+        : textSecondaryDark.withValues(alpha: 0.6);
 
     return TextTheme(
       // Display styles - Large headings

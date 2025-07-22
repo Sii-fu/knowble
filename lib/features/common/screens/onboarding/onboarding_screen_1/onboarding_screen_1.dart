@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import '../../../config/theme.dart';
+import '../../../../../config/theme.dart';
 import './widgets/onboarding_content_widget.dart';
 import './widgets/onboarding_illustration_widget.dart';
 import './widgets/onboarding_navigation_widget.dart';
@@ -27,16 +27,10 @@ class _OnboardingScreen1State extends State<OnboardingScreen1> {
                 SizedBox(height: 2.h),
 
                 // Illustration section
-                Expanded(
-                  flex: 5,
-                  child: OnboardingIllustrationWidget(),
-                ),
+                Expanded(flex: 5, child: OnboardingIllustrationWidget()),
 
                 // Content section
-                Expanded(
-                  flex: 3,
-                  child: OnboardingContentWidget(),
-                ),
+                Expanded(flex: 3, child: OnboardingContentWidget()),
 
                 // Navigation section
                 Expanded(

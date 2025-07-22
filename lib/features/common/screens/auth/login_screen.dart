@@ -225,6 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextButton(
                                 onPressed: () {
                                   // Navigate to forgot password screen
+                                  Navigator.pushNamed(context, '/forgot-password');
                                 },
                                 child: const Text(
                                   'Forgot Password?',
@@ -373,7 +374,8 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (error == null) {
         // Directly call AuthManager for role-based redirection after login
-        await AuthManager.handleInitialAuth(context);
+        // Use fromLogin=true to allow extra time for auth state to settle
+        await AuthManager.handleInitialAuth(context, fromLogin: true);
       } else {
         ScaffoldMessenger.of(
           context,

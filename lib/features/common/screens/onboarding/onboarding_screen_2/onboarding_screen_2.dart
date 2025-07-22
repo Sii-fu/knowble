@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import '../../../config/theme.dart';
+import '../../../../../config/theme.dart';
 import './widgets/onboarding_content_widget.dart';
 import './widgets/continue_button_widget.dart';
 import './widgets/pagination_dots_widget.dart';
@@ -37,21 +37,14 @@ class _OnboardingScreen2State extends State<OnboardingScreen2>
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
   }
 
   void _startAnimations() {
@@ -100,9 +93,7 @@ class _OnboardingScreen2State extends State<OnboardingScreen2>
                       opacity: _fadeAnimation,
                       child: SlideTransition(
                         position: _slideAnimation,
-                        child: OnboardingContentWidget(
-                          context: context,
-                        ),
+                        child: OnboardingContentWidget(context: context),
                       ),
                     ),
                     SizedBox(height: 6.h),
@@ -116,9 +107,7 @@ class _OnboardingScreen2State extends State<OnboardingScreen2>
                     SizedBox(height: 4.h),
                     FadeTransition(
                       opacity: _fadeAnimation,
-                      child: ContinueButtonWidget(
-                        onPressed: _handleContinue,
-                      ),
+                      child: ContinueButtonWidget(onPressed: _handleContinue),
                     ),
                     SizedBox(height: 4.h),
                   ],

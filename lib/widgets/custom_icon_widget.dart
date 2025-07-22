@@ -47,6 +47,15 @@ class CustomIconWidget extends StatelessWidget {
       case 'notifications':
         iconData = Icons.notifications;
         break;
+      case 'notifications_none':
+        iconData = Icons.notifications_none;
+        break;
+      case 'mark_email_read':
+        iconData = Icons.mark_email_read;
+        break;
+      case 'delete_outline':
+        iconData = Icons.delete_outline;
+        break;
       case 'dashboard':
         iconData = Icons.dashboard;
         break;
@@ -82,6 +91,9 @@ class CustomIconWidget extends StatelessWidget {
         break;
       case 'visibility':
         iconData = Icons.visibility;
+        break;
+      case 'visibility_off':
+        iconData = Icons.visibility_off;
         break;
       case 'clear':
         iconData = Icons.clear;
@@ -204,10 +216,6 @@ class CustomIconWidget extends StatelessWidget {
         iconData = Icons.help_outline; // Default icon
     }
 
-    return Icon(
-      iconData,
-      color: color,
-      size: size,
-    );
+    return Icon(iconData, color: color, size: size);
   }
-} 
+}

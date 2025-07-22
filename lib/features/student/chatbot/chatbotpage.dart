@@ -3,7 +3,6 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../config/theme.dart';
   import '../../../core/services/gemini/chatbot.dart';
-import '../../../core/config/api_config.dart';
 
 class ChatBotPage extends StatefulWidget {
   const ChatBotPage({super.key});

@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:knowble_app/core/services/Instructor/course_service.dart';
 import 'package:knowble_app/core/services/Instructor/questionai_service.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 
 class CreateCourseScreen extends StatefulWidget {
   const CreateCourseScreen({super.key});
