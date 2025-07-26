@@ -4,7 +4,8 @@ import 'package:knowble_app/config/theme.dart';
 import 'package:knowble_app/widgets/custom_icon_widget.dart';
 import '../../widgets/shared/app_logo_widget.dart';
 import '../../widgets/forgot_password/continue_button_widget.dart';
-import '../../widgets/forgot_password/email_card_widget.dart';
+import '../../../../core/services/forgot_password_service.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class EmailSelectionScreen extends StatefulWidget {
   const EmailSelectionScreen({Key? key}) : super(key: key);
@@ -14,22 +15,36 @@ class EmailSelectionScreen extends StatefulWidget {
 }
 
 class _EmailSelectionScreenState extends State<EmailSelectionScreen> {
-  bool _isEmailSelected = false;
+  final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
 
-  // Mock user email data
-  final String _userEmail = "john.doe@example.com";
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
-  void _onEmailCardTap() {
-    setState(() {
-      _isEmailSelected = true;
-      _errorMessage = '';
-    });
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   Future<void> _onContinuePressed() async {
-    if (!_isEmailSelected) return;
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter your email address.';
+      });
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      setState(() {
+        _errorMessage = 'Please enter a valid email address.';
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -37,15 +52,35 @@ class _EmailSelectionScreenState extends State<EmailSelectionScreen> {
     });
 
     try {
-      // Simulate email verification initiation
-      await Future.delayed(const Duration(seconds: 2));
+      final result = await ForgotPasswordService.initiateForgotPassword(
+        email: email,
+      );
 
-      if (mounted) {
-        Navigator.pushNamed(context, '/forgot-password/otp-verification');
+      if (result.success) {
+        Fluttertoast.showToast(
+          msg: result.message,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: AppTheme.successGreen,
+          textColor: AppTheme.surfaceWhite,
+          fontSize: 14.sp,
+        );
+
+        if (mounted) {
+          Navigator.pushNamed(
+            context,
+            '/forgot-password/otp-verification',
+            arguments: {'email': email},
+          );
+        }
+      } else {
+        setState(() {
+          _errorMessage = result.message;
+        });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Network error. Please try again.';
+        _errorMessage = 'An unexpected error occurred. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -133,7 +168,7 @@ class _EmailSelectionScreenState extends State<EmailSelectionScreen> {
                               ),
                               SizedBox(height: 2.h),
                               Text(
-                                'Select which contact details should we use to reset your password',
+                                'Enter your email address to receive a password reset code',
                                 style: AppTheme.lightTheme.textTheme.bodyMedium
                                     ?.copyWith(
                                       fontSize: 14.sp,
@@ -142,17 +177,90 @@ class _EmailSelectionScreenState extends State<EmailSelectionScreen> {
                                     ),
                                 textAlign: TextAlign.center,
                               ),
+                              SizedBox(height: 1.h),
+                              // TESTING NOTE
+                              Container(
+                                padding: EdgeInsets.all(2.w),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryTeal.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppTheme.primaryTeal.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Enter your email.',
+                                  style: AppTheme.lightTheme.textTheme.bodySmall
+                                      ?.copyWith(
+                                        fontSize: 12.sp,
+                                        color: AppTheme.primaryTeal,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ],
                           ),
                         ),
 
                         SizedBox(height: 6.h),
 
-                        // Email selection card
-                        EmailCardWidget(
-                          email: _userEmail,
-                          onTap: _onEmailCardTap,
-                          isSelected: _isEmailSelected,
+                        // Email input field
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6.w),
+                          child: TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Jost',
+                              fontSize: 16.sp,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Email Address',
+                              hintText: 'Enter your email address',
+                              prefixIcon: Icon(
+                                Icons.email_outlined,
+                                color: AppTheme.textSecondary,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: AppTheme.lightTheme.dividerColor,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: AppTheme.lightTheme.dividerColor,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: AppTheme.primaryTeal,
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: AppTheme.errorRed,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: AppTheme.lightTheme.cardColor,
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _errorMessage = '';
+                              });
+                            },
+                          ),
                         ),
 
                         // Error message
@@ -182,7 +290,7 @@ class _EmailSelectionScreenState extends State<EmailSelectionScreen> {
                 Padding(
                   padding: EdgeInsets.only(bottom: 4.h),
                   child: ContinueButtonWidget(
-                    onPressed: _isEmailSelected ? _onContinuePressed : null,
+                    onPressed: _onContinuePressed,
                     isLoading: _isLoading,
                   ),
                 ),
