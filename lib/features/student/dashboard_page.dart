@@ -261,7 +261,7 @@ class _RecentLearning extends StatelessWidget {
       );
     }
     return SizedBox(
-      height: 140,
+      height: 150,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: courses.length,
@@ -325,50 +325,48 @@ class _RecentLearning extends StatelessWidget {
                               ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        course.title,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      Flexible(
+                        child: Text(
+                          course.title,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                       const SizedBox(height: 6),
-                      // Progress bar
-                      if (totalModules > 0)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  Container(
+                      // Progress bar always shown under the name
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Container(
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                FractionallySizedBox(
+                                  widthFactor: progress,
+                                  child: Container(
                                     height: 8,
                                     decoration: BoxDecoration(
-                                      color: Colors.grey[300],
+                                      color: Theme.of(context).colorScheme.primary,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),
-                                  FractionallySizedBox(
-                                    widthFactor: progress,
-                                    child: Container(
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$completedModules/$totalModules',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$completedModules/$totalModules',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
