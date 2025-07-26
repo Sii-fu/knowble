@@ -364,6 +364,11 @@ class _StudentProfilePageState extends State<StudentProfilePage> {
           shadowColor: AppTheme.shadowLight,
           actions: [
             IconButton(
+              icon: Icon(Icons.settings, color: AppTheme.primaryTeal),
+              onPressed: () => Navigator.pushNamed(context, '/settings'),
+              tooltip: 'Settings',
+            ),
+            IconButton(
               icon: Icon(Icons.logout, color: AppTheme.errorRed),
               onPressed: () => _logout(context),
               tooltip: 'Log Out',

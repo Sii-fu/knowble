@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/services/student/generate_course_specific_quiz.dart';
+import '../../config/theme.dart';
 
 class QuizPage extends StatefulWidget {
   const QuizPage({super.key});
@@ -154,14 +155,18 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text(
           'Interactive Quiz',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontFamily: 'Jost',
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary,
+          ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1E293B),
+        backgroundColor: AppTheme.backgroundLight,
+        foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         centerTitle: true,
       ),
@@ -181,15 +186,16 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            color: Color(0xFF0EA5E9),
+            color: AppTheme.primaryTeal,
           ),
           SizedBox(height: 16),
           Text(
             'Loading Quiz...',
             style: TextStyle(
+              fontFamily: 'Jost',
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF64748B),
+              color: AppTheme.textSecondary,
             ),
           ),
         ],
@@ -207,15 +213,16 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
             const Icon(
               Icons.error_outline,
               size: 64,
-              color: Color(0xFFEF4444),
+              color: AppTheme.errorRed,
             ),
             const SizedBox(height: 16),
             const Text(
               'No Quiz Available',
               style: TextStyle(
+                fontFamily: 'Jost',
                 fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -223,8 +230,10 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
               'There are no quiz questions available for this course.',
               textAlign: TextAlign.center,
               style: TextStyle(
+                fontFamily: 'Jost',
                 fontSize: 16,
-                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w400,
+                color: AppTheme.textSecondary,
               ),
             ),
             const SizedBox(height: 24),
@@ -236,14 +245,20 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 _fetchQuizData();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0EA5E9),
-                foregroundColor: Colors.white,
+                backgroundColor: AppTheme.primaryTeal,
+                foregroundColor: AppTheme.surfaceWhite,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Retry'),
+              child: const Text(
+                'Retry',
+                style: TextStyle(
+                  fontFamily: 'Jost',
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ],
         ),
@@ -311,17 +326,19 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
             Text(
               'Question ${currentQuestionIndex + 1} of ${quizData.length}',
               style: const TextStyle(
+                fontFamily: 'Jost',
                 fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF64748B),
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textSecondary,
               ),
             ),
             Text(
               'Score: $score',
               style: const TextStyle(
+                fontFamily: 'Jost',
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF059669),
+                color: AppTheme.successGreen,
               ),
             ),
           ],
@@ -329,8 +346,8 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         const SizedBox(height: 12),
         LinearProgressIndicator(
           value: progress,
-          backgroundColor: const Color(0xFFE2E8F0),
-          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0EA5E9)),
+          backgroundColor: AppTheme.borderSubtle,
+          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryTeal),
           minHeight: 6,
         ),
       ],
@@ -341,13 +358,13 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: AppTheme.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -358,16 +375,17 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
             children: [
               Icon(
                 Icons.quiz_rounded,
-                color: Color(0xFF0EA5E9),
+                color: AppTheme.primaryTeal,
                 size: 24,
               ),
               SizedBox(width: 8),
               Text(
                 'Question',
                 style: TextStyle(
+                  fontFamily: 'Jost',
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ],
@@ -376,9 +394,10 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
           Text(
             question['question'],
             style: const TextStyle(
+              fontFamily: 'Jost',
               fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
               height: 1.4,
             ),
           ),
@@ -393,27 +412,27 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     final isSelected = selectedOption == option;
     final isCorrect = option == correctAnswer;
     
-    Color cardColor = Colors.white;
-    Color borderColor = const Color(0xFFE2E8F0);
-    Color textColor = const Color(0xFF1E293B);
+    Color cardColor = AppTheme.surfaceWhite;
+    Color borderColor = AppTheme.borderSubtle;
+    Color textColor = AppTheme.textPrimary;
     IconData? icon;
     
     if (showFeedback) {
       if (isCorrect) {
-        cardColor = const Color(0xFFF0FDF4);
-        borderColor = const Color(0xFF22C55E);
-        textColor = const Color(0xFF16A34A);
+        cardColor = AppTheme.successGreen.withValues(alpha: 0.1);
+        borderColor = AppTheme.successGreen;
+        textColor = AppTheme.successGreen;
         icon = Icons.check_circle;
       } else if (isSelected && !isCorrect) {
-        cardColor = const Color(0xFFFEF2F2);
-        borderColor = const Color(0xFFEF4444);
-        textColor = const Color(0xFFDC2626);
+        cardColor = AppTheme.errorRed.withValues(alpha: 0.1);
+        borderColor = AppTheme.errorRed;
+        textColor = AppTheme.errorRed;
         icon = Icons.cancel;
       }
     } else if (isSelected) {
-      cardColor = const Color(0xFFF0F9FF);
-      borderColor = const Color(0xFF0EA5E9);
-      textColor = const Color(0xFF0284C7);
+      cardColor = AppTheme.accentLight;
+      borderColor = AppTheme.primaryTeal;
+      textColor = AppTheme.primaryTeal;
     }
     
     return Container(
@@ -426,7 +445,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: cardColor,
-            border: Border.all(color: borderColor, width: 2),
+            border: Border.all(color: borderColor, width: 1.5),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -437,13 +456,13 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected || showFeedback ? borderColor : const Color(0xFFCBD5E1),
+                    color: isSelected || showFeedback ? borderColor : AppTheme.borderSubtle,
                     width: 2,
                   ),
                   color: isSelected || (showFeedback && isCorrect) ? borderColor : Colors.transparent,
                 ),
                 child: isSelected || (showFeedback && isCorrect)
-                    ? const Icon(Icons.check, size: 16, color: Colors.white)
+                    ? const Icon(Icons.check, size: 16, color: AppTheme.surfaceWhite)
                     : null,
               ),
               const SizedBox(width: 16),
@@ -451,6 +470,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 child: Text(
                   option,
                   style: TextStyle(
+                    fontFamily: 'Jost',
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: textColor,
@@ -475,8 +495,8 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       return Container(
         height: 56,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+          gradient: LinearGradient(
+            colors: [AppTheme.successGreen, AppTheme.successGreen.withValues(alpha: 0.8)],
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -484,14 +504,15 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.hourglass_empty, color: Colors.white),
+              Icon(Icons.hourglass_empty, color: AppTheme.surfaceWhite),
               SizedBox(width: 8),
               Text(
                 'Moving to next question...',
                 style: TextStyle(
-                  color: Colors.white,
+                  fontFamily: 'Jost',
+                  color: AppTheme.surfaceWhite,
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -503,8 +524,8 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     return ElevatedButton(
       onPressed: selectedOption != null ? _submitAnswer : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF0EA5E9),
-        foregroundColor: Colors.white,
+        backgroundColor: AppTheme.primaryTeal,
+        foregroundColor: AppTheme.surfaceWhite,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -514,8 +535,9 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       child: const Text(
         'Submit Answer',
         style: TextStyle(
+          fontFamily: 'Jost',
           fontSize: 16,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

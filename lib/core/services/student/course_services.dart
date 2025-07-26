@@ -16,31 +16,41 @@ class CourseServices {
   final _client = Supabase.instance.client;
 
   Future<List<Course>> fetchAllCourses() async {
-    final response = await _client
-        .from('courses')
-        .select()
-        .order('created_at', ascending: false);
-    final data = response as List<dynamic>? ?? [];
-    return data
-        .map((course) => Course.fromMap(course as Map<String, dynamic>))
-        .toList();
+    try {
+      final response = await _client
+          .from('courses')
+          .select()
+          .order('created_at', ascending: false);
+      final data = response as List<dynamic>? ?? [];
+      return data
+          .map((course) => Course.fromMap(course as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('Error fetching courses: $e');
+      return [];
+    }
   }
 
   Future<List<Enrollment>> fetchUserEnrollments(String studentId) async {
-    final response = await _client
-        .from('enrollments')
-        .select()
-        .eq('student_id', studentId);
-    final data = response as List<dynamic>? ?? [];
-    return data
-        .map((e) => Enrollment(
-              id: e['id'],
-              studentId: e['student_id'],
-              courseId: e['course_id'],
-              enrolledAt: DateTime.parse(e['enrolled_at']),
-              progress: (e['progress'] as num?)?.toDouble() ?? 0.0,
-            ))
-        .toList();
+    try {
+      final response = await _client
+          .from('enrollments')
+          .select()
+          .eq('student_id', studentId);
+      final data = response as List<dynamic>? ?? [];
+      return data
+          .map((e) => Enrollment(
+                id: e['id'],
+                studentId: e['student_id'],
+                courseId: e['course_id'],
+                enrolledAt: DateTime.parse(e['enrolled_at']),
+                progress: (e['progress'] as num?)?.toDouble() ?? 0.0,
+              ))
+          .toList();
+    } catch (e) {
+      print('Error fetching enrollments: $e');
+      return [];
+    }
   }
 
   Future<List<Course>> fetchRecommendedCourses(String studentId) async {

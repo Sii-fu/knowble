@@ -48,17 +48,54 @@ class StudentProfileService {
     if (user == null) throw Exception('Not logged in');
 
     try {
-      // Upload to Supabase Storage
-      await supabase.storage
-          .from('profiles')
-          .uploadBinary(fileName, bytes);
+      print('Uploading file: $fileName for user: ${user.id}');
+      print('User auth status: ${user.aud}, Role: ${user.role}');
+      print('User metadata: ${user.userMetadata}');
+      
+      dynamic response;
+      
+      // Upload to content-pdf bucket (same as PDF uploads that work)
+      response = await supabase.storage.from('content-pdf').uploadBinary(
+        fileName, 
+        bytes, 
+        fileOptions: const FileOptions(upsert: true)
+      );
+      
+      if (response == null || (response is String && response.isEmpty)) {
+        return null;
+      }
       
       // Get public URL
-      final imageUrl = supabase.storage
-          .from('profiles')
-          .getPublicUrl(fileName);
+      final publicUrl = supabase.storage.from('content-pdf').getPublicUrl(fileName);
+      print('Upload successful! Public URL: $publicUrl');
+      return publicUrl;
       
-      return imageUrl;
+    } on StorageException catch (e) {
+      if (e.statusCode == 404 && e.message.contains('Bucket not found')) {
+        throw Exception(
+          'Storage bucket not found. Please create a "content-pdf" bucket in Supabase Storage or contact administrator.'
+        );
+      } else if (e.statusCode == 403 || e.message.contains('row-level security policy')) {
+        throw Exception(
+          'Upload permission denied. Run these SQL commands in your Supabase SQL Editor:\n\n'
+          '-- Disable RLS temporarily for testing\n'
+          'ALTER TABLE storage.objects DISABLE ROW LEVEL SECURITY;\n\n'
+          '-- Or create policy for profilepics bucket\n'
+          'CREATE POLICY "profilepics_insert" ON storage.objects\n'
+          'FOR INSERT TO authenticated\n'
+          'WITH CHECK (bucket_id = \'profilepics\');\n\n'
+          'CREATE POLICY "profilepics_select" ON storage.objects\n'
+          'FOR SELECT TO authenticated\n'
+          'USING (bucket_id = \'profilepics\');'
+        );
+      } else if (e.message.contains('mime type') || e.message.contains('not supported')) {
+        throw Exception(  
+          'File type not supported. Error: ${e.message}\n'
+          'Make sure your bucket allows image files.'
+        );
+      } else {
+        throw Exception('Storage error: ${e.message}');
+      }
     } catch (e) {
       throw Exception('Failed to upload image: $e');
     }

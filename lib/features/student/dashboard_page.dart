@@ -4,7 +4,6 @@ import '../../core/services/student/course_services.dart';
 import '../../data/models/course.dart';
 import '../../data/models/module.dart'; // Import the Module type
 import 'Course_Details.dart';
-import 'courses_lessons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentDashboardPage extends StatefulWidget {
@@ -27,14 +26,28 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   }
 
   Future<void> _loadRecommendedCourses() async {
-    final studentId = Supabase.instance.client.auth.currentUser?.id ?? '';
-    final recommended = await _courseServices.fetchRecommendedCourses(studentId);
-    final recentLearning = await _courseServices.fetchRecentLearningCourses(studentId);
-    setState(() {
-      _recommendedCourses = recommended;
-      _recentLearningCourses = recentLearning;
-      _isLoading = false;
-    });
+    try {
+      final studentId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      final recommended = await _courseServices.fetchRecommendedCourses(studentId);
+      final recentLearning = await _courseServices.fetchRecentLearningCourses(studentId);
+      
+      if (mounted) {
+        setState(() {
+          _recommendedCourses = recommended;
+          _recentLearningCourses = recentLearning;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading courses: $e');
+      if (mounted) {
+        setState(() {
+          _recommendedCourses = [];
+          _recentLearningCourses = [];
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override

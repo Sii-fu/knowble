@@ -56,6 +56,9 @@ import '../features/student/scheduler/task_edit_modal.dart';
 import '../features/student/scheduler/task_detail_view.dart';
 import '../features/student/scheduler/full_month_calendar_view.dart';
 import '../features/student/chatbot/chatbotpage.dart';
+import '../features/student/notification_settings_page.dart';
+import '../features/student/invite_friends_page.dart';
+import '../features/student/terms_conditions_page.dart';
 
 // AppRoutes holds all route names and their corresponding widget builders.
 class AppRoutes {
@@ -117,5 +120,10 @@ class AppRoutes {
 
     // Notifications route
     '/notifications': (context) => const NotificationsScreen(),
+    
+    // New settings pages
+    '/notification-settings': (context) => const NotificationSettingsPage(),
+    '/invite-friends': (context) => const InviteFriendsPage(),
+    '/terms-conditions': (context) => const TermsAndConditionsPage(),
   };
 }
