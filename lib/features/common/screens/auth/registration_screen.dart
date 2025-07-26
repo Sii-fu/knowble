@@ -428,14 +428,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             print('   Role: ${_selectedUserType?.toLowerCase()}');
 
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
-                  'Registration successful! Please check your email to verify your account.',
+                  _selectedUserType?.toLowerCase() == 'student'
+                      ? 'Registration successful! Let\'s personalize your learning experience.'
+                      : 'Registration successful! Please check your email to verify your account.',
                 ),
                 backgroundColor: Colors.green,
               ),
             );
-            Navigator.pushReplacementNamed(context, '/login');
+
+            // Route based on user type
+            if (_selectedUserType?.toLowerCase() == 'student') {
+              Navigator.pushReplacementNamed(context, '/student-interest');
+            } else {
+              Navigator.pushReplacementNamed(context, '/login');
+            }
           } catch (dbError) {
             // If users table insertion fails, we should clean up the auth user
             print('❌ Database insertion failed: $dbError');

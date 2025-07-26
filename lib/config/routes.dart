@@ -111,8 +111,7 @@ class AppRoutes {
     '/chatbot': (context) => const ChatBotPage(),
 
     // Forgot Password routes
-    '/forgot-password': (context) =>
-        const EmailSelectionScreen(),
+    '/forgot-password': (context) => const EmailSelectionScreen(),
     '/forgot-password/otp-verification': (context) =>
         const OtpVerificationScreen(),
     '/forgot-password/new-password': (context) =>
@@ -120,7 +119,7 @@ class AppRoutes {
 
     // Notifications route
     '/notifications': (context) => const NotificationsScreen(),
-    
+
     // New settings pages
     '/notification-settings': (context) => const NotificationSettingsPage(),
     '/invite-friends': (context) => const InviteFriendsPage(),

@@ -28,9 +28,13 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
   Future<void> _loadRecommendedCourses() async {
     try {
       final studentId = Supabase.instance.client.auth.currentUser?.id ?? '';
-      final recommended = await _courseServices.fetchRecommendedCourses(studentId);
-      final recentLearning = await _courseServices.fetchRecentLearningCourses(studentId);
-      
+      final recommended = await _courseServices.fetchRecommendedCourses(
+        studentId,
+      );
+      final recentLearning = await _courseServices.fetchRecentLearningCourses(
+        studentId,
+      );
+
       if (mounted) {
         setState(() {
           _recommendedCourses = recommended;
@@ -112,7 +116,10 @@ class _RecommendedCoursesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (courses.isEmpty) {
-      return Text('No recommended courses found.', style: Theme.of(context).textTheme.bodyMedium);
+      return Text(
+        'No recommended courses found.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
     }
     return SizedBox(
       height: 170,
@@ -131,7 +138,9 @@ class _RecommendedCoursesList extends StatelessWidget {
                 title: course.title,
                 lessons: chapterCount > 0 ? '$chapterCount Chapters' : '',
                 duration: '${course.durationDays} Days',
-                image: course.banner.isNotEmpty ? course.banner : 'assets/images/geo.jpg',
+                image: course.banner.isNotEmpty
+                    ? course.banner
+                    : 'assets/images/geo.jpg',
                 courseId: course.id,
               );
             },
@@ -156,13 +165,29 @@ class _Header extends StatelessWidget {
           children: [
             Text(
               'Hi, Christina',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 4),
-            Text('What do you want to learn today?', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary)),
+            Text(
+              'What do you want to learn today?',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
           ],
         ),
-        Icon(Icons.notifications_none_rounded, size: 26, color: theme.colorScheme.primary),
+        GestureDetector(
+          onTap: () {
+            Navigator.pushNamed(context, '/notifications');
+          },
+          child: Icon(
+            Icons.notifications_none_rounded,
+            size: 26,
+            color: theme.colorScheme.primary,
+          ),
+        ),
       ],
     );
   }
@@ -185,8 +210,13 @@ class _SearchBar extends StatelessWidget {
           Icon(Icons.search, color: AppTheme.textSecondary),
           const SizedBox(width: 10),
           Expanded(
-            child: Text('Search', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary)),
-          )
+            child: Text(
+              'Search',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -214,7 +244,10 @@ class _RecentLearning extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (courses.isEmpty) {
-      return Text('No recent learning courses.', style: Theme.of(context).textTheme.bodyMedium);
+      return Text(
+        'No recent learning courses.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
     }
     return SizedBox(
       height: 140,
@@ -230,13 +263,19 @@ class _RecentLearning extends StatelessWidget {
               final modules = snapshot.data ?? [];
               final totalModules = modules.length;
               // For demo, assume completedModules = half of totalModules (replace with real quiz logic)
-              final completedModules = totalModules > 0 ? (totalModules / 2).floor() : 0;
-              final progress = totalModules > 0 ? completedModules / totalModules : 0.0;
+              final completedModules = totalModules > 0
+                  ? (totalModules / 2).floor()
+                  : 0;
+              final progress = totalModules > 0
+                  ? completedModules / totalModules
+                  : 0.0;
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: course.id)),
+                    MaterialPageRoute(
+                      builder: (_) => CourseDetailPage(courseId: course.id),
+                    ),
                   );
                 },
                 child: Container(
@@ -257,15 +296,18 @@ class _RecentLearning extends StatelessWidget {
                                 width: double.infinity,
                                 height: 60,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Image.asset(
-                                  'assets/images/default_course.jpg',
-                                  width: double.infinity,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                ),
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Image.asset(
+                                      'assets/images/default_course.jpg',
+                                      width: double.infinity,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                    ),
                               )
                             : Image.asset(
-                                course.banner.isNotEmpty ? course.banner : 'assets/images/default_course.jpg',
+                                course.banner.isNotEmpty
+                                    ? course.banner
+                                    : 'assets/images/default_course.jpg',
                                 width: double.infinity,
                                 height: 60,
                                 fit: BoxFit.cover,
@@ -298,7 +340,9 @@ class _RecentLearning extends StatelessWidget {
                                     child: Container(
                                       height: 8,
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                     ),
@@ -309,7 +353,8 @@ class _RecentLearning extends StatelessWidget {
                             const SizedBox(width: 6),
                             Text(
                               '$completedModules/$totalModules',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -324,7 +369,6 @@ class _RecentLearning extends StatelessWidget {
     );
   }
 }
-
 
 class _RecommendedCard extends StatelessWidget {
   final String title;
@@ -349,7 +393,9 @@ class _RecommendedCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: courseId)), // Use courseId here
+          MaterialPageRoute(
+            builder: (_) => CourseDetailPage(courseId: courseId),
+          ), // Use courseId here
         );
       },
       child: Container(
@@ -385,19 +431,40 @@ class _RecommendedCard extends StatelessWidget {
                     ),
             ),
             const SizedBox(height: 6),
-            Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(
+              title,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 6),
             Row(
               children: [
-                Text(lessons, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
+                Text(
+                  lessons,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
                 const Spacer(),
                 if (duration.isNotEmpty) ...[
-                  Icon(Icons.access_time, size: 14, color: AppTheme.textSecondary),
+                  Icon(
+                    Icons.access_time,
+                    size: 14,
+                    color: AppTheme.textSecondary,
+                  ),
                   const SizedBox(width: 4),
-                  Text(duration, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary))
-                ]
+                  Text(
+                    duration,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
               ],
-            )
+            ),
           ],
         ),
       ),
@@ -411,7 +478,12 @@ class _TaskCard extends StatelessWidget {
   final String subtitle;
   final String location;
 
-  const _TaskCard({required this.time, required this.title, required this.subtitle, required this.location});
+  const _TaskCard({
+    required this.time,
+    required this.title,
+    required this.subtitle,
+    required this.location,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -419,7 +491,12 @@ class _TaskCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(time, style: theme.textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary)),
+        Text(
+          time,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppTheme.textSecondary,
+          ),
+        ),
         const SizedBox(height: 4),
         Container(
           width: double.infinity,
@@ -431,22 +508,41 @@ class _TaskCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+              Text(
+                title,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(subtitle, style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary)),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textPrimary,
+                ),
+              ),
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.location_on, size: 14, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.location_on,
+                    size: 14,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 4),
-                  Text(location, style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary)),
+                  Text(
+                    location,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
                 ],
-              )
+              ),
             ],
           ),
-        )
+        ),
       ],
     );
   }
 }
-
