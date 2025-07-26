@@ -224,25 +224,58 @@ class CourseLessonsPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                        gradient: AppTheme.gradient,
-                      ),
-                      child: TextButton.icon(
-                        onPressed: () {
-                          // TODO: Implement restart course logic
-                        },
-                        icon: const Icon(Icons.refresh, color: AppTheme.surfaceWhite),
-                        label: const Text(
-                          'Start Course Again',
-                          style: TextStyle(
-                            color: AppTheme.surfaceWhite, 
-                            fontWeight: FontWeight.w600,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              gradient: AppTheme.gradient,
+                            ),
+                            child: TextButton.icon(
+                              onPressed: () {
+                                // TODO: Implement restart course logic
+                              },
+                              icon: const Icon(Icons.refresh, color: AppTheme.surfaceWhite),
+                              label: const Text(
+                                'Start Course Again',
+                                style: TextStyle(
+                                  color: AppTheme.surfaceWhite, 
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            height: 50,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: AppTheme.primaryTeal,
+                                width: 2,
+                              ),
+                              color: AppTheme.surfaceWhite,
+                            ),
+                            child: TextButton.icon(
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/quiz');
+                              },
+                              icon: const Icon(Icons.quiz, color: AppTheme.primaryTeal),
+                              label: const Text(
+                                'Take Quiz',
+                                style: TextStyle(
+                                  color: AppTheme.primaryTeal, 
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 ],
