@@ -84,11 +84,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     title: "High School Algebra I: Help and Review",
                     subtitle: "Mathematics",
                     progress: 0.5,
+                    titleColor: Color(0xFF0D47A1),
                   ),
                   LessonCard(
                     title: "Enlargement to Trigonometry",
                     subtitle: "Mathematics",
                     progress: 0.5,
+                    titleColor: Color(0xFF0D47A1),
                   ),
                 ],
               ),
@@ -182,6 +184,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 // Lesson Card Widget
 class LessonCard extends StatelessWidget {
   final String title;
+  final Color? titleColor;
   final String subtitle;
   final double progress;
 
@@ -190,6 +193,7 @@ class LessonCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.progress,
+    this.titleColor,
   });
 
   @override
@@ -207,7 +211,7 @@ class LessonCard extends StatelessWidget {
         children: [
           Text(subtitle, style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: titleColor ?? Colors.black)),
           const Spacer(),
           LinearProgressIndicator(value: progress),
           Text("${(progress * 10).toInt()}/10"),
