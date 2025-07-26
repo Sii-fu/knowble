@@ -6,6 +6,8 @@ import '../../data/models/module.dart';
 import '../../data/models/section.dart';
 import '../../data/models/content.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'chatbot/chatbotpage.dart';
+import 'pdf_viewer_page.dart';
 
 class CourseDetailPage extends StatefulWidget {
   final String courseId;
@@ -69,14 +71,27 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       return const Scaffold(body: Center(child: Text('Course not found')));
     }
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: AppTheme.surfaceWhite,
+        elevation: 1,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
+        title: Text(_course!.title, style: const TextStyle(color: AppTheme.textPrimary)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline, color: AppTheme.primaryTeal),
+            tooltip: 'Ask AI Assistant',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ChatBotPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -93,9 +108,27 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       : Image.asset('assets/images/default_course.jpg', width: double.infinity, height: 180, fit: BoxFit.cover),
                 ),
                 const SizedBox(height: 16),
+                // Chatbot button (prominent)
+                Center(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    ),
+                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                    label: const Text('Ask AI Assistant', style: TextStyle(fontSize: 16, color: Colors.white)),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ChatBotPage()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text(_course!.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                // Removed progress bar and 5/12
                 const SizedBox(height: 16),
                 const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
@@ -160,8 +193,15 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                                   enabled: _enrolled || isFirstSection,
                                   onTap: (_enrolled || isFirstSection)
                                       ? () {
-                                          // Open PDF URL
-                                          // launch(content.url);
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => PDFViewerPage(
+                                                pdfUrl: content.url,
+                                                title: content.title,
+                                              ),
+                                            ),
+                                          );
                                         }
                                       : null,
                                   subtitle: contentLocked
