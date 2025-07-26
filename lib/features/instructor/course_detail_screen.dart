@@ -210,28 +210,12 @@ class CourseDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
-                        height: 1.5,
-                      ),
-                      children: const [
-                        TextSpan(
-                          text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '
-                              'Habitasse dolor etiam sed ante donec quis sapien. '
-                              'Malesuada rhoncus nullam eleifend lorem egestas mauris '
-                              'massa massa. ',
-                        ),
-                        TextSpan(
-                          text: 'More',
-                          style: TextStyle(
-                            color: AppTheme.instructorPrimary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  Text(
+                    'This course on $title ($subject) is designed for $students and has a total duration of $duration. Dive into chapters and lessons tailored for your learning journey.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      height: 1.5,
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -313,19 +297,7 @@ class ChapterItem extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {
-              // Expand chapter functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$title chapter expanded')),
-              );
-            },
-            icon: const Icon(
-              Icons.add,
-              color: AppTheme.textSecondary,
-              size: 20,
-            ),
-          ),
+          // Removed plus icon button
         ],
       ),
     );

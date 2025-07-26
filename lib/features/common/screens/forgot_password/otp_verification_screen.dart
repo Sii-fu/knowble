@@ -7,6 +7,7 @@ import 'package:knowble_app/widgets/custom_icon_widget.dart';
 import '../../widgets/forgot_password/countdown_timer_widget.dart';
 import '../../widgets/forgot_password/phone_number_display_widget.dart';
 import '../../widgets/forgot_password/verify_button_widget.dart';
+import '../../../../core/services/forgot_password_service.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({Key? key}) : super(key: key);
@@ -23,11 +24,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   bool _hasError = false;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
+  String _userEmail = '';
 
-  // Mock data for email
-  final String _userEmail = 'john.doe@example.com';
   final int _otpLength = 6;
-  final String _correctOtp = '123456'; // Mock OTP for validation
 
   @override
   void initState() {
@@ -39,6 +38,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _otpFocusNode.requestFocus();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Get email from navigation arguments
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args.containsKey('email')) {
+      _userEmail = args['email'] as String;
+    }
   }
 
   void _initializeAnimations() {
@@ -68,65 +78,120 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     HapticFeedback.lightImpact();
   }
 
-  void _onResendPressed() {
-    // Simulate resend code functionality
-    Fluttertoast.showToast(
-      msg: "Verification code sent to your email",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: AppTheme.primaryTeal,
-      textColor: AppTheme.surfaceWhite,
-      fontSize: 14.sp,
-    );
+  void _onResendPressed() async {
+    if (_userEmail.isEmpty) return;
 
     setState(() {
-      _otpController.clear();
-      _hasError = false;
+      _isLoading = true;
     });
+
+    try {
+      final result = await ForgotPasswordService.resendOTP(email: _userEmail);
+
+      if (result.success) {
+        Fluttertoast.showToast(
+          msg: result.message,
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: AppTheme.primaryTeal,
+          textColor: AppTheme.surfaceWhite,
+          fontSize: 14.sp,
+        );
+      } else {
+        Fluttertoast.showToast(
+          msg: result.message,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: AppTheme.errorRed,
+          textColor: AppTheme.surfaceWhite,
+          fontSize: 14.sp,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "An error occurred while resending the code",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: AppTheme.errorRed,
+        textColor: AppTheme.surfaceWhite,
+        fontSize: 14.sp,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _otpController.clear();
+        _hasError = false;
+      });
+    }
   }
 
   Future<void> _verifyOtp() async {
+    if (_userEmail.isEmpty) return;
+
     setState(() {
       _isLoading = true;
       _hasError = false;
     });
 
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (_otpController.text == _correctOtp) {
-      // Successful verification
-      setState(() {
-        _isLoading = false;
-      });
-
-      Fluttertoast.showToast(
-        msg: "Email verification successful",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: AppTheme.successGreen,
-        textColor: AppTheme.surfaceWhite,
-        fontSize: 14.sp,
+    try {
+      final result = await ForgotPasswordService.verifyOTP(
+        email: _userEmail,
+        otp: _otpController.text,
       );
 
-      // Navigate to new password creation screen
-      Navigator.pushNamed(context, '/forgot-password/new-password');
-    } else {
-      // Invalid OTP
+      if (result.success) {
+        // Successful verification
+        setState(() {
+          _isLoading = false;
+        });
+
+        Fluttertoast.showToast(
+          msg: "Email verification successful",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: AppTheme.successGreen,
+          textColor: AppTheme.surfaceWhite,
+          fontSize: 14.sp,
+        );
+
+        // Navigate to new password creation screen
+        Navigator.pushNamed(
+          context,
+          '/forgot-password/new-password',
+          arguments: {'email': _userEmail},
+        );
+      } else {
+        // Invalid OTP
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _otpController.clear();
+        });
+
+        // Trigger shake animation
+        _shakeController.forward().then((_) {
+          _shakeController.reverse();
+        });
+
+        Fluttertoast.showToast(
+          msg: result.message,
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: AppTheme.errorRed,
+          textColor: AppTheme.surfaceWhite,
+          fontSize: 14.sp,
+        );
+      }
+    } catch (e) {
       setState(() {
         _isLoading = false;
         _hasError = true;
         _otpController.clear();
       });
 
-      // Trigger shake animation
-      _shakeController.forward().then((_) {
-        _shakeController.reverse();
-      });
-
       Fluttertoast.showToast(
-        msg: "Invalid verification code. Please try again.",
-        toastLength: Toast.LENGTH_LONG,
+        msg: "An error occurred while verifying the code",
+        toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: AppTheme.errorRed,
         textColor: AppTheme.surfaceWhite,
@@ -147,104 +212,123 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppTheme.lightTheme.scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: CustomIconWidget(
-            iconName: 'arrow_back',
-            color: AppTheme.textPrimary,
-            size: 24,
-          ),
-        ),
-        title: Text(
-          'Email Verification',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: true,
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 5.w),
+            padding: EdgeInsets.symmetric(horizontal: 6.w),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 SizedBox(height: 4.h),
 
-                // Header text
-                Text(
-                  'Enter Verification Code',
-                  style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
-                    color: AppTheme.textPrimary,
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
+                // Header with back button
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 10.w,
+                        height: 5.h,
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightTheme.cardColor,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.lightTheme.shadowColor.withValues(
+                                alpha: 0.1,
+                              ),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: CustomIconWidget(
+                            iconName: 'arrow_back',
+                            color: AppTheme.textPrimary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 SizedBox(height: 2.h),
 
+                Text(
+                  'We sent a verification code to',
+                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14.sp,
+                    color: AppTheme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                SizedBox(height: 1.h),
+
                 // Email display
                 PhoneNumberDisplayWidget(phoneNumber: _userEmail),
 
+                SizedBox(height: 2.h),
+
+                // TESTING NOTE
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 4.w),
+                  padding: EdgeInsets.all(3.w),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryTeal.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.primaryTeal.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    'Enter OTP code',
+                    style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13.sp,
+                      color: AppTheme.primaryTeal,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
                 SizedBox(height: 4.h),
 
-                // Native OTP input field
+                // OTP input field with shake animation
                 AnimatedBuilder(
                   animation: _shakeAnimation,
                   builder: (context, child) {
                     return Transform.translate(
                       offset: Offset(_shakeAnimation.value, 0),
                       child: Container(
-                        width: 85.w,
-                        child: TextField(
+                        width: 80.w,
+                        child: TextFormField(
                           controller: _otpController,
                           focusNode: _otpFocusNode,
                           keyboardType: TextInputType.number,
                           maxLength: _otpLength,
                           textAlign: TextAlign.center,
-                          style: AppTheme.lightTheme.textTheme.headlineSmall
-                              ?.copyWith(
-                                color: AppTheme.textPrimary,
-                                fontSize: 24.sp,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 8.0,
-                              ),
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 8,
+                            color: AppTheme.textPrimary,
+                          ),
                           decoration: InputDecoration(
                             counterText: '',
-                            hintText: '• • • • • •',
-                            hintStyle: AppTheme
-                                .lightTheme
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  color: AppTheme.textSecondary,
-                                  fontSize: 24.sp,
-                                  letterSpacing: 8.0,
-                                ),
-                            filled: true,
-                            fillColor: AppTheme.lightTheme.colorScheme.surface,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: _hasError
-                                    ? AppTheme.errorRed
-                                    : AppTheme.borderSubtle,
-                                width: _hasError ? 2 : 1,
-                              ),
+                            hintText: '● ● ● ● ● ●',
+                            hintStyle: TextStyle(
+                              fontSize: 24.sp,
+                              color: AppTheme.textSecondary.withOpacity(0.3),
+                              letterSpacing: 8,
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
                                 color: _hasError
                                     ? AppTheme.errorRed
-                                    : AppTheme.borderSubtle,
+                                    : AppTheme.lightTheme.dividerColor,
                                 width: _hasError ? 2 : 1,
                               ),
                             ),
@@ -254,13 +338,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                                 color: _hasError
                                     ? AppTheme.errorRed
                                     : AppTheme.primaryTeal,
+                                width: _hasError ? 2 : 1,
+                              ),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: _hasError
+                                    ? AppTheme.errorRed
+                                    : AppTheme.lightTheme.dividerColor,
                                 width: 2,
                               ),
                             ),
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 3.h,
-                              horizontal: 4.w,
-                            ),
+                            filled: true,
+                            fillColor: AppTheme.lightTheme.cardColor,
                           ),
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
@@ -272,33 +363,26 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                   },
                 ),
 
-                SizedBox(height: 2.h),
+                SizedBox(height: 4.h),
 
-                // Error message
+                // Error message or success message space
                 _hasError
-                    ? Container(
-                        width: 85.w,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 4.w,
-                          vertical: 1.h,
-                        ),
-                        child: Text(
-                          'Invalid verification code. Please try again.',
-                          style: AppTheme.lightTheme.textTheme.bodySmall
-                              ?.copyWith(
-                                color: AppTheme.errorRed,
-                                fontSize: 12.sp,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
+                    ? Text(
+                        'Invalid verification code. Please try again.',
+                        style: AppTheme.lightTheme.textTheme.bodySmall
+                            ?.copyWith(
+                              color: AppTheme.errorRed,
+                              fontSize: 12.sp,
+                            ),
+                        textAlign: TextAlign.center,
                       )
-                    : SizedBox(height: 3.h),
+                    : const SizedBox.shrink(),
 
                 SizedBox(height: 4.h),
 
-                // Countdown timer
+                // Countdown timer and resend
                 CountdownTimerWidget(
-                  initialSeconds: 59,
+                  initialSeconds: 600, // 10 minutes
                   onTimerComplete: _onTimerComplete,
                   onResendPressed: _onResendPressed,
                 ),

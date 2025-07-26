@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../../config/theme.dart';
+import '../../../../../core/services/student/tag_service.dart';
+import '../../../../../data/models/tag.dart';
 import './widgets/interest_chip_widget.dart';
 import './widgets/progress_indicator_widget.dart';
 import './widgets/selected_interests_widget.dart';
@@ -18,33 +21,44 @@ class _StudentInterestSelectionScreenState
     extends State<StudentInterestSelectionScreen> {
   final List<String> selectedInterests = [];
   final int minimumInterests = 5;
+  final TagService _tagService = TagService();
 
-  final List<Map<String, dynamic>> availableInterests = [
-    {"id": 1, "name": "Mathematics", "category": "STEM"},
-    {"id": 2, "name": "Computer Science", "category": "Technology"},
-    {"id": 3, "name": "Physics", "category": "STEM"},
-    {"id": 4, "name": "Chemistry", "category": "STEM"},
-    {"id": 5, "name": "Biology", "category": "STEM"},
-    {"id": 6, "name": "English Literature", "category": "Language Arts"},
-    {"id": 7, "name": "Creative Writing", "category": "Language Arts"},
-    {"id": 8, "name": "History", "category": "Social Studies"},
-    {"id": 9, "name": "Geography", "category": "Social Studies"},
-    {"id": 10, "name": "Psychology", "category": "Social Studies"},
-    {"id": 11, "name": "Art & Design", "category": "Creative Arts"},
-    {"id": 12, "name": "Music Theory", "category": "Creative Arts"},
-    {"id": 13, "name": "Photography", "category": "Creative Arts"},
-    {"id": 14, "name": "Business Studies", "category": "Business"},
-    {"id": 15, "name": "Economics", "category": "Business"},
-    {"id": 16, "name": "Marketing", "category": "Business"},
-    {"id": 17, "name": "Philosophy", "category": "Humanities"},
-    {"id": 18, "name": "Sociology", "category": "Social Studies"},
-    {"id": 19, "name": "Environmental Science", "category": "STEM"},
-    {"id": 20, "name": "Foreign Languages", "category": "Language Arts"},
-    {"id": 21, "name": "Statistics", "category": "STEM"},
-    {"id": 22, "name": "Data Science", "category": "Technology"},
-    {"id": 23, "name": "Web Development", "category": "Technology"},
-    {"id": 24, "name": "Graphic Design", "category": "Creative Arts"},
-  ];
+  List<Tag> availableTags = [];
+  bool isLoading = true;
+  bool isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTags();
+  }
+
+  Future<void> _loadTags() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final tags = await _tagService.fetchAllTags();
+      setState(() {
+        availableTags = tags;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading interests: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   void _toggleInterest(String interest) {
     setState(() {
@@ -59,19 +73,61 @@ class _StudentInterestSelectionScreenState
     HapticFeedback.lightImpact();
   }
 
-  void _navigateToDashboard() {
-    if (selectedInterests.length >= minimumInterests) {
-      // Navigate to student dashboard
-      Navigator.pushReplacementNamed(context, '/student');
+  Future<void> _saveInterestsAndNavigate() async {
+    if (selectedInterests.length < minimumInterests) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Successfully selected ${selectedInterests.length} interests!',
-          ),
-          backgroundColor: AppTheme.successGreen,
-        ),
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Get tag IDs for selected interests
+      final selectedTagIds = availableTags
+          .where((tag) => selectedInterests.contains(tag.name))
+          .map((tag) => tag.id)
+          .toList();
+
+      // Save interests to database
+      final success = await _tagService.saveStudentInterests(
+        user.id,
+        selectedTagIds,
       );
+
+      if (success) {
+        // Navigate to student dashboard
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/student');
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Successfully selected ${selectedInterests.length} interests!',
+              ),
+              backgroundColor: AppTheme.successGreen,
+            ),
+          );
+        }
+      } else {
+        throw Exception('Failed to save interests');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving interests: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        isSaving = false;
+      });
     }
   }
 
@@ -99,167 +155,220 @@ class _StudentInterestSelectionScreenState
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Section
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderSubtle),
+        child: isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppTheme.primaryTeal),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header Section
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceWhite,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.borderSubtle),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Personalize Your Learning',
+                            style: AppTheme.lightTheme.textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimary,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Select at least $minimumInterests subjects that interest you. This helps us recommend the best learning content for you.',
+                            style: AppTheme.lightTheme.textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                  height: 1.5,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          ProgressIndicatorWidget(
+                            currentCount: selectedInterests.length,
+                            minimumRequired: minimumInterests,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Interests Grid Section
                     Text(
-                      'Personalize Your Learning',
-                      style: AppTheme.lightTheme.textTheme.headlineSmall
+                      'Available Subjects',
+                      style: AppTheme.lightTheme.textTheme.titleMedium
                           ?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: AppTheme.textPrimary,
                           ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Select at least $minimumInterests subjects that interest you. This helps us recommend the best learning content for you.',
-                      style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textSecondary,
-                        height: 1.5,
+
+                    const SizedBox(height: 16),
+
+                    if (availableTags.isEmpty)
+                      Center(
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: AppTheme.textSecondary,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No subjects available',
+                              style: AppTheme.lightTheme.textTheme.bodyLarge
+                                  ?.copyWith(color: AppTheme.textSecondary),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _loadTags,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: availableTags.map((tag) {
+                          final isSelected = selectedInterests.contains(
+                            tag.name,
+                          );
+
+                          return InterestChipWidget(
+                            label: tag.name,
+                            isSelected: isSelected,
+                            onTap: () => _toggleInterest(tag.name),
+                          );
+                        }).toList(),
+                      ),
+
+                    const SizedBox(height: 24),
+
+                    // Selected Interests Display
+                    selectedInterests.isNotEmpty
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Selected Interests (${selectedInterests.length})',
+                                style: AppTheme.lightTheme.textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              SelectedInterestsWidget(
+                                selectedInterests: selectedInterests,
+                                onRemove: _toggleInterest,
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+
+                    // Continue Button
+                    Container(
+                      width: double.infinity,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: selectedInterests.length >= minimumInterests
+                            ? LinearGradient(
+                                colors: [
+                                  AppTheme.primaryTeal,
+                                  AppTheme.primaryTeal.withValues(alpha: 0.8),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : null,
+                        color: selectedInterests.length >= minimumInterests
+                            ? null
+                            : AppTheme.borderSubtle,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap:
+                              (selectedInterests.length >= minimumInterests &&
+                                  !isSaving)
+                              ? _saveInterestsAndNavigate
+                              : null,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            alignment: Alignment.center,
+                            child: isSaving
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppTheme.surfaceWhite,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    'Continue to Dashboard',
+                                    style: AppTheme
+                                        .lightTheme
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color:
+                                              selectedInterests.length >=
+                                                  minimumInterests
+                                              ? AppTheme.surfaceWhite
+                                              : AppTheme.textSecondary,
+                                        ),
+                                  ),
+                          ),
+                        ),
                       ),
                     ),
+
                     const SizedBox(height: 16),
-                    ProgressIndicatorWidget(
-                      currentCount: selectedInterests.length,
-                      minimumRequired: minimumInterests,
+
+                    // Helper Text
+                    Center(
+                      child: Text(
+                        selectedInterests.length < minimumInterests
+                            ? 'Select ${minimumInterests - selectedInterests.length} more interests to continue'
+                            : 'Great! You can add more or continue to dashboard',
+                        style: AppTheme.lightTheme.textTheme.bodySmall
+                            ?.copyWith(
+                              color:
+                                  selectedInterests.length >= minimumInterests
+                                  ? AppTheme.successGreen
+                                  : AppTheme.textSecondary,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
+
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              // Interests Grid Section
-              Text(
-                'Available Subjects',
-                style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: availableInterests.map((interest) {
-                  final interestName = interest["name"] as String;
-                  final isSelected = selectedInterests.contains(interestName);
-
-                  return InterestChipWidget(
-                    label: interestName,
-                    isSelected: isSelected,
-                    onTap: () => _toggleInterest(interestName),
-                  );
-                }).toList(),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Selected Interests Display
-              selectedInterests.isNotEmpty
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Selected Interests (${selectedInterests.length})',
-                          style: AppTheme.lightTheme.textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        SelectedInterestsWidget(
-                          selectedInterests: selectedInterests,
-                          onRemove: _toggleInterest,
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                    )
-                  : const SizedBox.shrink(),
-
-              // Continue Button
-              Container(
-                width: double.infinity,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: selectedInterests.length >= minimumInterests
-                      ? LinearGradient(
-                          colors: [
-                            AppTheme.primaryTeal,
-                            AppTheme.primaryTeal.withValues(alpha: 0.8),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: selectedInterests.length >= minimumInterests
-                      ? null
-                      : AppTheme.borderSubtle,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: selectedInterests.length >= minimumInterests
-                        ? _navigateToDashboard
-                        : null,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Continue to Dashboard',
-                        style: AppTheme.lightTheme.textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color:
-                                  selectedInterests.length >= minimumInterests
-                                  ? AppTheme.surfaceWhite
-                                  : AppTheme.textSecondary,
-                            ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Helper Text
-              Center(
-                child: Text(
-                  selectedInterests.length < minimumInterests
-                      ? 'Select ${minimumInterests - selectedInterests.length} more interests to continue'
-                      : 'Great! You can add more or continue to dashboard',
-                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                    color: selectedInterests.length >= minimumInterests
-                        ? AppTheme.successGreen
-                        : AppTheme.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
       ),
     );
   }

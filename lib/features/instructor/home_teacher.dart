@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'custom_widgets.dart';
 // Make sure this is the stateless navbar with currentIndex and onTap
 import 'course_screen.dart'; // Import the CourseScreen
 
@@ -83,11 +84,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     title: "High School Algebra I: Help and Review",
                     subtitle: "Mathematics",
                     progress: 0.5,
+                    titleColor: Color(0xFF0D47A1),
                   ),
                   LessonCard(
                     title: "Enlargement to Trigonometry",
                     subtitle: "Mathematics",
                     progress: 0.5,
+                    titleColor: Color(0xFF0D47A1),
                   ),
                 ],
               ),
@@ -181,6 +184,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 // Lesson Card Widget
 class LessonCard extends StatelessWidget {
   final String title;
+  final Color? titleColor;
   final String subtitle;
   final double progress;
 
@@ -189,6 +193,7 @@ class LessonCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.progress,
+    this.titleColor,
   });
 
   @override
@@ -204,12 +209,12 @@ class LessonCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(subtitle, style: const TextStyle(color: Color(0xFF0D47A1))),
+          Text(subtitle, style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D47A1))),
+          Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: titleColor ?? Colors.black)),
           const Spacer(),
           LinearProgressIndicator(value: progress),
-          Text("${(progress * 10).toInt()}/10", style: const TextStyle(color: Color(0xFF0D47A1))),
+          Text("${(progress * 10).toInt()}/10"),
         ],
       ),
     );
@@ -295,8 +300,8 @@ class StatisticCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: color.withOpacity(0.15),
-              radius: 18,
               child: Icon(icon, color: color, size: 22),
+              radius: 18,
             ),
             const SizedBox(height: 8),
             Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),

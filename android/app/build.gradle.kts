@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.knowble_app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "29.0.13599879" // Removed corrupted NDK version
+    // Removed NDK version to use default
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

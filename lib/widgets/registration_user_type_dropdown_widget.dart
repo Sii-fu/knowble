@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
 
-class UserTypeDropdownWidget extends StatefulWidget {
+class RegistrationUserTypeDropdownWidget extends StatefulWidget {
   final String? value;
   final Function(String?) onChanged;
 
-  const UserTypeDropdownWidget({
+  const RegistrationUserTypeDropdownWidget({
     super.key,
     required this.value,
     required this.onChanged,
   });
 
   @override
-  State<UserTypeDropdownWidget> createState() => _UserTypeDropdownWidgetState();
+  State<RegistrationUserTypeDropdownWidget> createState() =>
+      _RegistrationUserTypeDropdownWidgetState();
 }
 
-class _UserTypeDropdownWidgetState extends State<UserTypeDropdownWidget> {
+class _RegistrationUserTypeDropdownWidgetState
+    extends State<RegistrationUserTypeDropdownWidget> {
+  // Registration dropdown only includes Student and Instructor (NO Admin)
   final List<String> _userTypes = ['Student', 'Instructor'];
 
   @override
@@ -29,7 +32,7 @@ class _UserTypeDropdownWidgetState extends State<UserTypeDropdownWidget> {
       ),
       child: DropdownButtonFormField<String>(
         value: widget.value,
-        isExpanded: true, // This prevents overflow by expanding the dropdown
+        isExpanded: true,
         decoration: const InputDecoration(
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -55,7 +58,7 @@ class _UserTypeDropdownWidgetState extends State<UserTypeDropdownWidget> {
                 fontWeight: FontWeight.w400,
                 color: Colors.grey,
               ),
-              overflow: TextOverflow.ellipsis, // Handle text overflow
+              overflow: TextOverflow.ellipsis,
             ),
           );
         }).toList(),

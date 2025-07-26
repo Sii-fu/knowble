@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'home_teacher.dart';
-import 'course_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../config/theme.dart';
+import '../../core/services/instructor/profile.dart';
+import 'instructor_settings_page.dart';
 
 class InstructorProfilePage extends StatefulWidget {
   const InstructorProfilePage({super.key});
@@ -11,26 +13,65 @@ class InstructorProfilePage extends StatefulWidget {
 }
 
 class _InstructorProfilePageState extends State<InstructorProfilePage> {
-  int _selectedIndex = 3;
-  bool _showBadges = false;
+  final InstructorProfileService _profileService = InstructorProfileService();
+  Map<String, dynamic>? _userProfile;
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  void _onTabSelected(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserProfile();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    if (!mounted) return;
     setState(() {
-      _selectedIndex = index;
+      _isLoading = true;
+      _errorMessage = null;
     });
-    if (index == 0) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const TeacherHomePage()),
-      );
-    } else if (index == 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const CourseScreen()),
-      );
-    } else if (index == 3) {
-      // Already on profile
+
+    try {
+      final response = await _profileService.fetchInstructorProfile();
+      
+      if (!mounted) return;
+      
+      if (response != null) {
+        setState(() {
+          _userProfile = response;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'No profile data found';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Failed to load profile data';
+        _isLoading = false;
+      });
     }
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return 'Not specified';
+    try {
+      final date = DateTime.parse(dateString);
+      return '${_getMonthName(date.month)} ${date.day}, ${date.year}';
+    } catch (e) {
+      return 'Invalid date';
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -48,191 +89,822 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     }
   }
 
-  Widget _badgeItem(String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Row(
-        children: [
-          Image.asset(
-            'assets/medal.png',
-            width: 32,
-            height: 32,
+  // Edit functionality methods
+  Future<void> _editName() async {
+    final TextEditingController nameController = TextEditingController(
+      text: _userProfile?['name'] ?? '',
+    );
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Edit Name',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-            ],
+        ),
+        content: TextField(
+          controller: nameController,
+          decoration: InputDecoration(
+            labelText: 'Full Name',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+          ),
+          autofocus: true,  
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, nameController.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+
+    if (result != null && result.isNotEmpty && result != _userProfile?['name']) {
+      await _updateUserField('name', result);
+    }
+  }
+
+  Future<void> _editBio() async {
+    final TextEditingController bioController = TextEditingController(
+      text: _userProfile?['bio'] ?? '',
+    );
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Edit Bio',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: bioController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            labelText: 'Bio',
+            hintText: 'Tell us about your teaching experience...',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, bioController.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != _userProfile?['bio']) {
+      await _updateUserField('bio', result);
+    }
+  }
+
+  Future<void> _editPhone() async {
+    final TextEditingController phoneController = TextEditingController(
+      text: _userProfile?['phone'] ?? '',
+    );
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Edit Phone Number',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(
+            labelText: 'Phone Number',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, phoneController.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != _userProfile?['phone']) {
+      await _updateUserField('phone', result);
+    }
+  }
+
+  Future<void> _editExperience() async {
+    final TextEditingController experienceController = TextEditingController(
+      text: _userProfile?['experience_years']?.toString() ?? '',
+    );
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Edit Teaching Experience',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: experienceController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Years of Experience',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, experienceController.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final years = int.tryParse(result);
+      if (years != null && years != _userProfile?['experience_years']) {
+        await _updateUserField('experience_years', years);
+      }
+    }
+  }
+
+  Future<void> _editSpecialization() async {
+    // Handle array conversion for display
+    String currentSpecialization = '';
+    if (_userProfile?['specialization'] is List) {
+      currentSpecialization = (_userProfile!['specialization'] as List).join(', ');
+    } else if (_userProfile?['specialization'] is String) {
+      currentSpecialization = _userProfile!['specialization'];
+    }
+    
+    final TextEditingController specializationController = TextEditingController(
+      text: currentSpecialization,
+    );
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Edit Specialization',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: specializationController,
+          decoration: InputDecoration(
+            labelText: 'Specialization',
+            hintText: 'e.g., Computer Science, Mathematics, Design',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, specializationController.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != currentSpecialization) {
+      await _updateUserField('specialization', result);
+    }
+  }
+
+  Future<void> _editEducation() async {
+    final TextEditingController educationController = TextEditingController(
+      text: _userProfile?['education'] ?? '',
+    );
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Edit Education',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: educationController,
+          decoration: InputDecoration(
+            labelText: 'Education Degree',
+            hintText: 'e.g., Master of Computer Science',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, educationController.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != _userProfile?['education']) {
+      await _updateUserField('education', result);
+    }
+  }
+
+  Future<void> _editLocation() async {
+    final TextEditingController locationController = TextEditingController(
+      text: _userProfile?['location'] ?? '',
+    );
+    
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Edit Location',
+          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: locationController,
+          decoration: InputDecoration(
+            labelText: 'Current Location',
+            hintText: 'e.g., New York, USA',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, locationController.text.trim()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+            ),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != _userProfile?['location']) {
+      await _updateUserField('location', result);
+    }
+  }
+
+  Future<void> _updateUserField(String field, dynamic value) async {
+    try {
+      await _profileService.updateInstructorField(field, value);
+      
+      if (mounted) {
+        setState(() {
+          _userProfile![field] = value;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$field updated successfully'),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update $field: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        setState(() {
+          _isLoading = true;
+        });
+        
+        final imageUrl = await _profileService.uploadProfilePicture(image);
+        
+        if (mounted) {
+          setState(() {
+            _userProfile!['profile_picture_url'] = imageUrl;
+            _isLoading = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Profile picture updated successfully'),
+              backgroundColor: AppTheme.successGreen,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading image: $e'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            // Profile Image
-            CircleAvatar(
-              radius: 48,
-              backgroundImage: AssetImage('assets/images/Profile 2 (teacher).jpg'),
+    final theme = AppTheme.lightTheme;
+    
+    if (_isLoading) {
+      return Theme(
+        data: theme,
+        child: Scaffold(
+          backgroundColor: AppTheme.backgroundLight,
+          body: Center(
+            child: CircularProgressIndicator(
+              color: AppTheme.primaryTeal,
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Samuel Prince',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '@samuel.prince123',
-              style: TextStyle(color: Colors.grey, fontSize: 15),
-            ),
-            const SizedBox(height: 32),
-            // Tabs
-            Row(
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Theme(
+        data: theme,
+        child: Scaffold(
+          backgroundColor: AppTheme.backgroundLight,
+          body: Center(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _showBadges = false;
-                    });
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: !_showBadges ? Colors.blue[400] : Colors.blue[50],
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'General',
-                    style: TextStyle(
-                      color: !_showBadges ? Colors.white : Colors.grey,
-                      fontWeight: FontWeight.w600,
-                    ),
+                Text(
+                  _errorMessage!,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: AppTheme.errorRed,
                   ),
                 ),
-                const SizedBox(width: 16),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _showBadges = true;
-                    });
-                  },
-                  style: TextButton.styleFrom(
-                    backgroundColor: _showBadges ? Color(0xFF5271FF) : Colors.blue[50],
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _fetchUserProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryTeal,
                   ),
-                  child: Text(
-                    'Badges',
-                    style: TextStyle(
-                      color: _showBadges ? Colors.white : Colors.grey,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: const Text('Retry', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            if (!_showBadges) ...[
-              // Info List
-              _profileItem(Icons.person, 'Name', 'Christina Angela', onEdit: () {}),
-              _profileItem(Icons.email, 'Email', 'christina.angela123@mail.com', onEdit: () {}),
-              _profileItem(Icons.lock, 'Password', 'Tap to Change Password', onEdit: () {}),
-              _profileItem(Icons.phone_iphone, 'Phone Number', '(684) 555-0102', onEdit: () {}),
-              _profileItem(Icons.credit_card, 'Payment', 'Tap to Change Payment', onEdit: () {}),
-              _profileItem(Icons.verified_user, 'Privacy Policy', 'Tap to See Privacy Policy', trailingArrow: true, onEdit: () {}),
-              const SizedBox(height: 32),
-            ] else ...[
-              // Badges List
-              _badgeItem('Good Teacher', 'Awarded for consistently high student ratings and positive feedback.'),
-              _badgeItem('Patient', 'Recognized for taking time to help every student understand.'),
-              _badgeItem('Responsive', 'Quick to answer questions and provide support.'),
-              _badgeItem('Story Teller', 'Engages students with creative and memorable lessons.'),
-              _badgeItem('Famous', 'Popular among students and faculty for outstanding teaching.'),
-              const SizedBox(height: 32),
-            ],
-            // Log out
-            TextButton(
-              onPressed: () => _logout(context),
-              child: const Text(
-                'LOG OUT',
-                style: TextStyle(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
+          ),
+        ),
+      );
+    }
+
+    return Theme(
+      data: theme,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Profile',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 24),
+          ),
+          backgroundColor: AppTheme.surfaceWhite,
+          foregroundColor: AppTheme.textPrimary,
+          elevation: 0.5,
+          shadowColor: AppTheme.shadowLight,
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.settings, color: AppTheme.primaryTeal),
+              tooltip: 'Settings',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const InstructorSettingsPage(),
+                  ),
+                );
+              },
+            ),
           ],
         ),
+        backgroundColor: AppTheme.backgroundLight,
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Profile Header Card
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceWhite,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppTheme.borderSubtle,
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.shadowLight.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Profile Picture
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: AppTheme.accentLight,
+                            backgroundImage: _userProfile?['profile_picture_url'] != null
+                                ? NetworkImage(_userProfile!['profile_picture_url'])
+                                : null,
+                            child: _userProfile?['profile_picture_url'] == null
+                                ? Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: AppTheme.primaryTeal,
+                                  )
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _pickAndUploadImage,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryTeal,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.surfaceWhite,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  color: AppTheme.surfaceWhite,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Name
+                      Text(
+                        _userProfile?['name'] ?? 'Instructor Name',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 8),
+                      
+                      // Specialization
+                      Text(
+                        _userProfile?['specialization'] != null
+                            ? (_userProfile!['specialization'] is List
+                                ? (_userProfile!['specialization'] as List).join(', ')
+                                : _userProfile!['specialization'].toString())
+                            : 'Add your specialization',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Bio
+                      if (_userProfile?['bio'] != null && _userProfile!['bio'].toString().isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _userProfile!['bio'],
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.textPrimary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Profile Information Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceWhite,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.borderSubtle,
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.shadowLight.withOpacity(0.1),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'Profile Information',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.person,
+                        title: 'Full Name',
+                        value: _userProfile?['name'] ?? 'Not set',
+                        onEdit: _editName,
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.description,
+                        title: 'Bio',
+                        value: _userProfile?['bio'] ?? 'Add your bio',
+                        onEdit: _editBio,
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.phone,
+                        title: 'Phone Number',
+                        value: _userProfile?['phone'] ?? 'Not set',
+                        onEdit: _editPhone,
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.school,
+                        title: 'Specialization',
+                        value: _userProfile?['specialization'] != null
+                            ? (_userProfile!['specialization'] is List
+                                ? (_userProfile!['specialization'] as List).join(', ')
+                                : _userProfile!['specialization'].toString())
+                            : 'Not set',
+                        onEdit: _editSpecialization,
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.work,
+                        title: 'Experience',
+                        value: _userProfile?['experience_years'] != null 
+                            ? '${_userProfile!['experience_years']} years'
+                            : 'Not set',
+                        onEdit: _editExperience,
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.book,
+                        title: 'Education',
+                        value: _userProfile?['education'] ?? 'Not set',
+                        onEdit: _editEducation,
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.location_on,
+                        title: 'Location',
+                        value: _userProfile?['location'] ?? 'Not set',
+                        onEdit: _editLocation,
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.verified,
+                        title: 'Verification Status',
+                        value: _userProfile?['verification_status'] ?? 'Pending',
+                        onEdit: null, // No editing for verification status
+                      ),
+                      _buildInfoItem(
+                        icon: Icons.calendar_today,
+                        title: 'Joined',
+                        value: _formatDate(_userProfile?['created_at']),
+                        onEdit: null, // No editing for created date
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Logout Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _logout(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorRed,
+                      foregroundColor: AppTheme.surfaceWhite,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'LOG OUT',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppTheme.surfaceWhite,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
       ),
-      // bottomNavigationBar: CustomBottomNavBar(
-      //   currentIndex: _selectedIndex,
-      //   onTap: (index) {
-      //     setState(() {
-      //       _selectedIndex = index;
-      //     });
-      //     // Add navigation logic if needed
-      //   },
-      // ),
     );
   }
 
-  Widget _profileItem(IconData icon, String title, String value, {bool trailingArrow = false, required VoidCallback onEdit}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: Colors.blue[400], size: 22),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                const SizedBox(height: 2),
-                Text(value, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-              ],
-            ),
-          ),
-          if (trailingArrow)
-            IconButton(
-              icon: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
+  Widget _buildInfoItem({
+    required IconData icon,
+    required String title,
+    required String value,
+    VoidCallback? onEdit,
+  }) {
+    final theme = AppTheme.lightTheme;
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppTheme.accentLight,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(
+          icon,
+          color: AppTheme.primaryTeal,
+          size: 22,
+        ),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: AppTheme.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        value,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: AppTheme.textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: onEdit != null
+          ? IconButton(
+              icon: Icon(
+                Icons.edit,
+                color: AppTheme.primaryTeal,
+                size: 20,
+              ),
               onPressed: onEdit,
             )
-          else
-            TextButton(
-              onPressed: onEdit,
-              child: const Text('Edit', style: TextStyle(color: Colors.blue)),
-            ),
-        ],
-      ),
+          : null,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
   }
 }
