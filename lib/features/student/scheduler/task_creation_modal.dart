@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
+import '../../../core/services/reminder_service.dart';
 
 class TaskCreationModal extends StatefulWidget {
   final DateTime? selectedDate;
@@ -67,9 +68,14 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
             timePickerTheme: TimePickerThemeData(
               backgroundColor: AppTheme.surfaceWhite,
               hourMinuteTextColor: AppTheme.textPrimary,
+              dayPeriodTextColor: AppTheme.textPrimary,
               dialHandColor: AppTheme.primaryTeal,
               dialBackgroundColor: AppTheme.surfaceWhite,
+              dialTextColor: AppTheme.textPrimary,
               entryModeIconColor: AppTheme.primaryTeal,
+              helpTextStyle: TextStyle(color: AppTheme.textPrimary, fontFamily: 'Jost'),
+              cancelButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal)),
+              confirmButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal)),
             ),
           ),
           child: child!,
@@ -115,9 +121,14 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
             timePickerTheme: TimePickerThemeData(
               backgroundColor: AppTheme.surfaceWhite,
               hourMinuteTextColor: AppTheme.textPrimary,
+              dayPeriodTextColor: AppTheme.textPrimary,
               dialHandColor: AppTheme.primaryTeal,
               dialBackgroundColor: AppTheme.surfaceWhite,
+              dialTextColor: AppTheme.textPrimary,
               entryModeIconColor: AppTheme.primaryTeal,
+              helpTextStyle: TextStyle(color: AppTheme.textPrimary, fontFamily: 'Jost'),
+              cancelButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal)),
+              confirmButtonStyle: ButtonStyle(foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal)),
             ),
           ),
           child: child!,
@@ -169,47 +180,58 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
 
   Future<void> _saveTask() async {
     if (!_isFormValid) return;
-
-    if (!mounted) return; // Check if widget is still mounted
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    // Prepare start and end DateTime using _selectedDate and _startTime/_endTime
+    final DateTime startDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _startTime!.hour,
+      _startTime!.minute,
+    );
+    final DateTime endDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _endTime!.hour,
+      _endTime!.minute,
+    );
 
-    // Create task data
-    final taskData = {
-      'id': DateTime.now().millisecondsSinceEpoch,
-      'title': _titleController.text.trim(),
-      'description': _descriptionController.text.trim(),
-      'startTime': _startTime,
-      'endTime': _endTime,
-      'priority': _priority,
-      'course_id': _selectedCourseId, // Add course_id for database
-      'date': DateTime.now(),
-      'createdAt': DateTime.now(),
-    };
+    final String? error = await ReminderService.createReminder(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      startTime: startDateTime,
+      endTime: endDateTime,
+      courseId: _selectedCourseId,
+      priority: _priority,
+    );
 
-    if (!mounted) return; // Check if widget is still mounted after async operation
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
 
-    // Show success message
-    if (mounted) { // Check before accessing context
+    if (error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Task "${_titleController.text.trim()}" created successfully',
-          ),
+          content: Text('Task "${_titleController.text.trim()}" created successfully'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppTheme.primaryTeal,
         ),
       );
-
-      // Navigate back to calendar
-      Navigator.of(context).pop(taskData);
+      Navigator.of(context).pop(true); // Indicate success
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -328,7 +350,7 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                       TextFormField(
                         controller: _titleController,
                         maxLength: 50,
-                        style: TextStyle(fontFamily: 'Jost'),
+                        style: TextStyle(fontFamily: 'Jost', color: AppTheme.textPrimary),
                         decoration: InputDecoration(
                           hintText: 'Enter task title',
                           counterText: '${_titleController.text.length}/50',
@@ -688,7 +710,7 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                         controller: _descriptionController,
                         maxLines: 4,
                         maxLength: 200,
-                        style: TextStyle(fontFamily: 'Jost'),
+                        style: TextStyle(fontFamily: 'Jost', color: AppTheme.textPrimary),
                         decoration: InputDecoration(
                           hintText:
                               'Add task description, notes, or study materials...',
