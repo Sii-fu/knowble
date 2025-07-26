@@ -16,7 +16,7 @@ class UserTypeDropdownWidget extends StatefulWidget {
 }
 
 class _UserTypeDropdownWidgetState extends State<UserTypeDropdownWidget> {
-  final List<String> _userTypes = ['Student', 'Instructor', 'Admin'];
+  final List<String> _userTypes = ['Student', 'Instructor'];
 
   @override
   Widget build(BuildContext context) {

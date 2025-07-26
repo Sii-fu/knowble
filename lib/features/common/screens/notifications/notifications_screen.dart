@@ -117,6 +117,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: AppTheme.surfaceWhite, // Add white background
           title: Text(
             'Clear All Notifications',
             style: TextStyle(
