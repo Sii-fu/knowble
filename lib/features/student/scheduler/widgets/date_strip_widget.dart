@@ -25,9 +25,18 @@ class _DateStripWidgetState extends State<DateStripWidget> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    // Only scroll on first build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToSelectedDate();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant DateStripWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedDate != widget.selectedDate) {
+      _scrollToSelectedDate();
+    }
   }
 
   @override
@@ -37,19 +46,20 @@ class _DateStripWidgetState extends State<DateStripWidget> {
   }
 
   void _scrollToSelectedDate() {
-    final DateTime startOfWeek = widget.selectedDate.subtract(
-      Duration(days: widget.selectedDate.weekday - 1),
-    );
-    final int selectedIndex =
-        widget.selectedDate.difference(startOfWeek).inDays;
-    final double itemWidth = 15.w; // Approximate width of each date item
-    final double scrollPosition =
-        selectedIndex * itemWidth - (50.w - itemWidth / 2);
-
+    final List<DateTime> dates = _generateDateList();
+    final int selectedIndex = dates.indexWhere((d) =>
+      d.year == widget.selectedDate.year &&
+      d.month == widget.selectedDate.month &&
+      d.day == widget.selectedDate.day);
+    if (selectedIndex == -1) return;
+    final double itemWidth = 15.w;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double scrollPosition = selectedIndex * itemWidth - (screenWidth / 2 - itemWidth / 2);
+    print('Scrolling to index: ' + selectedIndex.toString() + ', scrollPosition: ' + scrollPosition.toString());
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         scrollPosition.clamp(0.0, _scrollController.position.maxScrollExtent),
-        duration: Duration(milliseconds: 300),
+        duration: Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
     }

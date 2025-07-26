@@ -852,13 +852,17 @@ class ChatMessage {
   final bool isUser;
   final DateTime timestamp;
   final bool isTyping;
+  final String id; // Unique identifier for each message
+  bool hasCompletedTyping; // Track if typewriter effect has completed
 
   ChatMessage({
     required this.message,
     required this.isUser,
     required this.timestamp,
     this.isTyping = false,
-  });
+    String? id,
+    this.hasCompletedTyping = false,
+  }) : id = id ?? DateTime.now().millisecondsSinceEpoch.toString();
 }
 
 class ChatBubble extends StatefulWidget {
@@ -896,12 +900,15 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
     if (!widget.message.isUser) {
       _shimmerController.repeat(reverse: true);
       
-      // Start typewriter effect for AI messages
-      if (widget.message.isTyping) {
+      // Start typewriter effect for AI messages only if not completed yet
+      if (widget.message.isTyping && !widget.message.hasCompletedTyping) {
         _startTypewriterEffect();
       } else {
         _displayedText = widget.message.message;
         _isTypingComplete = true;
+        if (widget.message.hasCompletedTyping) {
+          _shimmerController.stop();
+        }
       }
     } else {
       _displayedText = widget.message.message;
@@ -924,6 +931,7 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
         timer.cancel();
         setState(() {
           _isTypingComplete = true;
+          widget.message.hasCompletedTyping = true; // Mark message as completed
         });
         // Stop shimmer when typing is complete
         if (_isTypingComplete) {
@@ -944,19 +952,12 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
     return AnimatedBuilder(
       animation: _shimmerAnimation,
       builder: (context, child) {
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.elasticOut,
-          builder: (context, scale, child) {
-            return Transform.scale(
-              scale: scale,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  mainAxisAlignment: widget.message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Row(
+            mainAxisAlignment: widget.message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                     if (!widget.message.isUser) ...[
                       Container(
                         width: 40,
@@ -1071,9 +1072,6 @@ class _ChatBubbleState extends State<ChatBubble> with SingleTickerProviderStateM
                     ],
                   ],
                 ),
-              ),
-            );
-          },
         );
       },
     );

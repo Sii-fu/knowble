@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
+import '../../../core/services/reminder_service.dart';
 
 class TaskEditModal extends StatefulWidget {
   final Map<String, dynamic>? taskData;
@@ -209,7 +210,6 @@ class _TaskEditModalState extends State<TaskEditModal> {
 
   Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_startTime == null || _endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -219,7 +219,6 @@ class _TaskEditModalState extends State<TaskEditModal> {
       );
       return;
     }
-
     if (_isEndTimeBeforeStartTime()) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -229,38 +228,53 @@ class _TaskEditModalState extends State<TaskEditModal> {
       );
       return;
     }
-
     setState(() {
       _isLoading = true;
     });
-
-    // Simulate API call
-    await Future.delayed(Duration(seconds: 1));
-
-    final updatedTask = {
-      'id': widget.taskData?['id'] ?? DateTime.now().millisecondsSinceEpoch,
-      'title': _titleController.text.trim(),
-      'description': _descriptionController.text.trim(),
-      'startTime': _formatTime(_startTime),
-      'endTime': _formatTime(_endTime),
-      'priority': _priority,
-      'course_id': _selectedCourseId, // Add course_id for database
-      'date': widget.taskData?['date'] ?? DateTime.now(),
-      'updatedAt': DateTime.now(),
-    };
-
+    // Prepare start and end DateTime using date from taskData and _startTime/_endTime
+    final DateTime date = widget.taskData?['date'] ?? DateTime.now();
+    final DateTime startDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      _startTime!.hour,
+      _startTime!.minute,
+    );
+    final DateTime endDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      _endTime!.hour,
+      _endTime!.minute,
+    );
+    final String? error = await ReminderService.updateReminder(
+      reminderId: widget.taskData?['id'].toString() ?? '',
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      startTime: startDateTime,
+      endTime: endDateTime,
+      courseId: _selectedCourseId,
+      priority: _priority,
+    );
     setState(() {
       _isLoading = false;
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Task updated successfully'),
-        backgroundColor: AppTheme.primaryTeal,
-      ),
-    );
-
-    Navigator.of(context).pop(updatedTask);
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Task updated successfully'),
+          backgroundColor: AppTheme.primaryTeal,
+        ),
+      );
+      Navigator.of(context).pop(true); // Indicate success
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _deleteTask() async {

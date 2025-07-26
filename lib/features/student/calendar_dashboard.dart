@@ -131,12 +131,15 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
     );
   }
 
-  void _onTaskEdit(Reminder reminder) {
-    Navigator.pushNamed(
+  void _onTaskEdit(Reminder reminder) async {
+    final result = await Navigator.pushNamed(
       context,
       '/task-edit-modal',
       arguments: reminder, // Pass Reminder object for editing
     );
+    if (result == true) {
+      _loadRemindersForDate(selectedDate);
+    }
   }
 
   void _onTaskDelete(Reminder reminder) async {
@@ -218,9 +221,8 @@ class _CalendarDashboardState extends State<CalendarDashboard> {
       '/task-creation-modal',
       arguments: selectedDate, // Pass selected date to creation modal
     );
-
     // If task was created successfully, reload reminders
-    if (result != null) {
+    if (result == true) {
       _loadRemindersForDate(selectedDate);
     }
   }
