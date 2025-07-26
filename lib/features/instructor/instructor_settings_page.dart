@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
+import 'course_screen.dart';
+import 'instructor_notification_settings_page.dart';
+import 'instructor_account_privacy_page.dart';
+import 'instructor_terms_conditions_page.dart';
+import 'instructor_privacy_policy_page.dart';
+import 'instructor_help_support_page.dart';
+import 'instructor_send_feedback_page.dart';
+import 'instructor_teaching_analytics_page.dart';
 
 class InstructorSettingsPage extends StatelessWidget {
   const InstructorSettingsPage({super.key});
@@ -39,14 +47,28 @@ class InstructorSettingsPage extends StatelessWidget {
                   icon: Icons.school,
                   title: 'Course Management',
                   subtitle: 'Manage your courses and content',
-                  onTap: () => Navigator.pushNamed(context, '/instructor-course-management'),
+                   onTap: () {
+                     Navigator.push(
+                       context,
+                       MaterialPageRoute(
+                         builder: (context) => CourseScreen(),
+                       ),
+                     );
+                   },
                 ),
                 _buildSettingsTile(
                   context,
                   icon: Icons.analytics,
                   title: 'Teaching Analytics',
                   subtitle: 'View student progress and course performance',
-                  onTap: () => Navigator.pushNamed(context, '/instructor-analytics'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const InstructorTeachingAnalyticsPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
               theme,
@@ -60,7 +82,14 @@ class InstructorSettingsPage extends StatelessWidget {
                   icon: Icons.notifications_outlined,
                   title: 'Notification Settings',
                   subtitle: 'Manage push notifications and alerts',
-                  onTap: () => Navigator.pushNamed(context, '/instructor-notification-settings'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const InstructorNotificationSettingsPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
               theme,
@@ -72,30 +101,16 @@ class InstructorSettingsPage extends StatelessWidget {
                 _buildSettingsTile(
                   context,
                   icon: Icons.security,
-                  title: 'Account Security',
-                  subtitle: 'Password and security settings',
-                  onTap: () => Navigator.pushNamed(context, '/instructor-account-security'),
-                ),
-                _buildSettingsTile(
-                  context,
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Settings',
-                  subtitle: 'Control your profile visibility',
-                  onTap: () => Navigator.pushNamed(context, '/instructor-privacy-settings'),
-                ),
-              ],
-              theme,
-            ),
-            const SizedBox(height: 16),
-            _buildSectionCard(
-              'Social',
-              [
-                _buildSettingsTile(
-                  context,
-                  icon: Icons.group_add,
-                  title: 'Invite Instructors',
-                  subtitle: 'Invite colleagues to join Knowble',
-                  onTap: () => Navigator.pushNamed(context, '/instructor-invite-friends'),
+                  title: 'Account & Privacy',
+                  subtitle: 'Manage your account and privacy settings',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const InstructorAccountPrivacyPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
               theme,
@@ -109,7 +124,14 @@ class InstructorSettingsPage extends StatelessWidget {
                   icon: Icons.description_outlined,
                   title: 'Terms & Conditions',
                   subtitle: 'View our terms of service',
-                  onTap: () => Navigator.pushNamed(context, '/instructor-terms-conditions'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const InstructorTermsConditionsPage(),
+                      ),
+                    );
+                  },
                 ),
                 _buildSettingsTile(
                   context,
@@ -117,8 +139,11 @@ class InstructorSettingsPage extends StatelessWidget {
                   title: 'Privacy Policy',
                   subtitle: 'Learn about data protection',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Privacy Policy coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const InstructorPrivacyPolicyPage(),
+                      ),
                     );
                   },
                 ),
@@ -135,8 +160,11 @@ class InstructorSettingsPage extends StatelessWidget {
                   title: 'Help & Support',
                   subtitle: 'Get help with teaching on Knowble',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Help & Support coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const InstructorHelpSupportPage(),
+                      ),
                     );
                   },
                 ),
@@ -146,8 +174,11 @@ class InstructorSettingsPage extends StatelessWidget {
                   title: 'Send Feedback',
                   subtitle: 'Help us improve the instructor experience',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Feedback form coming soon!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const InstructorSendFeedbackPage(),
+                      ),
                     );
                   },
                 ),
