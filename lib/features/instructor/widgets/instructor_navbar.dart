@@ -36,7 +36,7 @@ class InstructorBottomNavbar extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         currentIndex: currentIndex,
         onTap: onTap,
-        elevation: 12,
+        elevation: 0,
         backgroundColor: Colors.transparent,
         selectedItemColor: theme.primaryColor,
         unselectedItemColor: Colors.grey[500],

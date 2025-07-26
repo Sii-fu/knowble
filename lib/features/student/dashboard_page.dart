@@ -4,6 +4,7 @@ import '../../core/services/student/course_services.dart';
 import '../../data/models/course.dart';
 import '../../data/models/module.dart'; // Import the Module type
 import 'Course_Details.dart';
+import 'unified_search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StudentDashboardPage extends StatefulWidget {
@@ -174,20 +175,30 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, color: AppTheme.textSecondary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text('Search', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary)),
-          )
-        ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const UnifiedSearchPage(),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: AppTheme.textSecondary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('Search', style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary)),
+            )
+          ],
+        ),
       ),
     );
   }
