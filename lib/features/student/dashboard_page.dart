@@ -217,57 +217,107 @@ class _RecentLearning extends StatelessWidget {
       return Text('No recent learning courses.', style: Theme.of(context).textTheme.bodyMedium);
     }
     return SizedBox(
-      height: 120,
+      height: 140,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: courses.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final course = courses[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: course.id)),
+          return FutureBuilder<List<Module>>(
+            future: CourseServices().fetchModules(course.id),
+            builder: (context, snapshot) {
+              final modules = snapshot.data ?? [];
+              final totalModules = modules.length;
+              // For demo, assume completedModules = half of totalModules (replace with real quiz logic)
+              final completedModules = totalModules > 0 ? (totalModules / 2).floor() : 0;
+              final progress = totalModules > 0 ? completedModules / totalModules : 0.0;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: course.id)),
+                  );
+                },
+                child: Container(
+                  width: 120,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Theme.of(context).colorScheme.surface,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: course.banner.startsWith('http')
+                            ? Image.network(
+                                course.banner,
+                                width: double.infinity,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Image.asset(
+                                  'assets/images/default_course.jpg',
+                                  width: double.infinity,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : Image.asset(
+                                course.banner.isNotEmpty ? course.banner : 'assets/images/default_course.jpg',
+                                width: double.infinity,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        course.title,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      // Progress bar
+                      if (totalModules > 0)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  FractionallySizedBox(
+                                    widthFactor: progress,
+                                    child: Container(
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$completedModules/$totalModules',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
               );
             },
-            child: Container(
-              width: 120,
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: Theme.of(context).colorScheme.surface,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: course.banner.startsWith('http')
-                        ? Image.network(
-                            course.banner,
-                            width: double.infinity,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Image.asset(
-                              'assets/images/default_course.jpg',
-                              width: double.infinity,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Image.asset(
-                            course.banner.isNotEmpty ? course.banner : 'assets/images/default_course.jpg',
-                            width: double.infinity,
-                            height: 60,
-                            fit: BoxFit.cover,
-                          ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(course.title, style: Theme.of(context).textTheme.bodyMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
           );
         },
       ),
