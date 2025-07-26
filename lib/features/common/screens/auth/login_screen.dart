@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/widgets/user_type_dropdown_widget.dart';
+import 'package:knowble_app/widgets/login_user_type_dropdown_widget.dart';
 import 'package:knowble_app/widgets/google_signin_button_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:knowble_app/core/services/auth_manager.dart';
@@ -185,8 +185,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                           SizedBox(height: screenHeight * 0.02),
 
-                          // User Type Dropdown
-                          UserTypeDropdownWidget(
+                          // User Type Dropdown (includes Admin option for login)
+                          LoginUserTypeDropdownWidget(
                             value: _selectedUserType,
                             onChanged: (value) {
                               setState(() {
@@ -225,7 +225,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextButton(
                                 onPressed: () {
                                   // Navigate to forgot password screen
-                                  Navigator.pushNamed(context, '/forgot-password');
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/forgot-password',
+                                  );
                                 },
                                 child: const Text(
                                   'Forgot Password?',

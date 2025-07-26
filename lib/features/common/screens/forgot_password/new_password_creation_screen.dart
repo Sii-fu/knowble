@@ -6,6 +6,8 @@ import '../../widgets/forgot_password/continue_button_widget.dart';
 import '../../widgets/forgot_password/graduation_cap_icon_widget.dart';
 import '../../widgets/forgot_password/password_input_field_widget.dart';
 import '../../widgets/forgot_password/password_strength_indicator_widget.dart';
+import '../../../../core/services/forgot_password_service.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class NewPasswordCreationScreen extends StatefulWidget {
   const NewPasswordCreationScreen({super.key});
@@ -23,12 +25,24 @@ class _NewPasswordCreationScreenState extends State<NewPasswordCreationScreen> {
 
   bool _isLoading = false;
   String _passwordMatchError = '';
+  String _userEmail = '';
 
   @override
   void initState() {
     super.initState();
     _newPasswordController.addListener(_onPasswordChanged);
     _confirmPasswordController.addListener(_onPasswordChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Get email from navigation arguments
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args.containsKey('email')) {
+      _userEmail = args['email'] as String;
+    }
   }
 
   @override
@@ -72,16 +86,49 @@ class _NewPasswordCreationScreenState extends State<NewPasswordCreationScreen> {
       _isLoading = true;
     });
 
-    // Simulate password creation process
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      // Use Supabase's password reset functionality instead of direct update
+      // For better security, we'll show a success message and redirect to login
+      final result = await ForgotPasswordService.resetPassword(
+        email: _userEmail,
+        newPassword: _newPasswordController.text,
+      );
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
 
-      // Show congratulations dialog
-      _showCongratulationsDialog();
+        if (result.success) {
+          // Show congratulations dialog
+          _showCongratulationsDialog();
+        } else {
+          // Show error message
+          Fluttertoast.showToast(
+            msg: result.message,
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: AppTheme.errorRed,
+            textColor: AppTheme.surfaceWhite,
+            fontSize: 14.sp,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        Fluttertoast.showToast(
+          msg: "An error occurred while updating your password",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: AppTheme.errorRed,
+          textColor: AppTheme.surfaceWhite,
+          fontSize: 14.sp,
+        );
+      }
     }
   }
 
@@ -113,10 +160,11 @@ class _NewPasswordCreationScreenState extends State<NewPasswordCreationScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: CustomIconWidget(
-                      iconName: 'lock',
-                      color: AppTheme.primaryTeal,
-                      size: 12.w,
+                    child: Image.asset(
+                      'assets/images/logo 3.png',
+                      width: 12.w,
+                      height: 12.w,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
