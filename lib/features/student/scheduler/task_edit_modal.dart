@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
 import '../../../core/services/reminder_service.dart';
+import '../../../core/services/reminder_course_service.dart';
+import '../../../data/models/course.dart';
 
 class TaskEditModal extends StatefulWidget {
   final Map<String, dynamic>? taskData;
@@ -16,6 +18,7 @@ class _TaskEditModalState extends State<TaskEditModal> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final ReminderCourseService _reminderCourseService = ReminderCourseService();
 
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -23,23 +26,16 @@ class _TaskEditModalState extends State<TaskEditModal> {
   String? _selectedCourseId;
   bool _hasChanges = false;
   bool _isLoading = false;
+  bool _isLoadingCourses = true;
 
   final List<String> _priorityOptions = ['Low', 'Medium', 'High'];
-
-  // TODO: Replace with actual backend data
-  final List<Map<String, dynamic>> _enrolledCourses = [
-    {'id': 'course-1', 'name': 'Mathematics 101', 'code': 'MATH101'},
-    {'id': 'course-2', 'name': 'Physics Fundamentals', 'code': 'PHYS200'},
-    {'id': 'course-3', 'name': 'Computer Science Basics', 'code': 'CS101'},
-    {'id': 'course-4', 'name': 'Chemistry Laboratory', 'code': 'CHEM150'},
-    {'id': 'course-5', 'name': 'English Literature', 'code': 'ENG201'},
-    {'id': 'course-6', 'name': 'Biology Essentials', 'code': 'BIO100'},
-  ];
+  List<Course> _enrolledCourses = [];
 
   @override
   void initState() {
     super.initState();
     _initializeFields();
+    _fetchEnrolledCourses();
   }
 
   @override
@@ -47,6 +43,22 @@ class _TaskEditModalState extends State<TaskEditModal> {
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchEnrolledCourses() async {
+    try {
+      final courses = await _reminderCourseService
+          .fetchCurrentUserEnrolledCourses();
+      setState(() {
+        _enrolledCourses = courses;
+        _isLoadingCourses = false;
+      });
+    } catch (e) {
+      print('Error fetching enrolled courses: $e');
+      setState(() {
+        _isLoadingCourses = false;
+      });
+    }
   }
 
   void _initializeFields() {
@@ -677,34 +689,80 @@ class _TaskEditModalState extends State<TaskEditModal> {
                                 ),
                               ),
                             ),
-                            ..._enrolledCourses.map((course) {
-                              return DropdownMenuItem<String>(
-                                value: course['id'],
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
+                            if (_isLoadingCourses)
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Row(
                                   children: [
-                                    Text(
-                                      course['name'],
-                                      style: TextStyle(
-                                        color: AppTheme.textPrimary,
-                                        fontFamily: 'Jost',
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.w500,
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              AppTheme.primaryTeal,
+                                            ),
                                       ),
                                     ),
+                                    SizedBox(width: 8),
                                     Text(
-                                      course['code'],
+                                      'Loading courses...',
                                       style: TextStyle(
                                         color: AppTheme.textSecondary,
                                         fontFamily: 'Jost',
-                                        fontSize: 12.sp,
+                                        fontSize: 14.sp,
                                       ),
                                     ),
                                   ],
                                 ),
-                              );
-                            }),
+                              ),
+                            if (!_isLoadingCourses)
+                              ..._enrolledCourses.map((course) {
+                                return DropdownMenuItem<String>(
+                                  value: course.id,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        course.title,
+                                        style: TextStyle(
+                                          color: AppTheme.textPrimary,
+                                          fontFamily: 'Jost',
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      if (course.description.isNotEmpty)
+                                        Text(
+                                          course.description.length > 30
+                                              ? '${course.description.substring(0, 30)}...'
+                                              : course.description,
+                                          style: TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontFamily: 'Jost',
+                                            fontSize: 12.sp,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            if (!_isLoadingCourses && _enrolledCourses.isEmpty)
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(
+                                  'No enrolled courses found',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontFamily: 'Jost',
+                                    fontSize: 14.sp,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
                           ],
                           onChanged: (String? newValue) {
                             setState(() {

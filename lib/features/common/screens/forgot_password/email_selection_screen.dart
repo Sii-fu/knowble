@@ -8,7 +8,7 @@ import '../../../../core/services/forgot_password_service.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class EmailSelectionScreen extends StatefulWidget {
-  const EmailSelectionScreen({Key? key}) : super(key: key);
+  const EmailSelectionScreen({super.key});
 
   @override
   State<EmailSelectionScreen> createState() => _EmailSelectionScreenState();

@@ -30,6 +30,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- Google Sign-In OAuth client ID for Supabase authentication -->
+        <meta-data
+            android:name="com.google.android.gms.auth.api.signin.GoogleSignInOptions.DefaultClient"
+            android:value="676637589146-26g8q5b0uno7ghep5d082qfnn7on9hbl.apps.googleusercontent.com" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

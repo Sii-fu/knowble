@@ -68,7 +68,7 @@ class Course {
       isPaid: isPaid ?? this.isPaid,
       durationDays: durationDays ?? this.durationDays,
       createdAt: createdAt ?? this.createdAt,
-      banner: this.banner, 
+      banner: banner, 
     );
   }
 }

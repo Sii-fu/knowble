@@ -55,7 +55,7 @@ class _DateStripWidgetState extends State<DateStripWidget> {
     final double itemWidth = 15.w;
     final double screenWidth = MediaQuery.of(context).size.width;
     final double scrollPosition = selectedIndex * itemWidth - (screenWidth / 2 - itemWidth / 2);
-    print('Scrolling to index: ' + selectedIndex.toString() + ', scrollPosition: ' + scrollPosition.toString());
+    print('Scrolling to index: $selectedIndex, scrollPosition: $scrollPosition');
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         scrollPosition.clamp(0.0, _scrollController.position.maxScrollExtent),

@@ -10,7 +10,7 @@ import '../../widgets/forgot_password/verify_button_widget.dart';
 import '../../../../core/services/forgot_password_service.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({Key? key}) : super(key: key);
+  const OtpVerificationScreen({super.key});
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -301,7 +301,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                   builder: (context, child) {
                     return Transform.translate(
                       offset: Offset(_shakeAnimation.value, 0),
-                      child: Container(
+                      child: SizedBox(
                         width: 80.w,
                         child: TextFormField(
                           controller: _otpController,

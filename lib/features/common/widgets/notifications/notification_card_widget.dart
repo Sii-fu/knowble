@@ -11,11 +11,11 @@ class NotificationCardWidget extends StatelessWidget {
   final VoidCallback? onTap;
 
   const NotificationCardWidget({
-    Key? key,
+    super.key,
     required this.notification,
     this.isClicked = false,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

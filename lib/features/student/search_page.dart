@@ -11,7 +11,7 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  List<String> _searchHistory = [
+  final List<String> _searchHistory = [
     'Graphic Design',
     'Web Development',
     'Photography',

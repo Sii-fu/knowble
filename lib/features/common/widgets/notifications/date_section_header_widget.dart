@@ -6,8 +6,7 @@ import '../../../../config/theme.dart';
 class DateSectionHeaderWidget extends StatelessWidget {
   final String dateLabel;
 
-  const DateSectionHeaderWidget({Key? key, required this.dateLabel})
-    : super(key: key);
+  const DateSectionHeaderWidget({super.key, required this.dateLabel});
 
   @override
   Widget build(BuildContext context) {

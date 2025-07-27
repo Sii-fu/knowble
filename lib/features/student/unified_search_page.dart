@@ -20,7 +20,7 @@ class _UnifiedSearchPageState extends State<UnifiedSearchPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   
-  List<String> _searchHistory = [
+  final List<String> _searchHistory = [
     'Graphic Design',
     'Web Development',
     'Photography',

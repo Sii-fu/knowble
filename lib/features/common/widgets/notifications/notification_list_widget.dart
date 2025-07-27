@@ -13,12 +13,12 @@ class NotificationListWidget extends StatelessWidget {
   final bool Function(String)? isNotificationClicked;
 
   const NotificationListWidget({
-    Key? key,
+    super.key,
     required this.notificationData,
     this.isLoading = false,
     this.onNotificationTap,
     this.isNotificationClicked,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +52,7 @@ class NotificationListWidget extends StatelessWidget {
                 isClicked: isClicked,
                 onTap: () => onNotificationTap?.call(notification.id),
               );
-            }).toList(),
+            }),
 
             SizedBox(height: 1.5.h),
           ],

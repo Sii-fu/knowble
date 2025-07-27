@@ -5,7 +5,7 @@ import 'package:knowble_app/widgets/custom_icon_widget.dart';
 import '../../widgets/notifications/notification_list_widget.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
+  const NotificationsScreen({super.key});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();

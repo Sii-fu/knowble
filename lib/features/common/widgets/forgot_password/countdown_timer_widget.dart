@@ -11,11 +11,11 @@ class CountdownTimerWidget extends StatefulWidget {
   final VoidCallback onResendPressed;
 
   const CountdownTimerWidget({
-    Key? key,
+    super.key,
     this.initialSeconds = 59,
     required this.onTimerComplete,
     required this.onResendPressed,
-  }) : super(key: key);
+  });
 
   @override
   State<CountdownTimerWidget> createState() => _CountdownTimerWidgetState();

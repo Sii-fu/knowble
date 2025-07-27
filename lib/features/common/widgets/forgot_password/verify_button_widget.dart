@@ -9,15 +9,15 @@ class VerifyButtonWidget extends StatelessWidget {
   final bool isLoading;
 
   const VerifyButtonWidget({
-    Key? key,
+    super.key,
     required this.onPressed,
     this.isEnabled = true,
     this.isLoading = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 85.w,
       height: 7.h,
       child: ElevatedButton(
