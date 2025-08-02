@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
-// Add imports for reminder service and model
 import '../../../core/services/reminder_service.dart';
+import '../../../core/services/reminder_course_service.dart';
 import '../../../data/models/reminder.dart';
+import '../../../data/models/course.dart';
 
 class TaskDetailView extends StatefulWidget {
   const TaskDetailView({super.key});
@@ -17,15 +18,10 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   bool _isLoading = true; // Loading state
   String? _errorMessage; // Error message if loading fails
 
-  // TODO: Replace with actual backend data (keep for course lookup)
-  final List<Map<String, dynamic>> _enrolledCourses = [
-    {'id': 'course-1', 'name': 'Mathematics 101', 'code': 'MATH101'},
-    {'id': 'course-2', 'name': 'Physics Fundamentals', 'code': 'PHYS200'},
-    {'id': 'course-3', 'name': 'Computer Science Basics', 'code': 'CS101'},
-    {'id': 'course-4', 'name': 'Chemistry Laboratory', 'code': 'CHEM150'},
-    {'id': 'course-5', 'name': 'English Literature', 'code': 'ENG201'},
-    {'id': 'course-6', 'name': 'Biology Essentials', 'code': 'BIO100'},
-  ];
+  // Backend course data
+  final ReminderCourseService _reminderCourseService = ReminderCourseService();
+  List<Course> _enrolledCourses = [];
+  bool _isLoadingCourses = false;
 
   @override
   void initState() {
@@ -36,7 +32,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     });
   }
 
-  void _loadReminderData() {
+  void _loadReminderData() async {
     // Get reminder data passed from calendar dashboard
     final reminder = ModalRoute.of(context)?.settings.arguments as Reminder?;
 
@@ -45,6 +41,8 @@ class _TaskDetailViewState extends State<TaskDetailView> {
         _reminder = reminder;
         _isLoading = false;
       });
+      // Load courses for the course information display
+      await _fetchEnrolledCourses();
     } else {
       setState(() {
         _errorMessage = 'No task data provided';
@@ -53,10 +51,33 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     }
   }
 
-  Map<String, dynamic>? _getCourseInfo(String? courseId) {
+  Future<void> _fetchEnrolledCourses() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingCourses = true;
+    });
+
+    try {
+      final courses = await _reminderCourseService
+          .fetchCurrentUserEnrolledCourses();
+      if (!mounted) return;
+      setState(() {
+        _enrolledCourses = courses;
+        _isLoadingCourses = false;
+      });
+    } catch (e) {
+      print('Error fetching enrolled courses: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCourses = false;
+      });
+    }
+  }
+
+  Course? _getCourseInfo(String? courseId) {
     if (courseId == null) return null;
     try {
-      return _enrolledCourses.firstWhere((course) => course['id'] == courseId);
+      return _enrolledCourses.firstWhere((course) => course.id == courseId);
     } catch (e) {
       return null;
     }
@@ -73,21 +94,6 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       default:
         return AppTheme.textSecondary;
     }
-  }
-
-  Color _getSubjectColor(String subject) {
-    final int hash = subject.hashCode;
-    final List<Color> colors = [
-      Colors.blue,
-      Colors.purple,
-      Colors.indigo,
-      Colors.teal,
-      Colors.cyan,
-      Colors.pink,
-      Colors.amber,
-      Colors.deepOrange,
-    ];
-    return colors[hash.abs() % colors.length];
   }
 
   String _calculateDuration() {
@@ -112,14 +118,23 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       backgroundColor: AppTheme.backgroundLight,
       appBar: _buildAppBar(context),
       body: SafeArea(
-        child:
-            _isLoading
-                ? _buildLoadingState()
-                : _errorMessage != null
-                ? _buildErrorState()
-                : _buildTaskContent(),
+        child: RefreshIndicator(
+          onRefresh: _refreshTaskData,
+          color: AppTheme.primaryTeal,
+          child: _isLoading
+              ? _buildLoadingState()
+              : _errorMessage != null
+              ? _buildErrorState()
+              : _buildTaskContent(),
+        ),
       ),
     );
+  }
+
+  Future<void> _refreshTaskData() async {
+    if (_reminder != null) {
+      await _fetchEnrolledCourses();
+    }
   }
 
   Widget _buildLoadingState() {
@@ -133,7 +148,11 @@ class _TaskDetailViewState extends State<TaskDetailView> {
           SizedBox(height: 2.h),
           Text(
             'Loading task details...',
-            style: TextStyle(color: AppTheme.textSecondary, fontFamily: 'Jost'),
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontFamily: 'Jost',
+              fontSize: 14.sp,
+            ),
           ),
         ],
       ),
@@ -141,36 +160,37 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   }
 
   Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 15.w, color: Colors.red),
-          SizedBox(height: 2.h),
-          Text(
-            _errorMessage!,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.red,
-              fontFamily: 'Jost',
-              fontSize: 14.sp,
-            ),
-          ),
-          SizedBox(height: 2.h),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
-            ),
-            child: Text(
-              'Go Back',
-              style: TextStyle(
-                color: AppTheme.surfaceWhite,
-                fontFamily: 'Jost',
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 15.w, color: Colors.red),
+              SizedBox(height: 2.h),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontFamily: 'Jost',
+                  fontSize: 14.sp,
+                ),
               ),
-            ),
+              SizedBox(height: 2.h),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: AppTheme.surfaceWhite,
+                ),
+                child: Text('Go Back', style: TextStyle(fontFamily: 'Jost')),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -211,11 +231,28 @@ class _TaskDetailViewState extends State<TaskDetailView> {
       ),
       centerTitle: true,
       actions: [
-        IconButton(
-          onPressed: () => _navigateToEditTask(context),
-          icon: Icon(Icons.edit, color: AppTheme.primaryTeal, size: 6.w),
-        ),
-        SizedBox(width: 2.w),
+        if (!_isLoading && _reminder != null) ...[
+          IconButton(
+            onPressed: _isLoadingCourses ? null : _refreshTaskData,
+            icon: _isLoadingCourses
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppTheme.primaryTeal,
+                      ),
+                    ),
+                  )
+                : Icon(Icons.refresh, color: AppTheme.primaryTeal, size: 6.w),
+          ),
+          IconButton(
+            onPressed: () => _navigateToEditTask(context),
+            icon: Icon(Icons.edit, color: AppTheme.primaryTeal, size: 6.w),
+          ),
+        ],
+        SizedBox(width: 1.w),
       ],
     );
   }
@@ -402,28 +439,112 @@ class _TaskDetailViewState extends State<TaskDetailView> {
                         color: AppTheme.primaryTeal,
                       ),
                       SizedBox(width: 1.w),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _getCourseInfo(_reminder!.courseId)!['name'],
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.primaryTeal,
-                              fontFamily: 'Jost',
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _getCourseInfo(_reminder!.courseId)!.title,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.primaryTeal,
+                                fontFamily: 'Jost',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                            if (_getCourseInfo(
+                              _reminder!.courseId,
+                            )!.description.isNotEmpty)
+                              Text(
+                                _getCourseInfo(
+                                          _reminder!.courseId,
+                                        )!.description.length >
+                                        20
+                                    ? '${_getCourseInfo(_reminder!.courseId)!.description.substring(0, 20)}...'
+                                    : _getCourseInfo(
+                                        _reminder!.courseId,
+                                      )!.description,
+                                style: TextStyle(
+                                  fontSize: 10.sp,
+                                  color: AppTheme.primaryTeal.withOpacity(0.8),
+                                  fontFamily: 'Jost',
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              // Show course ID if course data not found but ID exists
+              else if (_reminder!.courseId != null && !_isLoadingCourses)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textSecondary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.textSecondary.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.school_outlined,
+                        size: 4.w,
+                        color: AppTheme.textSecondary,
+                      ),
+                      SizedBox(width: 1.w),
+                      Text(
+                        'Course not found',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          color: AppTheme.textSecondary,
+                          fontFamily: 'Jost',
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Show loading indicator if courses are still loading
+              if (_isLoadingCourses && _reminder!.courseId != null)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.borderSubtle, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.primaryTeal,
                           ),
-                          Text(
-                            _getCourseInfo(_reminder!.courseId)!['code'],
-                            style: TextStyle(
-                              fontSize: 10.sp,
-                              color: AppTheme.primaryTeal,
-                              fontFamily: 'Jost',
-                            ),
-                          ),
-                        ],
+                        ),
+                      ),
+                      SizedBox(width: 2.w),
+                      Text(
+                        'Loading course info...',
+                        style: TextStyle(
+                          fontSize: 10.sp,
+                          color: AppTheme.textSecondary,
+                          fontFamily: 'Jost',
+                        ),
                       ),
                     ],
                   ),
@@ -547,37 +668,36 @@ class _TaskDetailViewState extends State<TaskDetailView> {
 
     final bool? shouldDelete = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Delete Task',
-              style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Jost'),
-            ),
-            content: Text(
-              'Are you sure you want to delete "${_reminder!.title}"? This action cannot be undone.',
-              style: TextStyle(fontFamily: 'Jost'),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontFamily: 'Jost',
-                  ),
-                ),
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Delete Task',
+          style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Jost'),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${_reminder!.title}"? This action cannot be undone.',
+          style: TextStyle(fontFamily: 'Jost'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontFamily: 'Jost',
               ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.white, fontFamily: 'Jost'),
-                ),
-              ),
-            ],
+            ),
           ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Colors.white, fontFamily: 'Jost'),
+            ),
+          ),
+        ],
+      ),
     );
 
     if (shouldDelete == true) {
