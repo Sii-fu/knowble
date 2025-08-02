@@ -74,9 +74,15 @@ class _EmailSelectionScreenState extends State<EmailSelectionScreen> {
           );
         }
       } else {
-        setState(() {
-          _errorMessage = result.message;
-        });
+        // Check if the error is about account not existing
+        if (result.message.contains("don't have an account")) {
+          // Show popup and redirect to registration
+          _showAccountNotFoundDialog(email);
+        } else {
+          setState(() {
+            _errorMessage = result.message;
+          });
+        }
       }
     } catch (e) {
       setState(() {
@@ -89,6 +95,68 @@ class _EmailSelectionScreenState extends State<EmailSelectionScreen> {
         });
       }
     }
+  }
+
+  void _showAccountNotFoundDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Account Not Found',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          content: Text(
+            "You don't have an account with this email address. Would you like to create a new account?",
+            style: TextStyle(fontSize: 14.sp, color: AppTheme.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Stay on current screen
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navigate to registration screen
+                Navigator.pushReplacementNamed(context, '/register');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryTeal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Create Account',
+                style: TextStyle(
+                  color: AppTheme.surfaceWhite,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
