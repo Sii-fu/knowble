@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
 import 'package:knowble_app/widgets/registration_user_type_dropdown_widget.dart';
-import 'package:knowble_app/widgets/google_signin_button_widget.dart';
 import 'package:knowble_app/widgets/terms_checkbox_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:knowble_app/core/services/google_auth_service.dart';
-import 'package:knowble_app/features/auth/google_profile_setup_screen.dart';
-import 'package:knowble_app/core/services/auth_manager.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -331,13 +327,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ],
                           ),
 
-                          SizedBox(height: screenHeight * 0.015),
-
-                          // Google Sign In Button
-                          GoogleSigninButtonWidget(
-                            onPressed: _handleGoogleSignIn,
-                          ),
-
                           SizedBox(height: screenHeight * 0.02),
 
                           // Sign In Link
@@ -489,52 +478,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
         );
       }
-    }
-  }
-
-  void _handleGoogleSignIn() async {
-    print('🔄 Starting Google Sign-In from registration screen...');
-
-    try {
-      final result = await GoogleAuthService.signInWithGoogle();
-
-      if (result.success) {
-        if (result.isNewUser) {
-          // New user needs to complete their profile
-          print('📝 New user detected, navigating to profile setup');
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  GoogleProfileSetupScreen(googleUser: result.user!),
-            ),
-          );
-        } else {
-          // Existing user, redirect to appropriate dashboard
-          print('👤 Existing user, redirecting to dashboard');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Welcome back! ${result.message}'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          await AuthManager.handleInitialAuth(context, fromLogin: true);
-        }
-      } else {
-        // Sign-in failed
-        print('❌ Google Sign-In failed: ${result.message}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.message), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
-      print('❌ Error in Google Sign-In: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An error occurred during Google Sign-In'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 }

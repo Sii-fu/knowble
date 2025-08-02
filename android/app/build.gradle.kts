@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    // No Google Services plugin - using Supabase authentication
 }
 
 android {
@@ -41,8 +40,4 @@ android {
 
 flutter {
     source = "../.."
-}
-
-dependencies {
-    implementation("com.google.android.gms:play-services-auth:20.4.1")
 }
