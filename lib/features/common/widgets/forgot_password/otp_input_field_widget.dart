@@ -10,11 +10,11 @@ class OtpInputFieldWidget extends StatelessWidget {
   final bool hasError;
 
   const OtpInputFieldWidget({
-    Key? key,
+    super.key,
     required this.otpValue,
     this.otpLength = 6,
     this.hasError = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

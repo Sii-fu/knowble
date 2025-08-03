@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 
 class AppLogoWidget extends StatelessWidget {
-  const AppLogoWidget({Key? key}) : super(key: key);
+  const AppLogoWidget({super.key});
 
   @override
   Widget build(BuildContext context) {

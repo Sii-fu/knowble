@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
 import 'package:knowble_app/widgets/registration_user_type_dropdown_widget.dart';
-import 'package:knowble_app/widgets/google_signin_button_widget.dart';
 import 'package:knowble_app/widgets/terms_checkbox_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -328,13 +327,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ],
                           ),
 
-                          SizedBox(height: screenHeight * 0.015),
-
-                          // Google Sign In Button
-                          GoogleSigninButtonWidget(
-                            onPressed: _handleGoogleSignIn,
-                          ),
-
                           SizedBox(height: screenHeight * 0.02),
 
                           // Sign In Link
@@ -487,10 +479,5 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         );
       }
     }
-  }
-
-  void _handleGoogleSignIn() {
-    // Handle Google sign in logic
-    print('Google sign in');
   }
 }

@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
 class EmailService {
-  // Gmail SMTP Configuration
-  static const String _senderEmail = 'cloudezone121@gmail.com';
-  static const String _appPassword = 'yacw prqu askb aduh';
+  static const String _senderEmail = 'cloudzone121@gmail.com';
+  static const String _appPassword = 'acmk imsw xoqk hmou';
   static const String _companyName = 'Knowble';
   static const String _tagline = 'Your Smart Learning Companion';
 
@@ -19,7 +20,7 @@ class EmailService {
     required String otp,
   }) async {
     try {
-      // Use simulated email sending (platform-independent)
+      // Try the real email sending first
       return await _sendEmailViaAPI(
         recipientEmail: recipientEmail,
         recipientName: recipientName,
@@ -44,53 +45,97 @@ class EmailService {
       print('📧 Using App Password: ${_appPassword.substring(0, 4)}****');
       print('📧 OTP: $otp');
 
-      // Configure Gmail SMTP server
-      final smtpServer = SmtpServer(
-        'smtp.gmail.com',
-        port: 587,
-        username: _senderEmail,
-        password: _appPassword,
-        allowInsecure: false,
-        ssl: false, // Use TLS
-        ignoreBadCertificate: false,
-      );
+      // Try multiple SMTP configurations
+      final smtpConfigs = [
+        // Configuration 1: Standard TLS (port 587)
+        SmtpServer(
+          'smtp.gmail.com',
+          port: 587,
+          username: _senderEmail,
+          password: _appPassword,
+          allowInsecure: false,
+          ssl: false, // Use STARTTLS
+          ignoreBadCertificate: false,
+        ),
+        // Configuration 2: SSL (port 465)
+        SmtpServer(
+          'smtp.gmail.com',
+          port: 465,
+          username: _senderEmail,
+          password: _appPassword,
+          allowInsecure: false,
+          ssl: true, // Use SSL
+          ignoreBadCertificate: false,
+        ),
+        // Configuration 3: Less secure (for troubleshooting)
+        SmtpServer(
+          'smtp.gmail.com',
+          port: 587,
+          username: _senderEmail,
+          password: _appPassword,
+          allowInsecure: true,
+          ssl: false,
+          ignoreBadCertificate: true,
+        ),
+      ];
 
-      // Create email message
-      final message = Message()
-        ..from = Address(_senderEmail, _companyName)
-        ..recipients.add(recipientEmail)
-        ..subject = 'Reset Your Password - $_companyName'
-        ..text = _buildEmailContent(recipientName, otp)
-        ..html = _buildHTMLEmailContent(recipientName, otp);
+      Exception? lastError;
 
-      print('📧 Connecting to Gmail SMTP server...');
+      // Try each configuration
+      for (int i = 0; i < smtpConfigs.length; i++) {
+        final smtpServer = smtpConfigs[i];
 
-      // Send the actual email
-      final sendReport = await send(message, smtpServer);
+        try {
+          print('📧 Trying SMTP configuration ${i + 1}...');
 
-      print('✅ 🎉 REAL EMAIL SENT SUCCESSFULLY! 🎉');
-      print('📧 Send Report: $sendReport');
-      print('📧 Email delivered to: $recipientEmail');
+          // Create email message with async HTML content
+          final htmlContent = await _buildHTMLEmailContent(recipientName, otp);
 
-      return true;
-    } catch (e) {
-      print('❌ Failed to send REAL email via Gmail SMTP: $e');
+          final message = Message()
+            ..from = Address(_senderEmail, _companyName)
+            ..recipients.add(recipientEmail)
+            ..subject = 'Reset Your Password - $_companyName'
+            ..text = _buildEmailContent(recipientName, otp)
+            ..html = htmlContent;
 
-      // Fallback for web platform if SMTP doesn't work
+          print('📧 Connecting to Gmail SMTP server (Config ${i + 1})...');
+
+          // Send the actual email
+          final sendReport = await send(message, smtpServer);
+
+          print('✅ 🎉 REAL EMAIL SENT SUCCESSFULLY! 🎉');
+          print('📧 Send Report: $sendReport');
+          print('📧 Email delivered to: $recipientEmail');
+          print('📧 Used configuration: ${i + 1}');
+
+          return true;
+        } catch (e) {
+          lastError = e as Exception;
+          print('❌ SMTP Config ${i + 1} failed: $e');
+          continue;
+        }
+      }
+
+      // All configurations failed
+      print('❌ All SMTP configurations failed. Last error: $lastError');
+
+      // Fallback for web platform or debugging
       if (kIsWeb) {
         print(
           '⚠️ Web platform detected - SMTP may not work due to browser restrictions',
         );
         print('📧 For web, consider using EmailJS or backend API');
-
-        // Show the email content that would have been sent
-        print('📧 EMAIL CONTENT THAT WOULD BE SENT:');
-        final emailContent = _buildEmailContent(recipientName, otp);
-        print(emailContent);
-
-        return true; // Still return true for development purposes
       }
 
+      // Show the email content that would have been sent for debugging
+      print('📧 EMAIL CONTENT THAT WOULD BE SENT:');
+      final emailContent = _buildEmailContent(recipientName, otp);
+      print(emailContent);
+
+      // Return false for production, true for development/debugging
+      return false; // Set to true if you want to continue without real email for testing
+    } catch (e) {
+      print('❌ Critical error in email sending: $e');
       return false;
     }
   }
@@ -125,8 +170,24 @@ If you need assistance, contact our support team.
 ''';
   }
 
-  /// Builds beautiful HTML email template
-  static String _buildHTMLEmailContent(String recipientName, String otp) {
+  /// Builds beautiful HTML email template with embedded logo
+  static Future<String> _buildHTMLEmailContent(
+    String recipientName,
+    String otp,
+  ) async {
+    // Load and encode the logo
+    String logoBase64 = '';
+    try {
+      final ByteData logoData = await rootBundle.load(
+        'assets/images/logo 3.png',
+      );
+      final Uint8List logoBytes = logoData.buffer.asUint8List();
+      logoBase64 = base64Encode(logoBytes);
+    } catch (e) {
+      print('⚠️ Could not load logo: $e');
+      // Continue without logo
+    }
+
     return '''
 <!DOCTYPE html>
 <html lang="en">
@@ -138,7 +199,8 @@ If you need assistance, contact our support team.
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center; color: white; }
-        .logo { width: 80px; height: 80px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; }
+        .logo-img { width: 120px; height: auto; margin: 0 auto 20px; display: block; border-radius: 8px; }
+        .logo-fallback { width: 80px; height: 80px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; }
         .header h1 { font-size: 28px; margin-bottom: 8px; font-weight: 600; }
         .tagline { font-size: 16px; opacity: 0.9; font-weight: 300; }
         .content { padding: 40px 30px; }
@@ -150,13 +212,13 @@ If you need assistance, contact our support team.
         .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 25px 0; }
         .warning-text { color: #856404; font-size: 14px; line-height: 1.5; }
         .footer { background-color: #2c3e50; color: #ecf0f1; padding: 30px; text-align: center; font-size: 12px; }
-        @media (max-width: 600px) { .container { margin: 10px; border-radius: 8px; } .header, .content, .footer { padding: 25px 20px; } .otp-code { font-size: 28px; letter-spacing: 6px; } }
+        @media (max-width: 600px) { .container { margin: 10px; border-radius: 8px; } .header, .content, .footer { padding: 25px 20px; } .otp-code { font-size: 28px; letter-spacing: 6px; } .logo-img { width: 100px; } }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">K</div>
+            ${logoBase64.isNotEmpty ? '<img src="data:image/png;base64,$logoBase64" alt="$_companyName Logo" class="logo-img">' : '<div class="logo-fallback">K</div>'}
             <h1>$_companyName</h1>
             <p class="tagline">$_tagline</p>
         </div>

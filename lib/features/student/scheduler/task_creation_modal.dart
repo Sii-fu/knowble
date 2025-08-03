@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
+import '../../../core/services/reminder_service.dart';
+import '../../../core/services/reminder_course_service.dart';
+import '../../../data/models/course.dart';
 
 class TaskCreationModal extends StatefulWidget {
   final DateTime? selectedDate;
@@ -15,37 +18,48 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final ReminderCourseService _reminderCourseService = ReminderCourseService();
 
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   String _priority = 'Medium';
   String? _selectedCourseId;
   bool _isLoading = false;
+  bool _isLoadingCourses = true;
   DateTime _selectedDate = DateTime.now(); // Add this for date selection
 
   final List<String> _priorities = ['High', 'Medium', 'Low'];
+  List<Course> _enrolledCourses = [];
 
-
-  // TODO: Replace with actual backend data
-  final List<Map<String, dynamic>> _enrolledCourses = [
-    {'id': 'course-1', 'name': 'Mathematics 101', 'code': 'MATH101'},
-    {'id': 'course-2', 'name': 'Physics Fundamentals', 'code': 'PHYS200'},
-    {'id': 'course-3', 'name': 'Computer Science Basics', 'code': 'CS101'},
-    {'id': 'course-4', 'name': 'Chemistry Laboratory', 'code': 'CHEM150'},
-    {'id': 'course-5', 'name': 'English Literature', 'code': 'ENG201'},
-    {'id': 'course-6', 'name': 'Biology Essentials', 'code': 'BIO100'},
-  ];
   @override
   void initState() {
     super.initState();
     // Set selected date from widget parameter or default to today
     _selectedDate = widget.selectedDate ?? DateTime.now();
+    _fetchEnrolledCourses();
   }
+
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchEnrolledCourses() async {
+    try {
+      final courses = await _reminderCourseService
+          .fetchCurrentUserEnrolledCourses();
+      setState(() {
+        _enrolledCourses = courses;
+        _isLoadingCourses = false;
+      });
+    } catch (e) {
+      print('Error fetching enrolled courses: $e');
+      setState(() {
+        _isLoadingCourses = false;
+      });
+    }
   }
 
   bool get _isFormValid {
@@ -67,9 +81,21 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
             timePickerTheme: TimePickerThemeData(
               backgroundColor: AppTheme.surfaceWhite,
               hourMinuteTextColor: AppTheme.textPrimary,
+              dayPeriodTextColor: AppTheme.textPrimary,
               dialHandColor: AppTheme.primaryTeal,
               dialBackgroundColor: AppTheme.surfaceWhite,
+              dialTextColor: AppTheme.textPrimary,
               entryModeIconColor: AppTheme.primaryTeal,
+              helpTextStyle: TextStyle(
+                color: AppTheme.textPrimary,
+                fontFamily: 'Jost',
+              ),
+              cancelButtonStyle: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal),
+              ),
+              confirmButtonStyle: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal),
+              ),
             ),
           ),
           child: child!,
@@ -77,7 +103,8 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
       },
     );
 
-    if (picked != null && mounted) { // Check if widget is still mounted
+    if (picked != null && mounted) {
+      // Check if widget is still mounted
       setState(() {
         _startTime = picked;
         // Reset end time if it's now invalid
@@ -93,7 +120,8 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
 
   Future<void> _selectEndTime() async {
     if (_startTime == null) {
-      if (mounted) { // Check before accessing context
+      if (mounted) {
+        // Check before accessing context
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please select start time first'),
@@ -115,9 +143,21 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
             timePickerTheme: TimePickerThemeData(
               backgroundColor: AppTheme.surfaceWhite,
               hourMinuteTextColor: AppTheme.textPrimary,
+              dayPeriodTextColor: AppTheme.textPrimary,
               dialHandColor: AppTheme.primaryTeal,
               dialBackgroundColor: AppTheme.surfaceWhite,
+              dialTextColor: AppTheme.textPrimary,
               entryModeIconColor: AppTheme.primaryTeal,
+              helpTextStyle: TextStyle(
+                color: AppTheme.textPrimary,
+                fontFamily: 'Jost',
+              ),
+              cancelButtonStyle: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal),
+              ),
+              confirmButtonStyle: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal),
+              ),
             ),
           ),
           child: child!,
@@ -125,7 +165,8 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
       },
     );
 
-    if (picked != null && mounted) { // Check if widget is still mounted
+    if (picked != null && mounted) {
+      // Check if widget is still mounted
       // Validate end time is after start time
       if (picked.hour > _startTime!.hour ||
           (picked.hour == _startTime!.hour &&
@@ -134,7 +175,8 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
           _endTime = picked;
         });
       } else {
-        if (mounted) { // Check before accessing context
+        if (mounted) {
+          // Check before accessing context
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('End time must be after start time'),
@@ -169,35 +211,42 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
 
   Future<void> _saveTask() async {
     if (!_isFormValid) return;
-
-    if (!mounted) return; // Check if widget is still mounted
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
+    // Prepare start and end DateTime using _selectedDate and _startTime/_endTime
+    final DateTime startDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _startTime!.hour,
+      _startTime!.minute,
+    );
+    final DateTime endDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _endTime!.hour,
+      _endTime!.minute,
+    );
 
-    // Create task data
-    final taskData = {
-      'id': DateTime.now().millisecondsSinceEpoch,
-      'title': _titleController.text.trim(),
-      'description': _descriptionController.text.trim(),
-      'startTime': _startTime,
-      'endTime': _endTime,
-      'priority': _priority,
-      'course_id': _selectedCourseId, // Add course_id for database
-      'date': DateTime.now(),
-      'createdAt': DateTime.now(),
-    };
+    final String? error = await ReminderService.createReminder(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      startTime: startDateTime,
+      endTime: endDateTime,
+      courseId: _selectedCourseId,
+      priority: _priority,
+    );
 
-    if (!mounted) return; // Check if widget is still mounted after async operation
+    if (!mounted) return;
     setState(() {
       _isLoading = false;
     });
 
-    // Show success message
-    if (mounted) { // Check before accessing context
+    if (error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -207,9 +256,15 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
           backgroundColor: AppTheme.primaryTeal,
         ),
       );
-
-      // Navigate back to calendar
-      Navigator.of(context).pop(taskData);
+      Navigator.of(context).pop(true); // Indicate success
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -217,71 +272,70 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        height: 85.h,
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceWhite,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceWhite,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+      body: SafeArea(
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceWhite,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceWhite,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.shadowLight,
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.shadowLight,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: EdgeInsets.all(2.w),
-                      decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
-                        borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        padding: EdgeInsets.all(2.w),
+                        decoration: BoxDecoration(
+                          color: AppTheme.backgroundLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          color: AppTheme.textPrimary,
+                          size: 5.w,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.close,
+                    ),
+                    Text(
+                      'Add Task',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w600,
                         color: AppTheme.textPrimary,
-                        size: 5.w,
+                        fontFamily: 'Jost',
                       ),
                     ),
-                  ),
-                  Text(
-                    'Add Task',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                      fontFamily: 'Jost',
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _isFormValid && !_isLoading ? _saveTask : null,
-                    child: Container(
-                      padding: EdgeInsets.all(2.w),
-                      decoration: BoxDecoration(
-                        color:
-                            _isFormValid && !_isLoading
-                                ? AppTheme.primaryTeal
-                                : AppTheme.backgroundLight,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child:
-                          _isLoading
-                              ? SizedBox(
+                    GestureDetector(
+                      onTap: _isFormValid && !_isLoading ? _saveTask : null,
+                      child: Container(
+                        padding: EdgeInsets.all(2.w),
+                        decoration: BoxDecoration(
+                          color: _isFormValid && !_isLoading
+                              ? AppTheme.primaryTeal
+                              : AppTheme.backgroundLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: _isLoading
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
@@ -291,462 +345,499 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                                   ),
                                 ),
                               )
-                              : Icon(
+                            : Icon(
                                 Icons.check,
-                                color:
-                                    _isFormValid
-                                        ? AppTheme.surfaceWhite
-                                        : AppTheme.textSecondary,
+                                color: _isFormValid
+                                    ? AppTheme.surfaceWhite
+                                    : AppTheme.textSecondary,
                                 size: 5.w,
                               ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
-            // Form Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(4.w),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Task Title
-                      Text(
-                        'Task Title',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.textPrimary,
-                          fontFamily: 'Jost',
-                        ),
-                      ),
-                      SizedBox(height: 1.h),
-                      TextFormField(
-                        controller: _titleController,
-                        maxLength: 50,
-                        style: TextStyle(fontFamily: 'Jost'),
-                        decoration: InputDecoration(
-                          hintText: 'Enter task title',
-                          counterText: '${_titleController.text.length}/50',
-                          counterStyle: TextStyle(
-                            fontFamily: 'Jost',
-                            fontSize: 10.sp,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppTheme.borderSubtle,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppTheme.primaryTeal,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: AppTheme.backgroundLight,
-                          hintStyle: TextStyle(
-                            fontFamily: 'Jost',
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                        onChanged: (value) => setState(() {}),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Task title is required';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      // Time Selection
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Start Time',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppTheme.textPrimary,
-                                    fontFamily: 'Jost',
-                                  ),
-                                ),
-                                SizedBox(height: 1.h),
-                                GestureDetector(
-                                  onTap: _selectStartTime,
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 4.w,
-                                      vertical: 2.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.backgroundLight,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border:
-                                          _startTime == null
-                                              ? Border.all(
-                                                color: AppTheme.borderSubtle,
-                                              )
-                                              : Border.all(
-                                                color: AppTheme.primaryTeal,
-                                                width: 2,
-                                              ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _formatTime(_startTime),
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            color:
-                                                _startTime == null
-                                                    ? AppTheme.textSecondary
-                                                    : AppTheme.textPrimary,
-                                            fontFamily: 'Jost',
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.access_time,
-                                          color:
-                                              _startTime == null
-                                                  ? AppTheme.textSecondary
-                                                  : AppTheme.primaryTeal,
-                                          size: 5.w,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(width: 4.w),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'End Time',
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppTheme.textPrimary,
-                                    fontFamily: 'Jost',
-                                  ),
-                                ),
-                                SizedBox(height: 1.h),
-                                GestureDetector(
-                                  onTap: _selectEndTime,
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 4.w,
-                                      vertical: 2.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.backgroundLight,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border:
-                                          _endTime == null
-                                              ? Border.all(
-                                                color: AppTheme.borderSubtle,
-                                              )
-                                              : Border.all(
-                                                color: AppTheme.primaryTeal,
-                                                width: 2,
-                                              ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _formatTime(_endTime),
-                                          style: TextStyle(
-                                            fontSize: 14.sp,
-                                            color:
-                                                _endTime == null
-                                                    ? AppTheme.textSecondary
-                                                    : AppTheme.textPrimary,
-                                            fontFamily: 'Jost',
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.access_time,
-                                          color:
-                                              _endTime == null
-                                                  ? AppTheme.textSecondary
-                                                  : AppTheme.primaryTeal,
-                                          size: 5.w,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      // Enrolled Courses Selection
-                      Text(
-                        'Enrolled Courses',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.textPrimary,
-                          fontFamily: 'Jost',
-                        ),
-                      ),
-                      SizedBox(height: 1.h),
-                      DropdownButtonFormField<String>(
-                        value: _selectedCourseId,
-                        decoration: InputDecoration(
-                          hintText: 'Select a course (optional)',
-                          hintStyle: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontFamily: 'Jost',
+              // Form Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(4.w),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Task Title
+                        Text(
+                          'Task Title',
+                          style: TextStyle(
                             fontSize: 14.sp,
-                          ),
-                          contentPadding: EdgeInsets.all(16),
-                          filled: true,
-                          fillColor: AppTheme.backgroundLight,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppTheme.borderSubtle,
-                              width: 1,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppTheme.borderSubtle,
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppTheme.primaryTeal,
-                              width: 2,
-                            ),
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'Jost',
                           ),
                         ),
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: null,
-                            child: Text(
-                              'No course selected',
-                              style: TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontFamily: 'Jost',
-                                fontSize: 14.sp,
+                        SizedBox(height: 1.h),
+                        TextFormField(
+                          controller: _titleController,
+                          maxLength: 50,
+                          style: TextStyle(
+                            fontFamily: 'Jost',
+                            color: AppTheme.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Enter task title',
+                            counterText: '${_titleController.text.length}/50',
+                            counterStyle: TextStyle(
+                              fontFamily: 'Jost',
+                              fontSize: 10.sp,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppTheme.borderSubtle,
                               ),
                             ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppTheme.primaryTeal,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: AppTheme.backgroundLight,
+                            hintStyle: TextStyle(
+                              fontFamily: 'Jost',
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
-                          ..._enrolledCourses.map((course) {
-                            return DropdownMenuItem<String>(
-                              value: course['id'],
+                          onChanged: (value) => setState(() {}),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Task title is required';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        SizedBox(height: 3.h),
+
+                        // Time Selection
+                        Row(
+                          children: [
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    course['name'],
+                                    'Start Time',
                                     style: TextStyle(
-                                      color: AppTheme.textPrimary,
-                                      fontFamily: 'Jost',
                                       fontSize: 14.sp,
                                       fontWeight: FontWeight.w500,
+                                      color: AppTheme.textPrimary,
+                                      fontFamily: 'Jost',
                                     ),
                                   ),
-                                  Text(
-                                    course['code'],
-                                    style: TextStyle(
-                                      color: AppTheme.textSecondary,
-                                      fontFamily: 'Jost',
-                                      fontSize: 12.sp,
+                                  SizedBox(height: 1.h),
+                                  GestureDetector(
+                                    onTap: _selectStartTime,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 4.w,
+                                        vertical: 2.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.backgroundLight,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: _startTime == null
+                                            ? Border.all(
+                                                color: AppTheme.borderSubtle,
+                                              )
+                                            : Border.all(
+                                                color: AppTheme.primaryTeal,
+                                                width: 2,
+                                              ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            _formatTime(_startTime),
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: _startTime == null
+                                                  ? AppTheme.textSecondary
+                                                  : AppTheme.textPrimary,
+                                              fontFamily: 'Jost',
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.access_time,
+                                            color: _startTime == null
+                                                ? AppTheme.textSecondary
+                                                : AppTheme.primaryTeal,
+                                            size: 5.w,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          }),
-                        ],
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedCourseId = newValue;
-                          });
-                        },
-                        style: TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontFamily: 'Jost',
-                          fontSize: 14.sp,
-                        ),
-                        dropdownColor: AppTheme.surfaceWhite,
-                        icon: Icon(
-                          Icons.keyboard_arrow_down,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      // Priority Selection
-                      Text(
-                        'Priority',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.textPrimary,
-                          fontFamily: 'Jost',
-                        ),
-                      ),
-                      SizedBox(height: 1.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.backgroundLight,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children:
-                              _priorities.map((priority) {
-                                final isSelected = _priority == priority;
-                                return Expanded(
-                                  child: GestureDetector(
-                                    onTap:
-                                        () => setState(
-                                          () => _priority = priority,
-                                        ),
+                            ),
+                            SizedBox(width: 4.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'End Time',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppTheme.textPrimary,
+                                      fontFamily: 'Jost',
+                                    ),
+                                  ),
+                                  SizedBox(height: 1.h),
+                                  GestureDetector(
+                                    onTap: _selectEndTime,
                                     child: Container(
+                                      width: double.infinity,
                                       padding: EdgeInsets.symmetric(
+                                        horizontal: 4.w,
                                         vertical: 2.h,
                                       ),
                                       decoration: BoxDecoration(
-                                        color:
-                                            isSelected
-                                                ? _getPriorityColor(priority)
-                                                : Colors.transparent,
+                                        color: AppTheme.backgroundLight,
                                         borderRadius: BorderRadius.circular(12),
+                                        border: _endTime == null
+                                            ? Border.all(
+                                                color: AppTheme.borderSubtle,
+                                              )
+                                            : Border.all(
+                                                color: AppTheme.primaryTeal,
+                                                width: 2,
+                                              ),
                                       ),
-                                      child: Text(
-                                        priority,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 14.sp,
-                                          fontFamily: 'Jost',
-                                          color:
-                                              isSelected
-                                                  ? AppTheme.surfaceWhite
-                                                  : AppTheme.textSecondary,
-                                          fontWeight:
-                                              isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.w500,
-                                        ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            _formatTime(_endTime),
+                                            style: TextStyle(
+                                              fontSize: 14.sp,
+                                              color: _endTime == null
+                                                  ? AppTheme.textSecondary
+                                                  : AppTheme.textPrimary,
+                                              fontFamily: 'Jost',
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.access_time,
+                                            color: _endTime == null
+                                                ? AppTheme.textSecondary
+                                                : AppTheme.primaryTeal,
+                                            size: 5.w,
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 3.h),
+
+                        // Enrolled Courses Selection
+                        Text(
+                          'Enrolled Courses',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'Jost',
+                          ),
+                        ),
+                        SizedBox(height: 1.h),
+                        DropdownButtonFormField<String>(
+                          value: _selectedCourseId,
+                          decoration: InputDecoration(
+                            hintText: 'Select a course (optional)',
+                            hintStyle: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontFamily: 'Jost',
+                              fontSize: 14.sp,
+                            ),
+                            contentPadding: EdgeInsets.all(16),
+                            filled: true,
+                            fillColor: AppTheme.backgroundLight,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppTheme.borderSubtle,
+                                width: 1,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppTheme.borderSubtle,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppTheme.primaryTeal,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: null,
+                              child: Text(
+                                'No course selected',
+                                style: TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontFamily: 'Jost',
+                                  fontSize: 14.sp,
+                                ),
+                              ),
+                            ),
+                            if (_isLoadingCourses)
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              AppTheme.primaryTeal,
+                                            ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Loading courses...',
+                                      style: TextStyle(
+                                        color: AppTheme.textSecondary,
+                                        fontFamily: 'Jost',
+                                        fontSize: 14.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (!_isLoadingCourses)
+                              ..._enrolledCourses.map((course) {
+                                return DropdownMenuItem<String>(
+                                  value: course.id,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        course.title,
+                                        style: TextStyle(
+                                          color: AppTheme.textPrimary,
+                                          fontFamily: 'Jost',
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      if (course.description.isNotEmpty)
+                                        Text(
+                                          course.description.length > 30
+                                              ? '${course.description.substring(0, 30)}...'
+                                              : course.description,
+                                          style: TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontFamily: 'Jost',
+                                            fontSize: 12.sp,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 );
-                              }).toList(),
-                        ),
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      // Description
-                      Text(
-                        'Description (Optional)',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.textPrimary,
-                          fontFamily: 'Jost',
-                        ),
-                      ),
-                      SizedBox(height: 1.h),
-                      TextFormField(
-                        controller: _descriptionController,
-                        maxLines: 4,
-                        maxLength: 200,
-                        style: TextStyle(fontFamily: 'Jost'),
-                        decoration: InputDecoration(
-                          hintText:
-                              'Add task description, notes, or study materials...',
-                          counterText:
-                              '${_descriptionController.text.length}/200',
-                          counterStyle: TextStyle(
+                              }),
+                            if (!_isLoadingCourses && _enrolledCourses.isEmpty)
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(
+                                  'No enrolled courses found',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontFamily: 'Jost',
+                                    fontSize: 14.sp,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                          ],
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedCourseId = newValue;
+                            });
+                          },
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
                             fontFamily: 'Jost',
-                            fontSize: 10.sp,
+                            fontSize: 14.sp,
                           ),
-                          alignLabelWithHint: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppTheme.borderSubtle,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppTheme.primaryTeal,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: AppTheme.backgroundLight,
-                          hintStyle: TextStyle(
-                            fontFamily: 'Jost',
+                          dropdownColor: AppTheme.surfaceWhite,
+                          icon: Icon(
+                            Icons.keyboard_arrow_down,
                             color: AppTheme.textSecondary,
                           ),
                         ),
-                        onChanged: (value) => setState(() {}),
-                      ),
 
-                      SizedBox(height: 4.h),
+                        SizedBox(height: 3.h),
 
-                      // Save Button (Mobile)
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed:
-                              _isFormValid && !_isLoading ? _saveTask : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                _isFormValid && !_isLoading
-                                    ? AppTheme.primaryTeal
-                                    : AppTheme.backgroundLight,
-                            foregroundColor:
-                                _isFormValid && !_isLoading
-                                    ? AppTheme.surfaceWhite
-                                    : AppTheme.textSecondary,
-                            padding: EdgeInsets.symmetric(vertical: 2.h),
-                            shape: RoundedRectangleBorder(
+                        // Priority Selection
+                        Text(
+                          'Priority',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'Jost',
+                          ),
+                        ),
+                        SizedBox(height: 1.h),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.backgroundLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: _priorities.map((priority) {
+                              final isSelected = _priority == priority;
+                              return Expanded(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      setState(() => _priority = priority),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 2.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? _getPriorityColor(priority)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      priority,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        fontFamily: 'Jost',
+                                        color: isSelected
+                                            ? AppTheme.surfaceWhite
+                                            : AppTheme.textSecondary,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        SizedBox(height: 3.h),
+
+                        // Description
+                        Text(
+                          'Description (Optional)',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'Jost',
+                          ),
+                        ),
+                        SizedBox(height: 1.h),
+                        TextFormField(
+                          controller: _descriptionController,
+                          maxLines: 4,
+                          maxLength: 200,
+                          style: TextStyle(
+                            fontFamily: 'Jost',
+                            color: AppTheme.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            hintText:
+                                'Add task description, notes, or study materials...',
+                            counterText:
+                                '${_descriptionController.text.length}/200',
+                            counterStyle: TextStyle(
+                              fontFamily: 'Jost',
+                              fontSize: 10.sp,
+                            ),
+                            alignLabelWithHint: true,
+                            border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppTheme.borderSubtle,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppTheme.primaryTeal,
+                                width: 2,
+                              ),
+                            ),
+                            filled: true,
+                            fillColor: AppTheme.backgroundLight,
+                            hintStyle: TextStyle(
+                              fontFamily: 'Jost',
+                              color: AppTheme.textSecondary,
                             ),
                           ),
-                          child:
-                              _isLoading
-                                  ? SizedBox(
+                          onChanged: (value) => setState(() {}),
+                        ),
+
+                        SizedBox(height: 4.h),
+
+                        // Save Button (Mobile)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isFormValid && !_isLoading
+                                ? _saveTask
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isFormValid && !_isLoading
+                                  ? AppTheme.primaryTeal
+                                  : AppTheme.backgroundLight,
+                              foregroundColor: _isFormValid && !_isLoading
+                                  ? AppTheme.surfaceWhite
+                                  : AppTheme.textSecondary,
+                              padding: EdgeInsets.symmetric(vertical: 2.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
@@ -756,7 +847,7 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                                       ),
                                     ),
                                   )
-                                  : Text(
+                                : Text(
                                     'Create Task',
                                     style: TextStyle(
                                       fontSize: 16.sp,
@@ -764,18 +855,19 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                                       fontFamily: 'Jost',
                                     ),
                                   ),
+                          ),
                         ),
-                      ),
 
-                      SizedBox(height: 2.h),
-                    ],
+                        SizedBox(height: 2.h),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ), // Close Column
-      ), // Close Container
+            ],
+          ), // Close Column
+        ), // Close Container
+      ), // Close SafeArea
     ); // Close Scaffold
   }
 }

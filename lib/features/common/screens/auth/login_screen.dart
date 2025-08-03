@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
 import 'package:knowble_app/widgets/login_user_type_dropdown_widget.dart';
-import 'package:knowble_app/widgets/google_signin_button_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:knowble_app/core/services/auth_manager.dart';
 
@@ -296,13 +295,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
 
-                          SizedBox(height: screenHeight * 0.02),
-
-                          // Google Sign In Button
-                          GoogleSigninButtonWidget(
-                            onPressed: _handleGoogleSignIn,
-                          ),
-
                           SizedBox(height: screenHeight * 0.025),
 
                           // Sign Up Link
@@ -385,10 +377,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ).showSnackBar(SnackBar(content: Text(error)));
       }
     }
-  }
-
-  void _handleGoogleSignIn() {
-    // Handle Google sign in logic
-    print('Google sign in');
   }
 }

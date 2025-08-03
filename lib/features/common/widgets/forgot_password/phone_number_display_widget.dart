@@ -6,8 +6,7 @@ import '../../../../config/theme.dart';
 class PhoneNumberDisplayWidget extends StatelessWidget {
   final String phoneNumber;
 
-  const PhoneNumberDisplayWidget({Key? key, required this.phoneNumber})
-    : super(key: key);
+  const PhoneNumberDisplayWidget({super.key, required this.phoneNumber});
 
   @override
   Widget build(BuildContext context) {

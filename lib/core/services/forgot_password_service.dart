@@ -3,21 +3,8 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-// import 'email_service.dart'; // COMMENTED OUT FOR TESTING
+import 'email_service.dart';
 import 'otp_session_storage.dart';
-
-/// TESTING MODE ENABLED ⚠️
-/// All email functionality has been commented out and replaced with hardcoded values:
-/// - Any email input will be accepted in email_selection_screen
-/// - OTP is hardcoded to '123456' for verification (6 digits)
-/// - Password reset simulates success without actual database changes
-/// - All dynamic database checks and email sending are bypassed
-///
-/// To restore production functionality:
-/// 1. Uncomment the import 'email_service.dart'
-/// 2. Uncomment the code blocks in each method
-/// 3. Remove hardcoded values and testing print statements
-/// 4. Remove testing notes from UI screens
 
 class ForgotPasswordService {
   static final _supabase = Supabase.instance.client;
@@ -27,18 +14,16 @@ class ForgotPasswordService {
     required String email,
   }) async {
     try {
-      // COMMENTED OUT FOR TESTING - USING HARDCODED VALUES
-      /*
-      // Check if user exists in database
-      final userExists = await _checkUserExists(email);
+      // Check if user exists in Supabase auth.users table
+      final userExists = await _checkUserExistsInAuth(email);
       if (!userExists) {
         return ForgotPasswordResult(
           success: false,
-          message: 'No account found with this email address.',
+          message: "You don't have an account with this email.",
         );
       }
 
-      // Get user's full name for personalized email
+      // Get user's full name from public.users table for personalized email
       final userName = await _getUserName(email);
 
       // Get device ID for session management
@@ -99,30 +84,6 @@ class ForgotPasswordService {
           message: 'Failed to send verification email. Please try again.',
         );
       }
-      */
-
-      // HARDCODED FOR TESTING - ACCEPT ANY EMAIL
-      print('Accepting email: $email with hardcoded OTP: 123456');
-
-      // Store hardcoded OTP session for testing
-      final deviceId = await _getDeviceId();
-      final sessionStored = await OTPSessionStorage.storeOTPSession(
-        email: email,
-        otp: '123456', // Hardcoded 6-digit OTP for testing
-        deviceId: deviceId,
-      );
-
-      if (!sessionStored) {
-        print(
-          '⚠️ Failed to store hardcoded session, proceeding anyway for testing',
-        );
-      }
-
-      return ForgotPasswordResult(
-        success: true,
-        message:
-            'Verification code sent to your email address. (Testing: Use 123456)',
-      );
     } catch (e) {
       print('❌ Error in initiateForgotPassword: $e');
       return ForgotPasswordResult(
@@ -138,8 +99,6 @@ class ForgotPasswordService {
     required String otp,
   }) async {
     try {
-      // COMMENTED OUT FOR TESTING - USING HARDCODED OTP
-      /*
       final deviceId = await _getDeviceId();
 
       final isValid = await OTPSessionStorage.verifyOTP(
@@ -159,24 +118,6 @@ class ForgotPasswordService {
           message: 'Invalid or expired verification code.',
         );
       }
-      */
-
-      // HARDCODED FOR TESTING - ACCEPT ONLY '123456'
-      print('Verifying OTP: $otp for email: $email');
-
-      if (otp == '123456') {
-        print('OTP verification successful');
-        return ForgotPasswordResult(
-          success: true,
-          message: 'OTP verified successfully.',
-        );
-      } else {
-        print('Invalid OTP, expected 123456, got: $otp');
-        return ForgotPasswordResult(
-          success: false,
-          message: 'Invalid verification code. Use 123456 for testing.',
-        );
-      }
     } catch (e) {
       print('❌ Error in verifyOTP: $e');
       return ForgotPasswordResult(
@@ -186,39 +127,62 @@ class ForgotPasswordService {
     }
   }
 
-  /// Resets the user's password (simplified version)
+  /// Updates the user's password in Supabase auth.users table
   static Future<ForgotPasswordResult> resetPassword({
     required String email,
     required String newPassword,
   }) async {
     try {
-      // COMMENTED OUT FOR TESTING - SKIP ACTUAL PASSWORD RESET
-      /*
-      // For security, we'll use Supabase's built-in password reset
-      // This sends a password reset link to the user's email
-      await _supabase.auth.resetPasswordForEmail(email);
+      // First, verify the user still exists in auth
+      final userExists = await _checkUserExistsInAuth(email);
+      if (!userExists) {
+        return ForgotPasswordResult(
+          success: false,
+          message: 'User account not found.',
+        );
+      }
 
-      return ForgotPasswordResult(
-        success: true,
-        message: 'Password reset instructions sent to your email.',
-      );
-      */
+      // Use RPC function to reset password
+      try {
+        final response = await _supabase.rpc(
+          'reset_user_password',
+          params: {'user_email': email, 'new_password': newPassword},
+        );
 
-      // HARDCODED FOR TESTING - SIMULATE SUCCESS
-      print(']Simulating password reset for email: $email');
-      print(
-        'New password would be: ${newPassword.replaceAll(RegExp(r'.'), '*')}',
-      );
+        final result = response as Map<String, dynamic>?;
+        final success = result?['success'] as bool? ?? false;
+        final message = result?['message'] as String? ?? 'Unknown error';
 
-      return ForgotPasswordResult(
-        success: true,
-        message: 'Password has been reset successfully! (Testing mode)',
-      );
+        if (success) {
+          // Clear OTP sessions after successful password reset
+          await OTPSessionStorage.clearAllSessions();
+
+          return ForgotPasswordResult(
+            success: true,
+            message:
+                'Password has been reset successfully! You can now login with your new password.',
+          );
+        } else {
+          return ForgotPasswordResult(success: false, message: message);
+        }
+      } catch (rpcError) {
+        print('❌ RPC password reset failed: $rpcError');
+
+        // Fallback: Use standard Supabase password reset
+        await _supabase.auth.resetPasswordForEmail(email, redirectTo: null);
+
+        return ForgotPasswordResult(
+          success: true,
+          message:
+              'Password reset instructions have been sent to your email. Please check your inbox and follow the instructions.',
+        );
+      }
     } catch (e) {
       print('❌ Error in resetPassword: $e');
       return ForgotPasswordResult(
         success: false,
-        message: 'An error occurred while processing your request.',
+        message:
+            'An error occurred while resetting your password. Please try again later.',
       );
     }
   }
@@ -269,8 +233,6 @@ class ForgotPasswordService {
   /// Resends OTP if current session has expired
   static Future<ForgotPasswordResult> resendOTP({required String email}) async {
     try {
-      // COMMENTED OUT FOR TESTING - USING HARDCODED FLOW
-      /*
       final deviceId = await _getDeviceId();
 
       // Check if there's an active session
@@ -293,16 +255,6 @@ class ForgotPasswordService {
 
       // If no active session, initiate new forgot password process
       return await initiateForgotPassword(email: email);
-      */
-
-      // HARDCODED FOR TESTING - ALWAYS ALLOW RESEND
-      print('🧪 TESTING MODE: Resending OTP for email: $email');
-
-      return ForgotPasswordResult(
-        success: true,
-        message:
-            'New verification code sent to your email address. (Testing: Use 123456)',
-      );
     } catch (e) {
       print('❌ Error in resendOTP: $e');
       return ForgotPasswordResult(
@@ -312,55 +264,87 @@ class ForgotPasswordService {
     }
   }
 
-  /// Checks if user exists in the database
-  static Future<bool> _checkUserExists(String email) async {
+  /// Checks if user exists in Supabase auth.users table
+  static Future<bool> _checkUserExistsInAuth(String email) async {
     try {
-      // Try different possible column combinations to find the user
-      final queries = ['id', 'id, email', '*'];
+      // Use RPC function to check if user exists
+      final response = await _supabase.rpc(
+        'check_user_exists_by_email',
+        params: {'user_email': email},
+      );
 
-      for (final query in queries) {
-        try {
-          final response = await _supabase
-              .from('users')
-              .select(query)
-              .eq('email', email)
-              .maybeSingle();
+      final userExists = response as bool? ?? false;
 
-          if (response != null) {
-            print('✅ User found with email: $email');
-            return true;
-          }
-        } catch (e) {
-          print('⚠️ Query failed with "$query": $e');
-          continue;
-        }
+      if (userExists) {
+        print('✅ User found in auth.users with email: $email');
+        return true;
+      } else {
+        print('❌ User not found in auth.users with email: $email');
+        return false;
       }
-
-      print('❌ User not found with email: $email');
-      return false;
     } catch (e) {
-      print('❌ Error checking user existence: $e');
-      return false;
+      print('❌ Error checking user existence via RPC: $e');
+
+      // Fallback: Try to use password reset to check if user exists
+      try {
+        await _supabase.auth.resetPasswordForEmail(email, redirectTo: null);
+        // If no error is thrown, user likely exists
+        print('✅ User found via fallback method: $email');
+        return true;
+      } catch (fallbackError) {
+        final errorMessage = fallbackError.toString().toLowerCase();
+        if (errorMessage.contains('user not found') ||
+            errorMessage.contains('invalid email') ||
+            errorMessage.contains('email not found')) {
+          print('❌ User not found via fallback: $email');
+          return false;
+        }
+        // For other errors, assume user exists (to be safe)
+        print('⚠️ Fallback auth error (assuming user exists): $fallbackError');
+        return true;
+      }
     }
   }
 
   /// Gets user's name from database
   static Future<String> _getUserName(String email) async {
     try {
-      final response = await _supabase
-          .from('users')
-          .select('name')
-          .eq('email', email)
-          .maybeSingle();
+      // Use RPC function to get user name
+      final response = await _supabase.rpc(
+        'get_user_name_by_email',
+        params: {'user_email': email},
+      );
 
-      if (response != null && response['name'] != null) {
-        return response['name'] as String;
+      final userName = response as String?;
+
+      if (userName != null && userName.isNotEmpty) {
+        return userName;
       }
 
-      // Fallback to email username if no name found
+      // Fallback to email username if RPC fails
       return email.split('@')[0];
     } catch (e) {
-      print('❌ Error getting user name: $e');
+      print('❌ Error getting user name via RPC: $e');
+
+      // Fallback: Try direct database query
+      try {
+        final response = await _supabase
+            .from('users')
+            .select('name, full_name')
+            .eq('email', email)
+            .maybeSingle();
+
+        if (response != null) {
+          final name = response['name'] ?? response['full_name'];
+          if (name != null && name.isNotEmpty) {
+            return name as String;
+          }
+        }
+      } catch (fallbackError) {
+        print('❌ Fallback user name query failed: $fallbackError');
+      }
+
+      // Final fallback to email username
       return email.split('@')[0];
     }
   }

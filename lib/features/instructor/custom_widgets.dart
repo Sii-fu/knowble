@@ -36,8 +36,8 @@ class OverviewBox extends StatelessWidget {
         children: [
           CircleAvatar(
             backgroundColor: color.withOpacity(0.18),
-            child: Icon(icon, color: color, size: 28),
             radius: 22,
+            child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 10),
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color)),

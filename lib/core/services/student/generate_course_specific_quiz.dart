@@ -30,7 +30,7 @@ class QuizService {
         print('Fetched ${assRes.length} quiz assessments for course: $courseId');
       }
 
-      final assessmentIds = (assRes as List).map((e) => e['id'] as String).toList();
+      final assessmentIds = (assRes).map((e) => e['id'] as String).toList();
 
       // 2️⃣ Get all questions for those assessments
       try {
@@ -46,7 +46,7 @@ class QuizService {
           // print('Fetched ${questionsRes.length} questions for course: $courseId');
         }
 
-        final questions = (questionsRes as List)
+        final questions = (questionsRes)
             .map((q) => {
                   'id': q['id'] as String,
                   'question': q['question_text'] as String,
@@ -67,10 +67,10 @@ class QuizService {
 
             if ((optsRes as List).isEmpty) continue;
 
-            final opts = (optsRes as List).map((o) => o['option_text'] as String).toList();
+            final opts = (optsRes).map((o) => o['option_text'] as String).toList();
             
             // Find correct answer safely
-            final correctOptions = (optsRes as List).where((o) => o['is_correct'] == true);
+            final correctOptions = (optsRes).where((o) => o['is_correct'] == true);
             if (correctOptions.isEmpty) continue; // Skip questions without correct answers
             
             final correct = correctOptions.first['option_text'] as String;

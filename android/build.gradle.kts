@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // No Firebase dependencies needed for Supabase + Google Sign-In
+    }
+}
+
 allprojects {
     repositories {
         google()

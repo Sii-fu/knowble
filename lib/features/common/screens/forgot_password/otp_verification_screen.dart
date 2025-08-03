@@ -10,7 +10,7 @@ import '../../widgets/forgot_password/verify_button_widget.dart';
 import '../../../../core/services/forgot_password_service.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({Key? key}) : super(key: key);
+  const OtpVerificationScreen({super.key});
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -22,11 +22,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   final FocusNode _otpFocusNode = FocusNode();
   bool _isLoading = false;
   bool _hasError = false;
+  int _failedAttempts = 0;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
   String _userEmail = '';
 
   final int _otpLength = 6;
+  final int _maxFailedAttempts = 3;
 
   @override
   void initState() {
@@ -162,6 +164,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         );
       } else {
         // Invalid OTP
+        _failedAttempts++;
+
         setState(() {
           _isLoading = false;
           _hasError = true;
@@ -173,14 +177,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
           _shakeController.reverse();
         });
 
-        Fluttertoast.showToast(
-          msg: result.message,
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: AppTheme.errorRed,
-          textColor: AppTheme.surfaceWhite,
-          fontSize: 14.sp,
-        );
+        if (_failedAttempts >= _maxFailedAttempts) {
+          // Show dialog after max failed attempts
+          _showMaxAttemptsDialog();
+        } else {
+          Fluttertoast.showToast(
+            msg:
+                "${result.message} (${_maxFailedAttempts - _failedAttempts} attempts remaining)",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: AppTheme.errorRed,
+            textColor: AppTheme.surfaceWhite,
+            fontSize: 14.sp,
+          );
+        }
       }
     } catch (e) {
       setState(() {
@@ -301,7 +311,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
                   builder: (context, child) {
                     return Transform.translate(
                       offset: Offset(_shakeAnimation.value, 0),
-                      child: Container(
+                      child: SizedBox(
                         width: 80.w,
                         child: TextFormField(
                           controller: _otpController,
@@ -402,6 +412,72 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
           ),
         ),
       ),
+    );
+  }
+
+  void _showMaxAttemptsDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Too Many Failed Attempts',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          content: Text(
+            "You've entered an incorrect verification code too many times. Please try registering for a new account or check your email again.",
+            style: TextStyle(fontSize: 14.sp, color: AppTheme.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pop(context); // Go back to email selection
+              },
+              child: Text(
+                'Try Again',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navigate to registration screen
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/register',
+                  (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryTeal,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Create Account',
+                style: TextStyle(
+                  color: AppTheme.surfaceWhite,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

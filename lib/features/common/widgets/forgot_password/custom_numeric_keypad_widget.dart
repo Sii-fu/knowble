@@ -10,10 +10,10 @@ class CustomNumericKeypadWidget extends StatelessWidget {
   final VoidCallback onBackspacePressed;
 
   const CustomNumericKeypadWidget({
-    Key? key,
+    super.key,
     required this.onKeyPressed,
     required this.onBackspacePressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

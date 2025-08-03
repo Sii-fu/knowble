@@ -10,11 +10,11 @@ class EmailCardWidget extends StatelessWidget {
   final bool isSelected;
 
   const EmailCardWidget({
-    Key? key,
+    super.key,
     required this.email,
     this.onTap,
     this.isSelected = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

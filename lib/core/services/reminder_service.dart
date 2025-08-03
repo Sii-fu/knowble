@@ -7,6 +7,25 @@ class ReminderService {
   // Get Supabase client instance (same pattern as AuthManager)
   static final SupabaseClient _supabase = Supabase.instance.client;
 
+  /// Get current user's role from the users table
+  static Future<String?> _getCurrentUserRole() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return null;
+
+      final response = await _supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      return response?['role'] as String?;
+    } catch (e) {
+      print('❌ Error getting user role: $e');
+      return null;
+    }
+  }
+
   /// Create a new reminder in the database
   /// Returns null if successful, error message if failed (same pattern as AuthManager)
   static Future<String?> createReminder({
@@ -24,21 +43,21 @@ class ReminderService {
         return 'User not authenticated'; // Return error message if no user
       }
 
+      // Get user's role for created_by field
+      final userRole = await _getCurrentUserRole();
+
       // Prepare reminder data for database insertion
       final reminderData = {
         'user_id': user.id, // Current authenticated user's ID
         'course_id': courseId, // Optional course reference (can be null)
         'title': title.trim(), // Remove extra whitespace from title
-        'description':
-            description.trim(), // Remove extra whitespace from description
-        'time':
-            startTime
-                .toIso8601String(), // Convert start DateTime to ISO string for database
-        'end_time':
-            endTime
-                .toIso8601String(), // Convert end DateTime to ISO string for database
-        'created_by':
-            null, // Set to null since we have separate priority column
+        'description': description
+            .trim(), // Remove extra whitespace from description
+        'time': startTime
+            .toIso8601String(), // Convert start DateTime to ISO string for database
+        'end_time': endTime
+            .toIso8601String(), // Convert end DateTime to ISO string for database
+        'created_by': userRole, // Set user role (student, instructor, or admin)
         'priority': priority, // Store priority in dedicated priority column
       };
 
@@ -52,6 +71,7 @@ class ReminderService {
         '   ⏰ Time: ${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')} - ${endTime.hour}:${endTime.minute.toString().padLeft(2, '0')}',
       );
       print('   🎯 Priority: $priority');
+      print('   👤 Created by: $userRole');
 
       return null; // Return null to indicate success (AuthManager pattern)
     } on PostgrestException catch (e) {
@@ -106,8 +126,9 @@ class ReminderService {
           ); // Order by start time (earliest first)
 
       // Convert database response to Reminder objects using fromMap method
-      final reminders =
-          response.map<Reminder>((data) => Reminder.fromMap(data)).toList();
+      final reminders = response
+          .map<Reminder>((data) => Reminder.fromMap(data))
+          .toList();
 
       // Log success with details for debugging
       print(
@@ -125,6 +146,60 @@ class ReminderService {
     } catch (e) {
       // Handle other errors
       print('❌ Error fetching reminders: $e');
+      return []; // Return empty list on error
+    }
+  }
+
+  /// Get all reminders for a specific month
+  /// Returns list of Reminder objects for the entire month
+  static Future<List<Reminder>> getRemindersForMonth(DateTime month) async {
+    try {
+      // Check if user is authenticated
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Calculate start and end of the month for filtering
+      final startOfMonth = DateTime(month.year, month.month, 1);
+      final endOfMonth = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+
+      // Query reminders from database for the specific month and user
+      final response = await _supabase
+          .from('reminders') // From reminders table
+          .select('*') // Select all columns
+          .eq('user_id', user.id) // Filter by current user only
+          .gte(
+            'time',
+            startOfMonth.toIso8601String(),
+          ) // Start time >= beginning of month
+          .lte(
+            'time',
+            endOfMonth.toIso8601String(),
+          ) // Start time <= end of month
+          .order(
+            'time',
+            ascending: true,
+          ); // Order by start time (earliest first)
+
+      // Convert database response to Reminder objects using fromMap method
+      final reminders = response
+          .map<Reminder>((data) => Reminder.fromMap(data))
+          .toList();
+
+      // Log success with details for debugging
+      print(
+        '✅ Fetched ${reminders.length} reminders for ${month.year}-${month.month.toString().padLeft(2, '0')}',
+      );
+
+      return reminders;
+    } on PostgrestException catch (e) {
+      // Handle database errors gracefully
+      print('❌ Database Error fetching month reminders: ${e.message}');
+      return []; // Return empty list on error so UI doesn't crash
+    } catch (e) {
+      // Handle other errors
+      print('❌ Error fetching month reminders: $e');
       return []; // Return empty list on error
     }
   }

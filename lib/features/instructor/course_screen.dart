@@ -9,7 +9,7 @@ import '../../core/services/Instructor/course_service.dart';
 
 
 class CourseScreen extends StatelessWidget {
-  const CourseScreen({Key? key}) : super(key: key);
+  const CourseScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -151,14 +151,14 @@ class CourseCard extends StatelessWidget {
   final IconData illustration;
 
   const CourseCard({
-    Key? key,
+    super.key,
     required this.subject,
     required this.title,
     required this.subtitle,
     required this.students,
     required this.duration,
     required this.illustration,
-  }) : super(key: key);
+  });
 
   void _showCourseDetail(BuildContext context) {
     showModalBottomSheet(
