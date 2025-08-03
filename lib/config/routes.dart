@@ -55,6 +55,7 @@ import '../features/student/scheduler/task_creation_modal.dart';
 import '../features/student/scheduler/task_edit_modal.dart';
 import '../features/student/scheduler/task_detail_view.dart';
 import '../features/student/scheduler/full_month_calendar_view.dart';
+import '../data/models/reminder.dart';
 import '../features/student/chatbot/chatbotpage.dart';
 import '../features/student/notification_settings_page.dart';
 import '../features/student/invite_friends_page.dart';

@@ -4,11 +4,12 @@ import 'package:knowble_app/config/theme.dart';
 import '../../../core/services/reminder_service.dart';
 import '../../../core/services/reminder_course_service.dart';
 import '../../../data/models/course.dart';
+import '../../../data/models/reminder.dart';
 
 class TaskEditModal extends StatefulWidget {
-  final Map<String, dynamic>? taskData;
+  final Reminder? reminder;
 
-  const TaskEditModal({super.key, this.taskData});
+  const TaskEditModal({super.key, this.reminder});
 
   @override
   State<TaskEditModal> createState() => _TaskEditModalState();
@@ -27,13 +28,27 @@ class _TaskEditModalState extends State<TaskEditModal> {
   bool _hasChanges = false;
   bool _isLoading = false;
   bool _isLoadingCourses = true;
-
+  Reminder? _currentReminder;
   final List<String> _priorityOptions = ['Low', 'Medium', 'High'];
   List<Course> _enrolledCourses = [];
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Get reminder from route arguments if available
+    final routeReminder =
+        ModalRoute.of(context)?.settings.arguments as Reminder?;
+
+    if (routeReminder != null && _currentReminder == null) {
+      _currentReminder = routeReminder;
+      _initializeFields();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    // Initialize with widget.reminder if provided
+    _currentReminder = widget.reminder;
     _initializeFields();
     _fetchEnrolledCourses();
   }
@@ -52,57 +67,56 @@ class _TaskEditModalState extends State<TaskEditModal> {
       setState(() {
         _enrolledCourses = courses;
         _isLoadingCourses = false;
+
+        // If the selected course is not in the enrolled courses list, reset it
+        if (_selectedCourseId != null &&
+            !courses.any((course) => course.id == _selectedCourseId)) {
+          print(
+            'Selected course $_selectedCourseId not found in enrolled courses, resetting',
+          );
+          _selectedCourseId = null;
+          _hasChanges = true;
+        }
       });
     } catch (e) {
       print('Error fetching enrolled courses: $e');
       setState(() {
         _isLoadingCourses = false;
+        // Reset selected course on error
+        if (_selectedCourseId != null) {
+          print('Resetting selected course due to fetch error');
+          _selectedCourseId = null;
+          _hasChanges = true;
+        }
       });
     }
   }
 
   void _initializeFields() {
-    if (widget.taskData != null) {
-      _titleController.text = widget.taskData!['title'] ?? '';
-      _descriptionController.text = widget.taskData!['description'] ?? '';
-      _priority = widget.taskData!['priority'] ?? 'Medium';
-      _selectedCourseId = widget.taskData!['course_id'];
+    if (_currentReminder != null) {
+      print('Initializing fields with reminder: ${_currentReminder!.title}');
+      print('Reminder course ID: ${_currentReminder!.courseId}');
 
-      // Parse time strings to TimeOfDay
-      final startTimeStr = widget.taskData!['startTime'] as String?;
-      final endTimeStr = widget.taskData!['endTime'] as String?;
+      _titleController.text = _currentReminder!.title;
+      _descriptionController.text = _currentReminder!.description ?? '';
+      _priority = _currentReminder!.priority;
+      _selectedCourseId = _currentReminder!.courseId;
 
-      if (startTimeStr != null) {
-        // Parse "09:00 AM" format
-        _startTime = _parseTimeString(startTimeStr);
+      // Parse DateTime to TimeOfDay for start and end times
+      _startTime = TimeOfDay.fromDateTime(_currentReminder!.time);
+
+      if (_currentReminder!.endTime != null) {
+        _endTime = TimeOfDay.fromDateTime(_currentReminder!.endTime!);
       }
 
-      if (endTimeStr != null) {
-        _endTime = _parseTimeString(endTimeStr);
-      }
+      print('Initialized selected course ID: $_selectedCourseId');
+    } else {
+      print('No reminder data available for initialization');
     }
 
     // Add listeners to detect changes
     _titleController.addListener(_onFieldChanged);
     _descriptionController.addListener(_onFieldChanged);
-  }
-
-  TimeOfDay _parseTimeString(String timeStr) {
-    final parts = timeStr.split(' ');
-    final timePart = parts[0];
-    final period = parts.length > 1 ? parts[1] : 'AM';
-
-    final hourMinute = timePart.split(':');
-    int hour = int.parse(hourMinute[0]);
-    final minute = int.parse(hourMinute[1]);
-
-    if (period == 'PM' && hour != 12) {
-      hour += 12;
-    } else if (period == 'AM' && hour == 12) {
-      hour = 0;
-    }
-
-    return TimeOfDay(hour: hour, minute: minute);
   }
 
   void _onFieldChanged() {
@@ -220,6 +234,26 @@ class _TaskEditModalState extends State<TaskEditModal> {
     }
   }
 
+  String? _getValidDropdownValue() {
+    // If courses are still loading, return null
+    if (_isLoadingCourses) {
+      return null;
+    }
+
+    // If no course is selected, return null
+    if (_selectedCourseId == null) {
+      return null;
+    }
+
+    // If the selected course exists in enrolled courses, return it
+    if (_enrolledCourses.any((course) => course.id == _selectedCourseId)) {
+      return _selectedCourseId;
+    }
+
+    // If selected course doesn't exist in enrolled courses, return null
+    return null;
+  }
+
   Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
     if (_startTime == null || _endTime == null) {
@@ -243,8 +277,9 @@ class _TaskEditModalState extends State<TaskEditModal> {
     setState(() {
       _isLoading = true;
     });
-    // Prepare start and end DateTime using date from taskData and _startTime/_endTime
-    final DateTime date = widget.taskData?['date'] ?? DateTime.now();
+
+    // Use the existing reminder's date for start and end DateTime
+    final DateTime date = _currentReminder?.time ?? DateTime.now();
     final DateTime startDateTime = DateTime(
       date.year,
       date.month,
@@ -259,8 +294,9 @@ class _TaskEditModalState extends State<TaskEditModal> {
       _endTime!.hour,
       _endTime!.minute,
     );
+
     final String? error = await ReminderService.updateReminder(
-      reminderId: widget.taskData?['id'].toString() ?? '',
+      reminderId: _currentReminder?.id ?? '',
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
       startTime: startDateTime,
@@ -268,9 +304,11 @@ class _TaskEditModalState extends State<TaskEditModal> {
       courseId: _selectedCourseId,
       priority: _priority,
     );
+
     setState(() {
       _isLoading = false;
     });
+
     if (error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -324,7 +362,7 @@ class _TaskEditModalState extends State<TaskEditModal> {
     if (confirmed == true) {
       Navigator.of(
         context,
-      ).pop({'action': 'delete', 'taskId': widget.taskData?['id']});
+      ).pop({'action': 'delete', 'taskId': _currentReminder?.id});
     }
   }
 
@@ -461,7 +499,10 @@ class _TaskEditModalState extends State<TaskEditModal> {
                         TextFormField(
                           controller: _titleController,
                           maxLength: 50,
-                          style: TextStyle(fontFamily: 'Jost'),
+                          style: TextStyle(
+                            fontFamily: 'Jost',
+                            color: AppTheme.textPrimary,
+                          ),
                           decoration: InputDecoration(
                             hintText: 'Enter task title',
                             counterText: '${_titleController.text.length}/50',
@@ -633,20 +674,39 @@ class _TaskEditModalState extends State<TaskEditModal> {
                         SizedBox(height: 3.h),
 
                         // Enrolled Courses Selection
-                        Text(
-                          'Enrolled Courses',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.textPrimary,
-                            fontFamily: 'Jost',
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Enrolled Courses',
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textPrimary,
+                                fontFamily: 'Jost',
+                              ),
+                            ),
+                            if (_isLoadingCourses) ...[
+                              SizedBox(width: 2.w),
+                              SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppTheme.primaryTeal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         SizedBox(height: 1.h),
                         DropdownButtonFormField<String>(
-                          value: _selectedCourseId,
+                          value: _getValidDropdownValue(),
                           decoration: InputDecoration(
-                            hintText: 'Select a course (optional)',
+                            hintText: _isLoadingCourses
+                                ? 'Loading courses...'
+                                : 'Select a course (optional)',
                             hintStyle: TextStyle(
                               color: AppTheme.textSecondary,
                               fontFamily: 'Jost',
@@ -689,35 +749,8 @@ class _TaskEditModalState extends State<TaskEditModal> {
                                 ),
                               ),
                             ),
-                            if (_isLoadingCourses)
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              AppTheme.primaryTeal,
-                                            ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Loading courses...',
-                                      style: TextStyle(
-                                        color: AppTheme.textSecondary,
-                                        fontFamily: 'Jost',
-                                        fontSize: 14.sp,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (!_isLoadingCourses)
+                            if (!_isLoadingCourses &&
+                                _enrolledCourses.isNotEmpty)
                               ..._enrolledCourses.map((course) {
                                 return DropdownMenuItem<String>(
                                   value: course.id,
@@ -764,12 +797,14 @@ class _TaskEditModalState extends State<TaskEditModal> {
                                 ),
                               ),
                           ],
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedCourseId = newValue;
-                              _hasChanges = true;
-                            });
-                          },
+                          onChanged: _isLoadingCourses
+                              ? null
+                              : (String? newValue) {
+                                  setState(() {
+                                    _selectedCourseId = newValue;
+                                    _hasChanges = true;
+                                  });
+                                },
                           style: TextStyle(
                             color: AppTheme.textPrimary,
                             fontFamily: 'Jost',
@@ -854,7 +889,10 @@ class _TaskEditModalState extends State<TaskEditModal> {
                           controller: _descriptionController,
                           maxLines: 4,
                           maxLength: 200,
-                          style: TextStyle(fontFamily: 'Jost'),
+                          style: TextStyle(
+                            fontFamily: 'Jost',
+                            color: AppTheme.textPrimary,
+                          ),
                           decoration: InputDecoration(
                             hintText:
                                 'Add task description, notes, or study materials...',

@@ -659,10 +659,13 @@ class _TaskDetailViewState extends State<TaskDetailView> {
     );
   }
 
-  void _navigateToEditTask(BuildContext context) {
-    Navigator.pushNamed(context, '/task-edit-modal', arguments: _reminder);
-  }
-
+void _navigateToEditTask(BuildContext context) {
+  Navigator.pushNamed(
+    context,
+    '/task-edit-modal',
+    arguments: _reminder, 
+  );
+}
   void _deleteTask(BuildContext context) async {
     if (_reminder == null) return;
 
