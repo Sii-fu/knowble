@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
+import 'pdf_viewer_page.dart';
 
 class CourseLessonsPage extends StatelessWidget {
   const CourseLessonsPage({super.key});
@@ -67,6 +68,7 @@ class CourseLessonsPage extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextField(
+                        style: const TextStyle(color: AppTheme.textPrimary),
                         decoration: InputDecoration(
                           hintText: '3D Design Illustration',
                           hintStyle: TextStyle(color: AppTheme.textSecondary),
@@ -81,7 +83,7 @@ class CourseLessonsPage extends StatelessWidget {
                         color: AppTheme.primaryTeal,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.search, color: AppTheme.surfaceWhite, size: 20),
+                      child: Icon(Icons.search, color: AppTheme.surfaceWhite, size: 20),
                     ),
                   ],
                 ),
@@ -186,7 +188,16 @@ class CourseLessonsPage extends StatelessWidget {
                                     size: 26,
                                   ),
                                   onPressed: () {
-                                    // Open PDF logic
+                                    // Navigate to PDF viewer with sample PDF
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PDFViewerPage(
+                                          pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                                          title: lesson['title'],
+                                        ),
+                                      ),
+                                    );
                                   },
                                 ),
                               ],
