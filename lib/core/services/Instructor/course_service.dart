@@ -5,6 +5,97 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 class CourseService {
+
+  /// Batch create a course with multiple chapters (modules), lessons (sections), and PDFs (contents)
+  /// [courseData] contains: title, description, price, durationDays, tag
+  /// [chapters] is a list of maps: { 'title': chapterName, 'lessons': [ { 'title': ..., 'description': ..., 'pdf': { 'fileName': ..., 'filePath' or 'bytes': ... } } ] }
+  Future<String?> createFullCourse({
+    required Map<String, dynamic> courseData,
+    required List<Map<String, dynamic>> chapters,
+  }) async {
+    final instructorId = await getInstructorId();
+    if (instructorId == null) return null;
+    final courseId = uuid.v4();
+    // Insert course
+    final response = await supabase.from('courses').insert({
+      'id': courseId,
+      'instructor_id': instructorId,
+      'title': courseData['title'],
+      'description': courseData['description'],
+      'price': courseData['price'],
+      'is_paid': (courseData['price'] ?? 0) > 0,
+      'duration_days': courseData['durationDays'],
+      'created_at': DateTime.now().toIso8601String(),
+    }).select('id').single();
+    if (response['id'] == null) return null;
+
+    // Insert tag if provided
+    if (courseData['tag'] != null && (courseData['tag'] as String).trim().isNotEmpty) {
+      final tag = courseData['tag'].trim();
+      final tagQuery = await supabase.from('tags').select('id').eq('name', tag).maybeSingle();
+      String tagId;
+      if (tagQuery != null && tagQuery['id'] != null) {
+        tagId = tagQuery['id'] as String;
+      } else {
+        tagId = uuid.v4();
+        await supabase.from('tags').insert({ 'id': tagId, 'name': tag });
+      }
+      await supabase.from('course_tags').insert({
+        'course_id': courseId,
+        'tag_id': tagId,
+        'primary': true,
+        'note': null,
+      });
+    }
+
+    // Insert chapters (modules)
+    for (int c = 0; c < chapters.length; c++) {
+      final chapter = chapters[c];
+      final moduleId = uuid.v4();
+      await supabase.from('modules').insert({
+        'id': moduleId,
+        'course_id': courseId,
+        'title': chapter['title'],
+        'order': c + 1,
+      });
+
+      // Insert lessons (sections)
+      final lessons = chapter['lessons'] as List<Map<String, dynamic>>;
+      for (int l = 0; l < lessons.length; l++) {
+        final lesson = lessons[l];
+        final sectionId = uuid.v4();
+        await supabase.from('sections').insert({
+          'id': sectionId,
+          'module_id': moduleId,
+          'title': lesson['title'],
+          'description': lesson['description'],
+          'order': l + 1,
+        });
+
+        // Insert PDF content if provided
+        if (lesson['pdf'] != null) {
+          final pdf = lesson['pdf'] as Map<String, dynamic>;
+          String? publicUrl;
+          if (kIsWeb && pdf['bytes'] != null) {
+            publicUrl = await uploadPdfToStorage(bytes: pdf['bytes'], fileName: pdf['fileName']);
+          } else if (!kIsWeb && pdf['filePath'] != null) {
+            publicUrl = await uploadPdfToStorage(filePath: pdf['filePath'], fileName: pdf['fileName']);
+          }
+          if (publicUrl != null) {
+            await supabase.from('contents').insert({
+              'id': uuid.v4(),
+              'section_id': sectionId,
+              'type': 'pdf',
+              'title': pdf['fileName'],
+              'url': publicUrl,
+              'order': 1,
+            });
+          }
+        }
+      }
+    }
+    return courseId;
+  }
   final supabase = Supabase.instance.client;
   final uuid = const Uuid();
 
@@ -43,10 +134,12 @@ class CourseService {
     required String description,
     required double price,
     required int durationDays,
+    String? tag, // New: tag name to insert and link
   }) async {
     final instructorId = await getInstructorId();
     if (instructorId == null) return null;
     final courseId = uuid.v4();
+    // Insert course
     final response = await supabase.from('courses').insert({
       'id': courseId,
       'instructor_id': instructorId,
@@ -58,6 +151,30 @@ class CourseService {
       'created_at': DateTime.now().toIso8601String(),
     }).select('id').single();
     if (response['id'] == null) return null;
+
+    // Insert tag if provided
+    if (tag != null && tag.trim().isNotEmpty) {
+      // Try to find existing tag
+      final tagQuery = await supabase.from('tags').select('id').eq('name', tag.trim()).maybeSingle();
+      String tagId;
+      if (tagQuery != null && tagQuery['id'] != null) {
+        tagId = tagQuery['id'] as String;
+      } else {
+        // Insert new tag
+        tagId = uuid.v4();
+        await supabase.from('tags').insert({
+          'id': tagId,
+          'name': tag.trim(),
+        });
+      }
+      // Insert into course_tags
+      await supabase.from('course_tags').insert({
+        'course_id': courseId,
+        'tag_id': tagId,
+        'primary': true,
+        'note': null,
+      });
+    }
     return courseId;
   }
 

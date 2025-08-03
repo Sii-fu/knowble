@@ -13,6 +13,9 @@ class CreateCourseScreen extends StatefulWidget {
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
+  // Store all chapters and their lessons before upload
+  List<Map<String, dynamic>> _allChapters = [];
+
   String? _createdCourseId;
   // Question section controllers
   final TextEditingController _questionTitleController = TextEditingController();
@@ -199,29 +202,65 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     _showSuccessDialog('Question uploaded successfully!');
   }
 
+  // Helper to collect current chapter's data into _allChapters
+  void _saveCurrentChapterToList() {
+    final chapterName = _chapterNameController.text.trim();
+    if (chapterName.isEmpty) return;
+    final lessons = <Map<String, dynamic>>[];
+    for (int i = 0; i < _lessonControllers.length; i++) {
+      final lessonTitle = _lessonControllers[i].text.trim();
+      final lessonDescription = ""; // You can add a controller for description if needed
+      final pdfInfo = i < _lessonPdfInfos.length ? _lessonPdfInfos[i] : null;
+      Map<String, dynamic> lesson = {
+        'title': lessonTitle,
+        'description': lessonDescription,
+        'pdf': pdfInfo != null ? {
+          'fileName': pdfInfo['name'],
+          if (kIsWeb && pdfInfo['bytes'] != null) 'bytes': pdfInfo['bytes'],
+          if (!kIsWeb && pdfInfo['path'] != null) 'filePath': pdfInfo['path'],
+        } : null,
+      };
+      lessons.add(lesson);
+    }
+    // If editing an existing chapter, replace it
+    if (_allChapters.length > _currentChapterIndex) {
+      _allChapters[_currentChapterIndex] = {
+        'title': chapterName,
+        'lessons': lessons,
+      };
+    } else {
+      _allChapters.add({
+        'title': chapterName,
+        'lessons': lessons,
+      });
+    }
+  }
+
   Future<void> _handleFinalUpload() async {
+    // Save the last chapter before upload
+    _saveCurrentChapterToList();
     final title = _courseNameController.text.trim();
     final description = _courseDescriptionController.text.trim();
     final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
     final durationDays = int.tryParse(_durationDaysController.text.trim()) ?? 0;
-    final chapterOrder = _currentChapterIndex + 1;
-    final chapterName = (_chapterNames.isNotEmpty && _currentChapterIndex < _chapterNames.length)
-        ? _chapterNames[_currentChapterIndex]
-        : '';
-    final lessonCount = _lessonControllers.length;
+    final tag = _tagController.text.trim();
 
-    if (title.isEmpty || chapterName.isEmpty) {
-      _showSuccessDialog('Course name and chapter name are required.');
+    if (title.isEmpty || _allChapters.isEmpty) {
+      _showSuccessDialog('Course name and at least one chapter are required.');
       return;
     }
 
     try {
-      // 1. Insert course
-      final courseId = await _courseService.createCourse(
-        title: title,
-        description: description,
-        price: price,
-        durationDays: durationDays,
+      final courseData = {
+        'title': title,
+        'description': description,
+        'price': price,
+        'durationDays': durationDays,
+        'tag': tag,
+      };
+      final courseId = await _courseService.createFullCourse(
+        courseData: courseData,
+        chapters: _allChapters,
       );
       if (courseId == null) {
         _showSuccessDialog('Failed to create course.');
@@ -230,69 +269,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       setState(() {
         _createdCourseId = courseId;
       });
-
-      // 2. Insert module (chapter)
-      final moduleId = await _courseService.createModule(
-        courseId: courseId,
-        title: chapterName,
-        order: chapterOrder,
-      );
-      if (moduleId == null) {
-        _showSuccessDialog('Failed to create module.');
-        return;
-      }
-
-      // 3. Insert sections (lessons)
-      List<String?> sectionIds = [];
-      for (int i = 0; i < lessonCount; i++) {
-        final lessonTitle = _lessonControllers[i].text.trim();
-        if (lessonTitle.isEmpty) {
-          sectionIds.add(null);
-          continue;
-        }
-        final sectionId = await _courseService.createSection(
-          moduleId: moduleId,
-          title: lessonTitle,
-          order: i + 1,
-        );
-        sectionIds.add(sectionId);
-      }
-
-      // 4. Insert PDF content for each lesson if selected
-      for (int i = 0; i < lessonCount; i++) {
-        final pdfInfo = i < _lessonPdfInfos.length ? _lessonPdfInfos[i] : null;
-        final sectionId = sectionIds[i];
-        if (pdfInfo != null && sectionId != null) {
-          String? publicUrl;
-          if (kIsWeb && pdfInfo['bytes'] != null) {
-            publicUrl = await _courseService.uploadPdfToStorage(
-              bytes: pdfInfo['bytes'],
-              fileName: pdfInfo['name'],
-            );
-          } else if (!kIsWeb && pdfInfo['path'] != null) {
-            publicUrl = await _courseService.uploadPdfToStorage(
-              filePath: pdfInfo['path'],
-              fileName: pdfInfo['name'],
-            );
-          }
-          if (publicUrl == null) {
-            print('PDF upload failed for lesson $i');
-            _showSuccessDialog('PDF upload failed for lesson ${i + 1}');
-            continue;
-          }
-          final contentId = await _courseService.createContent(
-            sectionId: sectionId,
-            type: 'pdf',
-            url: publicUrl,
-            order: 1,
-          );
-          if (contentId == null) {
-            print('Failed to insert content for lesson $i');
-            _showSuccessDialog('Failed to insert content for lesson ${i + 1}');
-          }
-        }
-      }
-
       _showSuccessDialog('Course created and uploaded successfully!');
     } catch (e) {
       _showSuccessDialog('Error: ${e.toString()}');
@@ -538,9 +514,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
+                        // Save current chapter before moving to next
+                        _saveCurrentChapterToList();
                         setState(() {
                           _currentChapterIndex++;
-                          // Clear chapter name and lesson fields for new chapter
                           _chapterNameController.clear();
                           _totalLessonsController.clear();
                           _lessonControllers.clear();
