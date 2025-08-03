@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.knowble_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     // Removed NDK version to use default
 
     compileOptions {
@@ -15,7 +15,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "11"
     }
 
     defaultConfig {
@@ -23,8 +23,8 @@ android {
         applicationId = "com.example.knowble_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 21
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
