@@ -300,8 +300,8 @@ class StatisticCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: color.withOpacity(0.15),
-              radius: 18,
               child: Icon(icon, color: color, size: 22),
+              radius: 18,
             ),
             const SizedBox(height: 8),
             Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
