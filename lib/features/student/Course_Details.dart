@@ -9,6 +9,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
 
+
+
 class CourseDetailPage extends StatefulWidget {
   final String courseId;
   const CourseDetailPage({required this.courseId, super.key});

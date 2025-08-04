@@ -13,17 +13,17 @@ class CourseLessonsPage extends StatelessWidget {
         'section': 'Section 01 - Introduction',
         'totalTime': '25 Mins',
         'items': [
-          {'number': '01', 'title': 'Why Using 3D Blender', 'duration': '15 Mins'},
-          {'number': '02', 'title': '3D Blender Installation', 'duration': '10 Mins'},
+          {'number': '01', 'title': 'Why Using 3D Blender', 'duration': '15 Mins', 'pdfUrl': 'https://yourdomain.com/blender_intro.pdf'},
+          {'number': '02', 'title': '3D Blender Installation', 'duration': '10 Mins', 'pdfUrl': 'https://yourdomain.com/blender_install.pdf'},
         ],
       },
       {
         'section': 'Section 02 - Graphic Design',
         'totalTime': '125 Mins',
         'items': [
-          {'number': '03', 'title': 'Take a Look Blender Interface', 'duration': '20 Mins'},
-          {'number': '04', 'title': 'The Basic of 3D Modelling', 'duration': '25 Mins'},
-          {'number': '05', 'title': 'Shading and Lighting', 'duration': '36 Mins'},
+          {'number': '03', 'title': 'Take a Look Blender Interface', 'duration': '20 Mins', 'pdfUrl': 'https://yourdomain.com/blender_interface.pdf'},
+          {'number': '04', 'title': 'The Basic of 3D Modelling', 'duration': '25 Mins', 'pdfUrl': 'https://yourdomain.com/blender_modelling.pdf'},
+          {'number': '05', 'title': 'Shading and Lighting', 'duration': '36 Mins', 'pdfUrl': 'https://yourdomain.com/blender_shading.pdf'},
         ],
       },
     ];
@@ -188,16 +188,22 @@ class CourseLessonsPage extends StatelessWidget {
                                     size: 26,
                                   ),
                                   onPressed: () {
-                                    // Navigate to PDF viewer with sample PDF
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => PDFViewerPage(
-                                          pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                                          title: lesson['title'],
+                                    final pdfUrl = lesson['pdfUrl'] ?? '';
+                                    if (pdfUrl.isNotEmpty) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => PDFViewerPage(
+                                            pdfUrl: pdfUrl,
+                                            title: lesson['title'],
+                                          ),
                                         ),
-                                      ),
-                                    );
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('No PDF available for this lesson.')),
+                                      );
+                                    }
                                   },
                                 ),
                               ],
