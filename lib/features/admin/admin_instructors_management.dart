@@ -245,8 +245,16 @@ class _AdminInstructorsManagementState
                       child: TextField(
                         controller: _searchController,
                         onChanged: _onSearchChanged,
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 16,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Search by name or email...',
+                          hintStyle: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 16,
+                          ),
                           border: InputBorder.none,
                           prefixIcon: CustomIconWidget(
                             iconName: 'search',
