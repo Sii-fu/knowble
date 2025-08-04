@@ -248,4 +248,3 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
   }
 }
 
-
