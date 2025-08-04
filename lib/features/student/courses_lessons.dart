@@ -2,33 +2,46 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
-import 'pdf_viewer_page.dart';
+import '../../core/services/student/course_services.dart';
+
 
 class CourseLessonsPage extends StatelessWidget {
-  const CourseLessonsPage({super.key});
+  final String courseId;
+  CourseLessonsPage({super.key, required this.courseId});
+
+  Future<List<Map<String, dynamic>>> _fetchLessons() async {
+    final courseServices = CourseServices();
+    final modules = await courseServices.fetchModules(courseId);
+    List<Map<String, dynamic>> lessons = [];
+    for (final module in modules) {
+      // Each module is a section
+      // Fetch contents for this module (assuming contents are linked to module via section)
+      // If you have sections, you can fetch sections and then contents per section
+      final sections = await courseServices.fetchSections(module.id);
+      List<Map<String, dynamic>> items = [];
+      for (final section in sections) {
+        final contents = await courseServices.fetchContents(section.id);
+        for (final content in contents) {
+          items.add({
+            'number': content.order.toString().padLeft(2, '0'),
+            'title': content.title,
+            'duration': '', // You can add duration if available in content
+            'type': content.type,
+            'url': content.url,
+          });
+        }
+      }
+      lessons.add({
+        'section': module.title,
+        'totalTime': '', // You can calculate total time if available
+        'items': items,
+      });
+    }
+    return lessons;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final lessons = [
-      {
-        'section': 'Section 01 - Introduction',
-        'totalTime': '25 Mins',
-        'items': [
-          {'number': '01', 'title': 'Why Using 3D Blender', 'duration': '15 Mins'},
-          {'number': '02', 'title': '3D Blender Installation', 'duration': '10 Mins'},
-        ],
-      },
-      {
-        'section': 'Section 02 - Graphic Design',
-        'totalTime': '125 Mins',
-        'items': [
-          {'number': '03', 'title': 'Take a Look Blender Interface', 'duration': '20 Mins'},
-          {'number': '04', 'title': 'The Basic of 3D Modelling', 'duration': '25 Mins'},
-          {'number': '05', 'title': 'Shading and Lighting', 'duration': '36 Mins'},
-        ],
-      },
-    ];
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: SafeArea(
@@ -59,152 +72,160 @@ class CourseLessonsPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Container(
-                height: 45,
+                width: double.infinity,
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceWhite,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        style: const TextStyle(color: AppTheme.textPrimary),
-                        decoration: InputDecoration(
-                          hintText: '3D Design Illustration',
-                          hintStyle: TextStyle(color: AppTheme.textSecondary),
-                          border: InputBorder.none,
+                child: SizedBox(
+                  height: 45,
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          style: const TextStyle(color: AppTheme.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: '3D Design Illustration',
+                            hintStyle: TextStyle(color: AppTheme.textSecondary),
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryTeal,
-                        borderRadius: BorderRadius.circular(10),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryTeal,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.search, color: AppTheme.surfaceWhite, size: 20),
+                        ),
                       ),
-                      child: Icon(Icons.search, color: AppTheme.surfaceWhite, size: 20),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: lessons.length,
-                itemBuilder: (context, index) {
-                  final section = lessons[index];
-                  final items = section['items'] as List<dynamic>;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _fetchLessons(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error loading lessons'));
+                  }
+                  final lessons = snapshot.data ?? [];
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: lessons.length,
+                    itemBuilder: (context, index) {
+                      final section = lessons[index];
+                      final items = section['items'] as List<dynamic>;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            section['section'] as String,
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            section['totalTime'] as String,
-                            style: const TextStyle(
-                              color: AppTheme.primaryTeal, 
-                              fontWeight: FontWeight.w600,
-                            ),
-                          )
-                        ],
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                section['section'] as String,
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                    Text(
+                      section['totalTime'] as String,
+                      style: const TextStyle(
+                        color: AppTheme.primaryTeal, 
+                        fontWeight: FontWeight.w600,
                       ),
-                      const SizedBox(height: 10),
-                      ...items.map((lesson) => Container(
-                            margin: const EdgeInsets.only(bottom: 14),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceWhite,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.shadowLight,
-                                  spreadRadius: 2,
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                )
-                              ],
+                    ),
+                  ],
+                ),
+                ...items.map((lesson) => Container(
+                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [],
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppTheme.accentLight,
+                        child: Text(
+                          lesson['number'],
+                          style: const TextStyle(
+                            color: AppTheme.textPrimary, 
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              lesson['title'],
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
                             ),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: AppTheme.accentLight,
-                                  child: Text(
-                                    lesson['number'],
-                                    style: const TextStyle(
-                                      color: AppTheme.textPrimary, 
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        lesson['title'],
-                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: AppTheme.textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        lesson['duration'],
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: AppTheme.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.play_circle_fill, 
-                                    color: AppTheme.primaryTeal, 
-                                    size: 28,
-                                  ),
-                                  onPressed: () {
-                                    // Play video logic
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.picture_as_pdf_outlined, 
-                                    color: AppTheme.errorRed, 
-                                    size: 26,
-                                  ),
-                                  onPressed: () {
-                                    // Navigate to PDF viewer with sample PDF
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => PDFViewerPage(
-                                          pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                                          title: lesson['title'],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
+                            const SizedBox(height: 4),
+                            Text(
+                              lesson['duration'],
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
                             ),
-                          ))
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.play_circle_fill, 
+                          color: AppTheme.primaryTeal, 
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          // Play video logic
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.picture_as_pdf_outlined, 
+                          color: AppTheme.errorRed, 
+                          size: 26,
+                        ),
+                        onPressed: () {
+                          // Navigate to PDF viewer with sample PDF
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PDFViewerPage(
+                                pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                                title: lesson['title'],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ],
+                  ),
+                )).toList(),
+              ],
+            );
+                    },
                   );
                 },
               ),

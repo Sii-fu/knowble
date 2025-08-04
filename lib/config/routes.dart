@@ -47,7 +47,7 @@ import '../features/instructor/widgets/instructor_layout.dart';
 import '../features/student/widgets/student_layout.dart';
 import '../features/student/dashboard_page.dart';
 import '../features/student/home_page.dart';
-import '../features/student/courses_page.dart';
+import '../features/student/courses_page_refactored.dart';
 import '../features/student/schedule_page.dart';
 import '../features/student/profile_page.dart';
 import '../features/student/calendar_dashboard.dart';
@@ -97,7 +97,7 @@ class AppRoutes {
     '/admin/instructors': (context) => const AdminInstructorsManagement(),
 
     '/student_home': (context) => const StudentHomePage(),
-    '/student_courses': (context) => const StudentCoursesPage(),
+    '/student_courses': (context) => const StudentCoursesPageRefactored(),
     '/student_schedule': (context) => const StudentSchedulePage(),
     '/student_profile': (context) => const StudentProfilePage(),
     '/calendar-dashboard': (context) => const CalendarDashboard(),
