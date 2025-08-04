@@ -45,7 +45,10 @@ class InstructorListItemCard extends StatelessWidget {
     final profileImage = instructor['profileImage'] as String? ?? '';
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+      margin: EdgeInsets.symmetric(
+        horizontal: 1.w,
+        vertical: 1.h,
+      ), // Reduced horizontal margin from 4.w to 1.w
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -55,10 +58,9 @@ class InstructorListItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
-              border:
-                  isSelected
-                      ? Border.all(color: AppTheme.primaryTeal, width: 2)
-                      : null,
+              border: isSelected
+                  ? Border.all(color: AppTheme.primaryTeal, width: 2)
+                  : null,
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.shadowLight,
@@ -94,30 +96,29 @@ class InstructorListItemCard extends StatelessWidget {
                           ),
                         ),
                         child: ClipOval(
-                          child:
-                              profileImage.isNotEmpty
-                                  ? Image.network(
-                                    profileImage,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color: AppTheme.accentLight,
-                                        child: CustomIconWidget(
-                                          iconName: 'person',
-                                          color: AppTheme.primaryTeal,
-                                          size: 8.w,
-                                        ),
-                                      );
-                                    },
-                                  )
-                                  : Container(
-                                    color: AppTheme.accentLight,
-                                    child: CustomIconWidget(
-                                      iconName: 'person',
-                                      color: AppTheme.primaryTeal,
-                                      size: 8.w,
-                                    ),
+                          child: profileImage.isNotEmpty
+                              ? Image.network(
+                                  profileImage,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: AppTheme.accentLight,
+                                      child: CustomIconWidget(
+                                        iconName: 'person',
+                                        color: AppTheme.primaryTeal,
+                                        size: 8.w,
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  color: AppTheme.accentLight,
+                                  child: CustomIconWidget(
+                                    iconName: 'person',
+                                    color: AppTheme.primaryTeal,
+                                    size: 8.w,
                                   ),
+                                ),
                         ),
                       ),
                       SizedBox(width: 3.w),
