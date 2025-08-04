@@ -13,6 +13,23 @@ class CreateCourseScreen extends StatefulWidget {
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
+  bool _isUploading = false;
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  void _hideLoadingDialog() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
   // Store all chapters and their lessons before upload
   List<Map<String, dynamic>> _allChapters = [];
 
@@ -250,6 +267,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       return;
     }
 
+    setState(() {
+      _isUploading = true;
+    });
+    _showLoadingDialog();
     try {
       final courseData = {
         'title': title,
@@ -262,15 +283,21 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         courseData: courseData,
         chapters: _allChapters,
       );
+      _hideLoadingDialog();
+      setState(() {
+        _isUploading = false;
+        _createdCourseId = courseId;
+      });
       if (courseId == null) {
         _showSuccessDialog('Failed to create course.');
         return;
       }
-      setState(() {
-        _createdCourseId = courseId;
-      });
       _showSuccessDialog('Course created and uploaded successfully!');
     } catch (e) {
+      _hideLoadingDialog();
+      setState(() {
+        _isUploading = false;
+      });
       _showSuccessDialog('Error: ${e.toString()}');
     }
   }
