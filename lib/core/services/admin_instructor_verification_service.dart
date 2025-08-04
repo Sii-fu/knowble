@@ -324,15 +324,21 @@ class AdminInstructorVerificationService {
       } else {
         print('[WARNING] Failed to send rejection email to $instructorEmail');
         if (kIsWeb) {
-          print('[INFO] Running on web - email functionality limited by browser security');
+          print(
+            '[INFO] Running on web - email functionality limited by browser security',
+          );
         }
       }
 
-      print('[DEBUG] Instructor $userId rejected and email notification processed');
+      print(
+        '[DEBUG] Instructor $userId rejected and email notification processed',
+      );
     } catch (e) {
       print('[ERROR] rejectInstructorWithEmail failed: $e');
       // Don't throw exception - database update was successful
-      print('[INFO] Database update completed successfully despite email issue');
+      print(
+        '[INFO] Database update completed successfully despite email issue',
+      );
     }
   }
 
@@ -358,14 +364,14 @@ class AdminInstructorVerificationService {
         print('   - EmailJS service');
         print('   - Backend email API');
         print('   - Supabase Edge Functions');
-        
+
         // For now, we'll simulate email sending on web
         await Future.delayed(Duration(seconds: 1));
-        
+
         print('📧 EMAIL CONTENT THAT WOULD BE SENT:');
         final emailContent = _buildRejectionEmailContent(recipientName, reason);
         print(emailContent);
-        
+
         // Return true for development/testing on web
         print('✅ Email "sent" (simulated for web platform)');
         return true;
@@ -442,22 +448,22 @@ class AdminInstructorVerificationService {
 
       print('❌ All SMTP configurations failed. Last error: $lastError');
       print('❌ Last error type: ${lastError?.runtimeType}');
-      
+
       // Show email content for debugging
       print('📧 EMAIL CONTENT THAT WOULD BE SENT:');
       final emailContent = _buildRejectionEmailContent(recipientName, reason);
       print(emailContent);
-      
+
       return false;
     } catch (e) {
       print('❌ Critical error in rejection email sending: $e');
       print('❌ Critical error type: ${e.runtimeType}');
-      
+
       // Show email content for debugging
       print('📧 EMAIL CONTENT THAT WOULD BE SENT:');
       final emailContent = _buildRejectionEmailContent(recipientName, reason);
       print(emailContent);
-      
+
       return false;
     }
   }
