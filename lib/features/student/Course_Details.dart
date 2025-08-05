@@ -111,9 +111,32 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
                       label: const Text('Ask AI Assistant', style: TextStyle(fontSize: 16, color: Colors.white)),
                       onPressed: () {
+                        // Prepare PDF contents for context
+                        List<Map<String, dynamic>> pdfContents = _contents
+                            .where((content) => content.type == 'pdf')
+                            .map((content) => {
+                              'title': content.title,
+                              'url': content.url,
+                              // Note: Text content will be extracted on-demand in the chatbot
+                            })
+                            .toList();
+                        
+                        // DEBUG: Print actual parameters being sent to ChatBot
+                        print('🏫 COURSE DETAILS → CHATBOT PARAMETERS:');
+                        print('courseTitle parameter: "${_course!.title}"');
+                        print('courseDescription parameter: "${_course!.description}"');
+                        print('pdfContents parameter: $pdfContents');
+                        print('════════════════════════════════════════');
+                        
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const ChatBotPage()),
+                          MaterialPageRoute(
+                            builder: (_) => ChatBotPage(
+                              courseTitle: _course!.title,
+                              courseDescription: _course!.description,
+                              pdfContents: pdfContents,
+                            ),
+                          ),
                         );
                       },
                     ),
