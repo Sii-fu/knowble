@@ -8,6 +8,7 @@ import '../../data/models/content.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
+import 'chat/chat_detail_page.dart';
 
 
 
@@ -62,6 +63,66 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       _contents = allContents;
       _isLoading = false;
     });
+  }
+
+  Future<void> _startInstructorChat() async {
+    try {
+      // Get course instructor information
+      final instructorId = _course?.instructorId;
+      if (instructorId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Instructor information not available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get current user
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to chat with instructor'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get instructor details from database
+      final instructorData = await Supabase.instance.client
+          .from('users')
+          .select('name, profile_pic')
+          .eq('id', instructorId)
+          .maybeSingle();
+
+      final instructorName = instructorData?['name'] ?? 'Instructor';
+      final profileImage = instructorData?['profile_pic'];
+
+      // Navigate to chat detail page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailPage(
+            courseId: widget.courseId,
+            receiverId: instructorId,
+            instructorName: instructorName,
+            courseCode: _course!.title,
+            profileImage: profileImage,
+          ),
+        ),
+      );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error starting chat: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -138,6 +199,26 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                             ),
                           ),
                         );
+                      },
+                    ),
+                  ),
+                
+                // Chat with instructor button (only for enrolled)
+                if (_enrolled)
+                  const SizedBox(height: 12),
+                if (_enrolled)
+                  Center(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.person_outline, color: Colors.white),
+                      label: const Text('Chat with Instructor', style: TextStyle(fontSize: 16, color: Colors.white)),
+                      onPressed: () {
+                        // Navigate to instructor chat
+                        _startInstructorChat();
                       },
                     ),
                   ),

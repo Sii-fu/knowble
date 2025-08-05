@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 
 import 'package:knowble_app/features/instructor/widgets/instructor_navbar.dart';
-import 'package:knowble_app/features/instructor/home_teacher.dart';
+import 'package:knowble_app/features/instructor/home_teacher_new.dart';
 import 'package:knowble_app/features/instructor/course_screen.dart';
 import 'package:knowble_app/features/instructor/instructor_profile_page.dart';
 import 'package:knowble_app/features/instructor/chat/chat_list_page.dart';
