@@ -175,15 +175,15 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
   }
 
   void _showContextMenu(Map<String, dynamic> feedback) {
-    final theme = Theme.of(context);
-
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppTheme.surfaceWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => Container(
         padding: EdgeInsets.all(6.w),
+        color: AppTheme.surfaceWhite,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -191,9 +191,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               width: 12.w,
               height: 0.5.h,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.3,
-                ),
+                color: AppTheme.textSecondary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -202,9 +200,12 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               leading: CustomIconWidget(
                 iconName: 'visibility',
                 size: 24,
-                color: theme.colorScheme.primary,
+                color: AppTheme.primaryTeal,
               ),
-              title: Text('View Details'),
+              title: Text(
+                'View Details',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _showFeedbackDetail(feedback);
@@ -217,21 +218,27 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
                 leading: CustomIconWidget(
                   iconName: 'add_comment',
                   size: 24,
-                  color: theme.colorScheme.secondary,
+                  color: AppTheme.primaryTeal,
                 ),
-                title: Text('Follow Up'),
+                title: Text(
+                  'Follow Up',
+                  style: TextStyle(color: AppTheme.textPrimary),
+                ),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.pushNamed(context, '/feedback-form-screen');
+                  Navigator.pushNamed(context, '/feedback-form');
                 },
               ),
             ListTile(
               leading: CustomIconWidget(
                 iconName: 'delete_outline',
                 size: 24,
-                color: theme.colorScheme.error,
+                color: AppTheme.errorRed,
               ),
-              title: Text('Delete'),
+              title: Text(
+                'Delete',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _showDeleteConfirmation(feedback);
@@ -245,19 +252,25 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
   }
 
   void _showDeleteConfirmation(Map<String, dynamic> feedback) {
-    final theme = Theme.of(context);
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Feedback'),
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Delete Feedback',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
         content: Text(
           'Are you sure you want to delete this feedback? This action cannot be undone.',
+          style: TextStyle(color: AppTheme.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -265,10 +278,13 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               _deleteFeedback(feedback);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: AppTheme.surfaceWhite,
             ),
-            child: Text('Delete'),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: AppTheme.surfaceWhite),
+            ),
           ),
         ],
       ),
@@ -309,19 +325,25 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
   }
 
   void _showDeleteAllConfirmation() {
-    final theme = Theme.of(context);
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete All Feedback'),
+        backgroundColor: AppTheme.surfaceWhite,
+        title: Text(
+          'Delete All Feedback',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
         content: Text(
           'Are you sure you want to delete all feedback? This action cannot be undone.',
+          style: TextStyle(color: AppTheme.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -329,10 +351,13 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               _deleteAllFeedback();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
+              backgroundColor: AppTheme.errorRed,
+              foregroundColor: AppTheme.surfaceWhite,
             ),
-            child: Text('Delete All'),
+            child: Text(
+              'Delete All',
+              style: TextStyle(color: AppTheme.surfaceWhite),
+            ),
           ),
         ],
       ),
@@ -381,7 +406,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: AppTheme.surfaceWhite,
           elevation: 2.0,
           shadowColor: Colors.black26,
@@ -406,8 +431,10 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
       appBar: AppBar(
         title: Text(
           'My Feedback',
-          style: theme.textTheme.titleLarge?.copyWith(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary,
+            fontSize: 20,
           ),
         ),
         actions: [
@@ -416,7 +443,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
             icon: CustomIconWidget(
               iconName: 'refresh',
               size: 24,
-              color: theme.colorScheme.onSurface,
+              color: AppTheme.textPrimary,
             ),
           ),
           IconButton(
@@ -424,7 +451,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
             icon: CustomIconWidget(
               iconName: 'delete_outline',
               size: 20,
-              color: theme.colorScheme.error,
+              color: AppTheme.errorRed,
             ),
           ),
         ],
@@ -437,8 +464,9 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
               child: Text(
                 'Last synced: ${_formatSyncTime(_lastSyncTime!)}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -452,6 +480,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -464,10 +493,9 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
   }
 
   Widget _buildSkeletonCard() {
-    final theme = Theme.of(context);
-
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+      color: AppTheme.surfaceWhite,
       child: Padding(
         padding: EdgeInsets.all(4.w),
         child: Column(
@@ -479,7 +507,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
                   width: 20.w,
                   height: 3.h,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                    color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
@@ -488,7 +516,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
                   width: 15.w,
                   height: 2.h,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                    color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -499,7 +527,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               width: double.infinity,
               height: 2.h,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -508,7 +536,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               width: 70.w,
               height: 2.h,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -519,7 +547,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
                   width: 15.w,
                   height: 2.5.h,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                    color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
@@ -528,7 +556,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
                   width: 18.w,
                   height: 2.5.h,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                    color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),

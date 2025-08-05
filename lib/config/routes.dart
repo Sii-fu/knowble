@@ -98,9 +98,7 @@ class AppRoutes {
     '/admin/courses': (context) => const AdminCoursesManagement(),
     '/admin/instructors': (context) => const AdminInstructorsManagement(),
 
-    '/student_home': (context) => const StudentHomePage(),
-    '/student_courses': (context) => const StudentCoursesPage(),
-    '/student_schedule': (context) => const StudentSchedulePage(),
+    '/student_courses': (context) => const StudentCoursesPageRefactored(),
     '/student_profile': (context) => const StudentProfilePage(),
     '/calendar-dashboard': (context) => const CalendarDashboard(),
     '/task-creation-modal': (context) => const TaskCreationModal(),
