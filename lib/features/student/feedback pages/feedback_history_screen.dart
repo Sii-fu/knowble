@@ -171,18 +171,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
     showDialog(
       context: context,
       builder: (context) => Theme(
-        data: Theme.of(context).copyWith(
-          // Force light theme properties
-          colorScheme: ColorScheme.light(
-            primary: AppTheme.primaryTeal,
-            surface: AppTheme.surfaceWhite,
-            onSurface: AppTheme.textPrimary,
-          ),
-          cardTheme: CardThemeData(color: AppTheme.surfaceWhite),
-          textTheme: TextTheme(
-            bodyMedium: TextStyle(color: AppTheme.textPrimary),
-          ),
-        ),
+        data: AppTheme.lightTheme,
         child: FeedbackDetailDialog(feedback: feedback),
       ),
     );

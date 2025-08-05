@@ -51,7 +51,9 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> {
   }
 
   bool get _isFormValid {
-    return _messageController.text.trim().isNotEmpty;
+    return _selectedFeedbackType != null &&
+        _selectedCategory != null &&
+        _messageController.text.trim().isNotEmpty;
   }
 
   void _validateForm() {
@@ -258,172 +260,174 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(4.w),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Welcome message
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryTeal.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppTheme.primaryTeal.withValues(alpha: 0.2),
-                      width: 1.0,
+          child: Padding(
+            padding: EdgeInsets.all(4.w),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Welcome message
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryTeal.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primaryTeal.withValues(alpha: 0.2),
+                        width: 1.0,
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Welcome, ${_mockUserData["name"]}',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: AppTheme.primaryTeal,
-                          fontWeight: FontWeight.w600,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome, ${_mockUserData["name"]}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: AppTheme.primaryTeal,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 0.5.h),
-                      Text(
-                        'We value your feedback to improve our educational platform.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 3.h),
-
-                // Main form card
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(5.w),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        offset: const Offset(0, 2),
-                        blurRadius: 8,
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Form title
-                      Text(
-                        'Feedback Details',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      // Feedback Type Dropdown
-                      FeedbackTypeDropdown(
-                        selectedValue: _selectedFeedbackType,
-                        onChanged: (String? value) {
-                          setState(() {
-                            _selectedFeedbackType = value;
-                            _feedbackTypeError = null;
-                          });
-                        },
-                        errorText: _feedbackTypeError,
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      // Category Dropdown
-                      FeedbackCategoryDropdown(
-                        selectedValue: _selectedCategory,
-                        onChanged: (String? value) {
-                          setState(() {
-                            _selectedCategory = value;
-                            _categoryError = null;
-                          });
-                        },
-                        errorText: _categoryError,
-                      ),
-
-                      SizedBox(height: 3.h),
-
-                      // Message Field
-                      FeedbackMessageField(
-                        controller: _messageController,
-                        errorText: _messageError,
-                        maxLength: 500,
-                      ),
-
-                      SizedBox(height: 4.h),
-
-                      // Submit Button
-                      SubmitButton(
-                        onPressed: _submitFeedback,
-                        isLoading: _isLoading,
-                        isEnabled: _isFormValid,
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: 3.h),
-
-                // Navigation hint
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppTheme.borderSubtle,
-                      width: 1.0,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      CustomIconWidget(
-                        iconName: 'info_outline',
-                        color: AppTheme.primaryTeal,
-                        size: 20,
-                      ),
-                      SizedBox(width: 3.w),
-                      Expanded(
-                        child: Text(
-                          'You can view your previous feedback submissions in the Feedback History section.',
-                          style: theme.textTheme.bodySmall?.copyWith(
+                        SizedBox(height: 0.5.h),
+                        Text(
+                          'We value your feedback to improve our educational platform.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
                             color: AppTheme.textSecondary,
                           ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/feedback-history');
-                        },
-                        child: Text(
-                          'View History',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: AppTheme.primaryTeal,
-                            fontWeight: FontWeight.w500,
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 3.h),
+
+                  // Main form card
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(5.w),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          offset: const Offset(0, 2),
+                          blurRadius: 8,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Form title
+                        Text(
+                          'Feedback Details',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
 
-                SizedBox(height: 2.h),
-              ],
+                        SizedBox(height: 3.h),
+
+                        // Feedback Type Dropdown
+                        FeedbackTypeDropdown(
+                          selectedValue: _selectedFeedbackType,
+                          onChanged: (String? value) {
+                            setState(() {
+                              _selectedFeedbackType = value;
+                              _feedbackTypeError = null;
+                            });
+                          },
+                          errorText: _feedbackTypeError,
+                        ),
+
+                        SizedBox(height: 3.h),
+
+                        // Category Dropdown
+                        FeedbackCategoryDropdown(
+                          selectedValue: _selectedCategory,
+                          onChanged: (String? value) {
+                            setState(() {
+                              _selectedCategory = value;
+                              _categoryError = null;
+                            });
+                          },
+                          errorText: _categoryError,
+                        ),
+
+                        SizedBox(height: 3.h),
+
+                        // Message Field
+                        FeedbackMessageField(
+                          controller: _messageController,
+                          errorText: _messageError,
+                          maxLength: 500,
+                        ),
+
+                        SizedBox(height: 4.h),
+
+                        // Submit Button
+                        SubmitButton(
+                          onPressed: _submitFeedback,
+                          isLoading: _isLoading,
+                          isEnabled: _isFormValid,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 3.h),
+
+                  // Navigation hint
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.borderSubtle,
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        CustomIconWidget(
+                          iconName: 'info_outline',
+                          color: AppTheme.primaryTeal,
+                          size: 20,
+                        ),
+                        SizedBox(width: 3.w),
+                        Expanded(
+                          child: Text(
+                            'You can view your previous feedback submissions in the Feedback History section.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/feedback-history');
+                          },
+                          child: Text(
+                            'View History',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: AppTheme.primaryTeal,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 2.h),
+                ],
+              ),
             ),
           ),
         ),

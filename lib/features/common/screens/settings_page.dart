@@ -89,21 +89,26 @@ class SettingsPage extends StatelessWidget {
                 title: 'About Knowble',
                 subtitle: 'App version and information',
                 onTap: () {
-                  showAboutDialog(
+                  showDialog(
                     context: context,
-                    applicationName: 'Knowble',
-                    applicationVersion: '1.0.0',
-                    applicationIcon: Icon(
-                      Icons.school,
-                      color: AppTheme.primaryTeal,
-                      size: 32,
-                    ),
-                    children: [
-                      Text(
-                        'Knowble is your companion for learning and growth.',
-                        style: TextStyle(color: AppTheme.textPrimary),
+                    builder: (context) => Theme(
+                      data: AppTheme.lightTheme,
+                      child: const AboutDialog(
+                        applicationName: 'Knowble',
+                        applicationVersion: '1.0.0',
+                        applicationIcon: Icon(
+                          Icons.school,
+                          color: AppTheme.primaryTeal,
+                          size: 32,
+                        ),
+                        children: [
+                          Text(
+                            'Knowble is your companion for learning and growth.',
+                            style: TextStyle(color: AppTheme.textPrimary),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   );
                 },
               ),
