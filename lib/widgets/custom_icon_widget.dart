@@ -209,6 +209,12 @@ class CustomIconWidget extends StatelessWidget {
       case 'error_outline':
         iconData = Icons.error_outline;
         break;
+      case 'keyboard_arrow_down':
+        iconData = Icons.keyboard_arrow_down;
+        break;
+      case 'info_outline':
+        iconData = Icons.info_outline;
+        break;
       case 'refresh':
         iconData = Icons.refresh;
         break;

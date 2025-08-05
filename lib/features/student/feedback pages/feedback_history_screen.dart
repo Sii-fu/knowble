@@ -170,7 +170,21 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
   void _showFeedbackDetail(Map<String, dynamic> feedback) {
     showDialog(
       context: context,
-      builder: (context) => FeedbackDetailDialog(feedback: feedback),
+      builder: (context) => Theme(
+        data: Theme.of(context).copyWith(
+          // Force light theme properties
+          colorScheme: ColorScheme.light(
+            primary: AppTheme.primaryTeal,
+            surface: AppTheme.surfaceWhite,
+            onSurface: AppTheme.textPrimary,
+          ),
+          cardTheme: CardThemeData(color: AppTheme.surfaceWhite),
+          textTheme: TextTheme(
+            bodyMedium: TextStyle(color: AppTheme.textPrimary),
+          ),
+        ),
+        child: FeedbackDetailDialog(feedback: feedback),
+      ),
     );
   }
 
@@ -428,59 +442,56 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
       ),
       child: Scaffold(
         backgroundColor: AppTheme.backgroundLight,
-      appBar: AppBar(
-        title: Text(
-          'My Feedback',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
-            fontSize: 20,
-          ),
-        ),
-        actions: [
-          IconButton(
-            onPressed: _refreshData,
-            icon: CustomIconWidget(
-              iconName: 'refresh',
-              size: 24,
+        appBar: AppBar(
+          title: Text(
+            'My Feedback',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
               color: AppTheme.textPrimary,
+              fontSize: 20,
             ),
           ),
-          IconButton(
-            onPressed: _showDeleteAllConfirmation,
-            icon: CustomIconWidget(
-              iconName: 'delete_outline',
-              size: 20,
-              color: AppTheme.errorRed,
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (_lastSyncTime != null && !_isLoading)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-              child: Text(
-                'Last synced: ${_formatSyncTime(_lastSyncTime!)}',
-                style: TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
+          actions: [
+            IconButton(
+              onPressed: _refreshData,
+              icon: CustomIconWidget(
+                iconName: 'refresh',
+                size: 24,
+                color: AppTheme.textPrimary,
               ),
             ),
-          Expanded(
-            child: _isLoading
-                ? _buildLoadingState()
-                : _filteredFeedback.isEmpty
-                ? _buildEmptyState()
-                : _buildFeedbackList(),
-          ),
-        ],
+            IconButton(
+              onPressed: _showDeleteAllConfirmation,
+              icon: CustomIconWidget(
+                iconName: 'delete_outline',
+                size: 20,
+                color: AppTheme.errorRed,
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (_lastSyncTime != null && !_isLoading)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                child: Text(
+                  'Last synced: ${_formatSyncTime(_lastSyncTime!)}',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            Expanded(
+              child: _isLoading
+                  ? _buildLoadingState()
+                  : _filteredFeedback.isEmpty
+                  ? _buildEmptyState()
+                  : _buildFeedbackList(),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 

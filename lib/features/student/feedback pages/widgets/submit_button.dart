@@ -23,7 +23,9 @@ class SubmitButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isEnabled && !isLoading ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isEnabled ? AppTheme.primaryTeal : Colors.grey[400],
+          backgroundColor: isEnabled
+              ? AppTheme.primaryTeal
+              : AppTheme.textSecondary.withOpacity(0.4),
           foregroundColor: Colors.white,
           elevation: 6.0,
           shadowColor: Colors.black38,
