@@ -162,7 +162,7 @@ class _TaskDetailViewState extends State<TaskDetailView> {
   Widget _buildErrorState() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      child: Container(
+      child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.7,
         child: Center(
           child: Column(
