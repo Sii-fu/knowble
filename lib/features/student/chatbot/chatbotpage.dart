@@ -7,7 +7,16 @@ import '../../../config/theme.dart';
 import '../../../core/services/gemini/chatbot.dart';
 
 class ChatBotPage extends StatefulWidget {
-  const ChatBotPage({super.key});
+  final String? courseTitle;
+  final String? courseDescription;
+  final List<Map<String, dynamic>>? pdfContents;
+  
+  const ChatBotPage({
+    super.key,
+    this.courseTitle,
+    this.courseDescription,
+    this.pdfContents,
+  });
 
   @override
   State<ChatBotPage> createState() => _ChatBotPageState();
@@ -37,6 +46,26 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    
+    // DEBUG: Print the actual text parameters received
+    print('🤖 CHATBOT RECEIVED PARAMETERS:');
+    print('courseTitle parameter: "${widget.courseTitle ?? "null"}"');
+    print('courseDescription parameter: "${widget.courseDescription ?? "null"}"');
+    if (widget.pdfContents != null && widget.pdfContents!.isNotEmpty) {
+      for (int i = 0; i < widget.pdfContents!.length; i++) {
+        final pdf = widget.pdfContents![i];
+        if (pdf['textContent'] != null) {
+          final textContent = pdf['textContent'].toString();
+          print('pdfContents[$i]["textContent"] parameter: "${textContent.length > 300 ? textContent.substring(0, 300) + "..." : textContent}"');
+          print('Total textContent length: ${textContent.length} characters');
+        } else {
+          print('pdfContents[$i]["textContent"] parameter: null');
+        }
+      }
+    } else {
+      print('pdfContents parameter: null or empty');
+    }
+    print('════════════════════════════════════════');
     
     // Initialize Gemini service
     _geminiService = GeminiService();
@@ -80,17 +109,7 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
     ));
 
     // Add welcome message
-//     _messages.add(
-//       ChatMessage(
-//         message: """# 🤖 Welcome to Your AI Study Assistant!
-// ## What I Can Help With:
-
-// Just ask me anything about your studies! 📖✨
-//         """,
-//         isUser: false,
-//         timestamp: DateTime.now(),
-//       ),
-//     );
+    _addWelcomeMessage();
   }
 
   @override
@@ -103,6 +122,60 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
     _messageAnimationController.dispose();
     _thinkingAnimationController.dispose();
     super.dispose();
+  }
+
+  void _addWelcomeMessage() {
+    String welcomeMessage;
+    
+    if (widget.courseTitle != null) {
+      // Course-specific welcome message
+      String pdfInfo = '';
+      if (widget.pdfContents != null && widget.pdfContents!.isNotEmpty) {
+        pdfInfo = '\n\n📄 **Available Course Materials:**\n';
+        for (var pdf in widget.pdfContents!) {
+          pdfInfo += '• ${pdf['title'] ?? 'PDF Document'}';
+          if (pdf['textContent'] != null) {
+            pdfInfo += ' ✅ (Text content loaded)';
+          }
+          pdfInfo += '\n';
+        }
+        pdfInfo += '\nI can answer questions about these materials and their content!';
+      }
+      
+      welcomeMessage = """# 🤖 Welcome to Your AI Study Assistant!
+
+## 📚 Course: ${widget.courseTitle}
+
+${widget.courseDescription != null ? '**About this course:**\n${widget.courseDescription}\n' : ''}$pdfInfo
+
+## What I Can Help With:
+- 🧮 **Mathematics** - Algebra, geometry, calculus  
+- 🔬 **Science** - Physics, chemistry, biology
+- 📚 **History** - World events, timelines
+- ✍️ **English** - Writing, literature, grammar
+- 📖 **Course Content** - Questions about your course materials and PDF content
+
+Just ask me anything about your studies! 📖✨""";
+    } else {
+      // General welcome message
+      welcomeMessage = """# 🤖 Welcome to Your AI Study Assistant!
+
+## What I Can Help With:
+- 🧮 **Mathematics** - Algebra, geometry, calculus
+- 🔬 **Science** - Physics, chemistry, biology  
+- 📚 **History** - World events, timelines
+- ✍️ **English** - Writing, literature, grammar
+
+Just ask me anything about your studies! 📖✨""";
+    }
+
+    _messages.add(
+      ChatMessage(
+        message: welcomeMessage,
+        isUser: false,
+        timestamp: DateTime.now(),
+      ),
+    );
   }
 
   void _sendMessage() async {
@@ -139,8 +212,33 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
     _scrollToBottom();
 
     try {
+      // Prepare context-aware message
+      String contextualMessage = userMessage;
+      
+      if (widget.courseTitle != null) {
+        String courseContext = 'Course Context: ${widget.courseTitle}';
+        if (widget.courseDescription != null) {
+          courseContext += '\nCourse Description: ${widget.courseDescription}';
+        }
+        if (widget.pdfContents != null && widget.pdfContents!.isNotEmpty) {
+          courseContext += '\nAvailable Materials:';
+          for (var pdf in widget.pdfContents!) {
+            courseContext += '\n- ${pdf['title'] ?? 'PDF Document'}';
+            
+            // Include PDF text content if available
+            if (pdf['textContent'] != null && pdf['textContent'].toString().isNotEmpty) {
+              courseContext += '\n\nContent of "${pdf['title']}":\n';
+              // Include ALL text content - no truncation
+              String textContent = pdf['textContent'].toString();
+              courseContext += textContent;
+            }
+          }
+        }
+        contextualMessage = '$courseContext\n\nStudent Question: $userMessage';
+      }
+      
       // Get AI response from Gemini
-      final aiResponse = await _geminiService.generateContentWithFallback(userMessage, _selectedOption ?? '');
+      final aiResponse = await _geminiService.generateContentWithFallback(contextualMessage, _selectedOption ?? '');
 
       // Stop thinking animation
       _thinkingAnimationController.stop();
