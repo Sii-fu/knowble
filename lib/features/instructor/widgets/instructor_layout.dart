@@ -19,11 +19,11 @@ class _InstructorLayoutState extends State<InstructorLayout> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
-  final List<Widget> _pages = const [
-    TeacherHomePage(),
-    CourseScreen(),
-    ChatListPage(),
-    InstructorProfilePage(),
+  final List<Widget> _pages = [
+    const TeacherHomePage(),
+    const CourseScreen(),
+    const ChatListPage(),
+    const InstructorProfilePage(),
     // Add more instructor-specific pages here
   ];
 
