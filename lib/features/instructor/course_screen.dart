@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'create_course_screen.dart';
 import 'course_detail_screen.dart';
+import '../../config/theme.dart';
+import '../../core/services/Instructor/course_fetch.dart';
 
 
 class CourseScreen extends StatefulWidget {
@@ -171,6 +173,7 @@ class _CourseScreenState extends State<CourseScreen> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) => CourseDetailScreen(
+                                              id: course['id'],
                                               title: course['title'] ?? '',
                                               subject: course['subject'] ?? '',
                                               students: course['students'] ?? 0,

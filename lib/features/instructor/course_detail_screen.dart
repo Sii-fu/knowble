@@ -2,19 +2,52 @@ import 'package:flutter/material.dart';
 import 'edit_course_screen.dart';
 import '../../config/theme.dart';
 
-class CourseDetailScreen extends StatelessWidget {
+
+
+import '../../core/services/Instructor/course_fetch.dart';
+
+
+
+class CourseDetailScreen extends StatefulWidget {
+  final String id;
   final String title;
   final String subject;
-  final String students;
-  final String duration;
+  final dynamic students;
+  final dynamic duration;
 
   const CourseDetailScreen({
     super.key,
+    required this.id,
     required this.title,
     required this.subject,
     required this.students,
     required this.duration,
   });
+
+  @override
+  State<CourseDetailScreen> createState() => _CourseDetailScreenState();
+}
+
+
+class _CourseDetailScreenState extends State<CourseDetailScreen> {
+  final CourseFetchService _fetchService = CourseFetchService();
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _modules = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCourseDetails();
+  }
+
+  Future<void> _fetchCourseDetails() async {
+    // Use courseId to fetch details
+    final modules = await _fetchService.fetchCourseModulesWithSectionsAndContents(widget.id);
+    setState(() {
+      _modules = modules;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +62,7 @@ class CourseDetailScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Blue header section with illustration
+          // ...existing header code...
           Container(
             height: 200,
             decoration: BoxDecoration(
@@ -41,7 +74,7 @@ class CourseDetailScreen extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                // Interactive Back button
+                // ...existing header icons/buttons...
                 Positioned(
                   top: 20,
                   left: 20,
@@ -63,7 +96,6 @@ class CourseDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Interactive Close button
                 Positioned(
                   top: 20,
                   right: 20,
@@ -85,7 +117,6 @@ class CourseDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Mathematical symbols and illustrations
                 Positioned(
                   top: 40,
                   left: 40,
@@ -101,7 +132,6 @@ class CourseDetailScreen extends StatelessWidget {
                   left: 30,
                   child: Icon(Icons.percent, color: AppTheme.surfaceWhite.withOpacity(0.3), size: 18),
                 ),
-                // Person illustration (using icon as placeholder)
                 Positioned(
                   bottom: 20,
                   left: 60,
@@ -112,7 +142,6 @@ class CourseDetailScreen extends StatelessWidget {
                     size: 80,
                   ),
                 ),
-                // Calculator illustration
                 Positioned(
                   bottom: 30,
                   right: 40,
@@ -165,75 +194,76 @@ class CourseDetailScreen extends StatelessWidget {
           ),
           // Content section
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Course title and info
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        subject,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppTheme.textSecondary,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Course title and info
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '10 Chapter',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppTheme.textSecondary,
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              widget.subject,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              '${_modules.length} Chapters',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Description section
-                  const Text(
-                    'Description',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                        const SizedBox(height: 24),
+                        // Description section
+                        const Text(
+                          'Description',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'This course on ${widget.title} (${widget.subject}) is designed for ${widget.students} and has a total duration of ${widget.duration}. Dive into chapters and lessons tailored for your learning journey.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.textSecondary,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        // Chapters, Lessons, and Contents
+                        const Text(
+                          'Course Structure',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ..._modules.map((module) => ModuleWidget(module: module)),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'This course on $title ($subject) is designed for $students and has a total duration of $duration. Dive into chapters and lessons tailored for your learning journey.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Your Chapter section
-                  const Text(
-                    'Your Chapter',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Chapter list
-                  ...chapterList.map((chapter) => ChapterItem(title: chapter)),
-                ],
-              ),
-            ),
           ),
           // Edit Course button
           Container(
@@ -247,8 +277,8 @@ class CourseDetailScreen extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => EditCourseScreen(
-                        courseTitle: title,
-                        subject: subject,
+                        courseTitle: widget.title,
+                        subject: widget.subject,
                       ),
                     ),
                   );
@@ -277,41 +307,109 @@ class CourseDetailScreen extends StatelessWidget {
   }
 }
 
-class ChapterItem extends StatelessWidget {
-  final String title;
-
-  const ChapterItem({super.key, required this.title});
+class ModuleWidget extends StatelessWidget {
+  final Map<String, dynamic> module;
+  const ModuleWidget({super.key, required this.module});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final List sections = module['sections'] ?? module['lessons'] ?? [];
+    return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                color: AppTheme.textPrimary,
-              ),
-            ),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        title: Text(
+          module['title'] ?? 'Chapter',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
-          // Removed plus icon button
+        ),
+        children: [
+          ...sections.map((section) => SectionWidget(section: section)),
         ],
       ),
     );
   }
 }
 
-// Sample chapter data
-const List<String> chapterList = [
-  'Basic Arithmetic',
-  'Solving Math Word Problems',
-  'Quiz',
-  'Decimals and Fractions',
-  'Percent Notation',
-  'Real Numbers',
-  'Exponential Expressions & Exponents',
-  'Radical Expressions',
-];
+class SectionWidget extends StatelessWidget {
+  final Map<String, dynamic> section;
+  const SectionWidget({super.key, required this.section});
+
+  @override
+  Widget build(BuildContext context) {
+    final List contents = section['contents'] ?? [];
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    section['title'] ?? 'Lesson',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if ((section['description'] ?? '').toString().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                section['description'],
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+            ],
+            const SizedBox(height: 6),
+            ...contents.map((content) => ContentWidget(content: content)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ContentWidget extends StatelessWidget {
+  final Map<String, dynamic> content;
+  const ContentWidget({super.key, required this.content});
+
+  @override
+  Widget build(BuildContext context) {
+    final String type = content['type'] ?? 'pdf';
+    final String url = content['url'] ?? '';
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        type == 'pdf' ? Icons.picture_as_pdf : Icons.link,
+        color: type == 'pdf' ? Colors.red : Colors.blue,
+      ),
+      title: Text(
+        content['title'] ?? 'Content',
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
+      ),
+      trailing: url.isNotEmpty
+          ? IconButton(
+              icon: const Icon(Icons.open_in_new, size: 20),
+              onPressed: () {
+                // Open PDF or link
+                // You can use url_launcher or similar package
+              },
+            )
+          : null,
+    );
+  }
+}

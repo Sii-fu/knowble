@@ -3,6 +3,51 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class CourseFetchService {
   final supabase = Supabase.instance.client;
 
+  // Fetch all modules (chapters), sections (lessons), and contents for a course by courseId
+  Future<List<Map<String, dynamic>>> fetchCourseModulesWithSectionsAndContents(String courseId) async {
+    // Fetch modules (chapters)
+    final modules = await supabase
+        .from('modules')
+        .select('id, title, "order"')
+        .eq('course_id', courseId)
+        .order('order');
+
+    List<Map<String, dynamic>> moduleList = [];
+    for (final module in modules) {
+      // Fetch sections (lessons)
+      final sections = await supabase
+          .from('sections')
+          .select('id, title, description, "order"')
+          .eq('module_id', module['id'])
+          .order('order');
+
+      List<Map<String, dynamic>> sectionList = [];
+      for (final section in sections) {
+        // Fetch contents (PDFs, etc)
+        final contents = await supabase
+            .from('contents')
+            .select('id, type, title, url, "order"')
+            .eq('section_id', section['id'])
+            .order('order');
+
+        sectionList.add({
+          'id': section['id'],
+          'title': section['title'],
+          'description': section['description'],
+          'order': section['order'],
+          'contents': contents,
+        });
+      }
+      moduleList.add({
+        'id': module['id'],
+        'title': module['title'],
+        'order': module['order'],
+        'sections': sectionList,
+      });
+    }
+    return moduleList;
+  }
+
   /// Fetches all courses for the current instructor, including modules, sections, and contents (PDFs)
   Future<List<Map<String, dynamic>>> fetchInstructorCoursesFull() async {
     final user = supabase.auth.currentUser;
@@ -75,3 +120,4 @@ class CourseFetchService {
     };
   }
 }
+
