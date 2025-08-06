@@ -276,17 +276,17 @@ class _CourseScreenState extends State<CourseScreen> {
   }
 
   void _showCourseDetail(BuildContext context, CourseData course) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CourseDetailScreen(
-        title: course.title,
-        subject: course.subject,
-        students: course.students,
-        duration: course.duration,
-      ),
-    );
+    // showModalBottomSheet(
+    //   context: context,
+    //   isScrollControlled: true,
+    //   backgroundColor: Colors.transparent,
+    //   builder: (context) => CourseDetailScreen(
+    //     title: course.title,
+    //     subject: course.subject,
+    //     students: course.students,
+    //     duration: course.duration,
+    //   ),
+    // );
   }
 }
 
