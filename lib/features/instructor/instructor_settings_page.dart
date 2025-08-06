@@ -51,7 +51,7 @@ class InstructorSettingsPage extends StatelessWidget {
                      Navigator.push(
                        context,
                        MaterialPageRoute(
-                         builder: (context) => CourseScreen(),
+                         builder: (context) => const CourseScreen(),
                        ),
                      );
                    },

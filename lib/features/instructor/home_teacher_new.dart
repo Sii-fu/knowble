@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../config/theme.dart';
 import 'course_screen.dart';
+import 'create_course_screen.dart';
+
+import 'package:knowble_app/features/instructor/chat/chat_list_page.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
@@ -151,7 +154,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const CourseScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const CreateCourseScreen(),
+                      ),
                     );
                   },
                 ),
@@ -162,7 +167,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   icon: Icons.chat_outlined,
                   label: 'Messages',
                   onTap: () {
-                    // Handle messages
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChatListPage(),
+                      ),
+                    );
                   },
                 ),
               ),
