@@ -15,7 +15,7 @@ import '../features/student/chat/chat_list_page.dart';
 
 import '../features/instructor/course_screen.dart';
 import '../features/instructor/manage_students_page.dart';
-import '../features/instructor/home_teacher.dart';
+import '../features/instructor/home_teacher_new.dart';
 import '../features/instructor/instructor_profile_page2.dart';
 import '../features/instructor/instructor_profile_page.dart';
 import '../features/admin/admin_dashboard.dart';
@@ -46,9 +46,7 @@ import '../features/common/screens/notifications/notifications_screen.dart';
 import '../features/instructor/widgets/instructor_layout.dart';
 import '../features/student/widgets/student_layout.dart';
 import '../features/student/dashboard_page.dart';
-import '../features/student/home_page.dart';
-import '../features/student/courses_page.dart';
-import '../features/student/schedule_page.dart';
+import '../features/student/courses_page_refactored.dart';
 import '../features/student/profile_page.dart';
 import '../features/student/calendar_dashboard.dart';
 import '../features/student/scheduler/task_creation_modal.dart';
@@ -59,6 +57,10 @@ import '../features/student/chatbot/chatbotpage.dart';
 import '../features/student/notification_settings_page.dart';
 import '../features/student/invite_friends_page.dart';
 import '../features/student/terms_conditions_page.dart';
+
+// Feedback screens
+import '../features/student/feedback pages/feedback_form_screen.dart';
+import '../features/student/feedback pages/feedback_history_screen.dart';
 
 // AppRoutes holds all route names and their corresponding widget builders.
 class AppRoutes {
@@ -96,16 +98,17 @@ class AppRoutes {
     '/admin/courses': (context) => const AdminCoursesManagement(),
     '/admin/instructors': (context) => const AdminInstructorsManagement(),
 
-    '/student_home': (context) => const StudentHomePage(),
-    '/student_courses': (context) => const StudentCoursesPage(),
-    '/student_schedule': (context) => const StudentSchedulePage(),
+    '/student_courses': (context) => const StudentCoursesPageRefactored(),
     '/student_profile': (context) => const StudentProfilePage(),
     '/calendar-dashboard': (context) => const CalendarDashboard(),
     '/task-creation-modal': (context) => const TaskCreationModal(),
     '/task-edit-modal': (context) => const TaskEditModal(),
     '/task-detail-view': (context) => const TaskDetailView(),
     '/full-month-calendar-view': (context) => const FullMonthCalendarView(),
+    // '/home_teacher': (context) => const TeacherHomePage(),
+    // '/home_teacher': (context) => const old_teacher.TeacherHomePage(),
     '/home_teacher': (context) => const TeacherHomePage(),
+
     '/instructor_profile_page2': (context) => const InstructorProfilePage2(),
     '/instructor_profile_page': (context) => const InstructorProfilePage(),
     '/chatbot': (context) => const ChatBotPage(),
@@ -124,5 +127,9 @@ class AppRoutes {
     '/notification-settings': (context) => const NotificationSettingsPage(),
     '/invite-friends': (context) => const InviteFriendsPage(),
     '/terms-conditions': (context) => const TermsAndConditionsPage(),
+
+    // Feedback pages
+    '/feedback-form': (context) => const FeedbackFormScreen(),
+    '/feedback-history': (context) => const FeedbackHistoryScreen(),
   };
 }

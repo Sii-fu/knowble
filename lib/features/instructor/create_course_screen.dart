@@ -31,7 +31,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     }
   }
   // Store all chapters and their lessons before upload
-  List<Map<String, dynamic>> _allChapters = [];
+  final List<Map<String, dynamic>> _allChapters = [];
 
   String? _createdCourseId;
   // Question section controllers

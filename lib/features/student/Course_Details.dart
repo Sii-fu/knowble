@@ -8,6 +8,9 @@ import '../../data/models/content.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
+import 'chat/chat_detail_page.dart';
+
+
 
 class CourseDetailPage extends StatefulWidget {
   final String courseId;
@@ -62,6 +65,66 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     });
   }
 
+  Future<void> _startInstructorChat() async {
+    try {
+      // Get course instructor information
+      final instructorId = _course?.instructorId;
+      if (instructorId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Instructor information not available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get current user
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to chat with instructor'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get instructor details from database
+      final instructorData = await Supabase.instance.client
+          .from('users')
+          .select('name, profile_pic')
+          .eq('id', instructorId)
+          .maybeSingle();
+
+      final instructorName = instructorData?['name'] ?? 'Instructor';
+      final profileImage = instructorData?['profile_pic'];
+
+      // Navigate to chat detail page
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailPage(
+            courseId: widget.courseId,
+            receiverId: instructorId,
+            instructorName: instructorName,
+            courseCode: _course!.title,
+            profileImage: profileImage,
+          ),
+        ),
+      );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error starting chat: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -80,18 +143,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(_course!.title, style: const TextStyle(color: AppTheme.textPrimary)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: AppTheme.primaryTeal),
-            tooltip: 'Ask AI Assistant',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChatBotPage()),
-              );
-            },
-          ),
-        ],
+        
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -108,24 +160,68 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                       : Image.asset('assets/images/default_course.jpg', width: double.infinity, height: 180, fit: BoxFit.cover),
                 ),
                 const SizedBox(height: 16),
-                // Chatbot button (prominent)
-                Center(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryTeal,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                // Chatbot button (prominent, only for enrolled)
+                if (_enrolled)
+                  Center(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                      label: const Text('Ask AI Assistant', style: TextStyle(fontSize: 16, color: Colors.white)),
+                      onPressed: () {
+                        // Prepare PDF contents for context
+                        List<Map<String, dynamic>> pdfContents = _contents
+                            .where((content) => content.type == 'pdf')
+                            .map((content) => {
+                              'title': content.title,
+                              'url': content.url,
+                              // Note: Text content will be extracted on-demand in the chatbot
+                            })
+                            .toList();
+                        
+                        // DEBUG: Print actual parameters being sent to ChatBot
+                        print('🏫 COURSE DETAILS → CHATBOT PARAMETERS:');
+                        print('courseTitle parameter: "${_course!.title}"');
+                        print('courseDescription parameter: "${_course!.description}"');
+                        print('pdfContents parameter: $pdfContents');
+                        print('════════════════════════════════════════');
+                        
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatBotPage(
+                              courseTitle: _course!.title,
+                              courseDescription: _course!.description,
+                              pdfContents: pdfContents,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-                    label: const Text('Ask AI Assistant', style: TextStyle(fontSize: 16, color: Colors.white)),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ChatBotPage()),
-                      );
-                    },
                   ),
-                ),
+                
+                // Chat with instructor button (only for enrolled)
+                if (_enrolled)
+                  const SizedBox(height: 12),
+                if (_enrolled)
+                  Center(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.person_outline, color: Colors.white),
+                      label: const Text('Chat with Instructor', style: TextStyle(fontSize: 16, color: Colors.white)),
+                      onPressed: () {
+                        // Navigate to instructor chat
+                        _startInstructorChat();
+                      },
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 Text(_course!.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
@@ -190,8 +286,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                                       ? const Icon(Icons.lock, color: Colors.red)
                                       : const Icon(Icons.picture_as_pdf, color: Colors.red),
                                   title: Text(content.title),
-                                  enabled: _enrolled || isFirstSection,
-                                  onTap: (_enrolled || isFirstSection)
+                                  enabled: _enrolled,
+                                  onTap: _enrolled
                                       ? () {
                                           Navigator.push(
                                             context,
@@ -255,5 +351,4 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     );
   }
 }
-
 

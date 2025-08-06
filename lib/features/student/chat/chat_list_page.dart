@@ -86,6 +86,13 @@ class _ChatListPageState extends State<ChatListPage> {
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (context, index) {
                           final chat = _chats![index];
+                          
+                          // DEBUG: Print the entire chat object to see available fields
+                          print('🔍 CHAT LIST DEBUG - Chat object $index:');
+                          print('Available keys: ${chat.keys.toList()}');
+                          print('Full chat data: $chat');
+                          print('════════════════════════════════════════');
+                          
                           final courseId = chat['course_id'] as String?;
                           final instructorId = chat['instructor_id'] as String?;
                           final courseTitle = chat['course_title'] as String? ?? '';

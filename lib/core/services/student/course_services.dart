@@ -5,14 +5,9 @@ import '../../../data/models/module.dart';
 import '../../../data/models/section.dart';
 import '../../../data/models/content.dart';
 import '../../../data/models/enrollment.dart';
+import '../../../data/models/certificate.dart';
 
 class CourseServices {
-  Future<List<Course>> fetchRecentLearningCourses(String studentId) async {
-    final enrollments = await fetchUserEnrollments(studentId);
-    final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
-    final allCourses = await fetchAllCourses();
-    return allCourses.where((c) => enrolledCourseIds.contains(c.id)).toList();
-  }
   final _client = Supabase.instance.client;
 
   Future<List<Course>> fetchAllCourses() async {
@@ -53,13 +48,41 @@ class CourseServices {
     }
   }
 
-  Future<List<Course>> fetchRecommendedCourses(String studentId) async {
+  Future<List<String>> fetchCompletedCourseIds(String studentId) async {
+    try {
+      final response = await _client
+          .from('certificates')
+          .select('course_id')
+          .eq('student_id', studentId);
+      final data = response as List<dynamic>? ?? [];
+      return data.map((e) => e['course_id'] as String).toList();
+    } catch (e) {
+      print('Error fetching completed course IDs: $e');
+      return [];
+    }
+  }
+
+  Future<List<Course>> fetchCompletedCourses(String studentId) async {
+    final completedIds = await fetchCompletedCourseIds(studentId);
     final allCourses = await fetchAllCourses();
+    return allCourses.where((c) => completedIds.contains(c.id)).toList();
+  }
+
+  Future<List<Course>> fetchOngoingCourses(String studentId) async {
     final enrollments = await fetchUserEnrollments(studentId);
     final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
-    return allCourses
-        .where((course) => !enrolledCourseIds.contains(course.id))
-        .toList();
+    final completedCourseIds = await fetchCompletedCourseIds(studentId);
+    final ongoingIds = enrolledCourseIds.difference(completedCourseIds.toSet());
+    final allCourses = await fetchAllCourses();
+    return allCourses.where((c) => ongoingIds.contains(c.id)).toList();
+  }
+
+  Future<List<Course>> fetchAllStudentCourses(String studentId) async {
+    final enrolled = await fetchUserEnrollments(studentId);
+    final completed = await fetchCompletedCourseIds(studentId);
+    final ids = enrolled.map((e) => e.courseId).toSet().union(completed.toSet());
+    final allCourses = await fetchAllCourses();
+    return allCourses.where((c) => ids.contains(c.id)).toList();
   }
 
   Future<Course?> fetchCourseById(String courseId) async {
@@ -107,4 +130,23 @@ class CourseServices {
       'enrolled_at': DateTime.now().toIso8601String(),
     });
   }
+
+  Future<List<Course>> fetchRecentLearningCourses(String studentId) async {
+    final enrollments = await fetchUserEnrollments(studentId);
+    final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
+    final allCourses = await fetchAllCourses();
+    return allCourses.where((c) => enrolledCourseIds.contains(c.id)).toList();
+  }
+
+  Future<List<Course>> fetchRecommendedCourses(String studentId) async {
+    final allCourses = await fetchAllCourses();
+    final enrollments = await fetchUserEnrollments(studentId);
+    final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
+    return allCourses
+        .where((course) => !enrolledCourseIds.contains(course.id))
+        .toList();
+  }
+
+
+
 }
