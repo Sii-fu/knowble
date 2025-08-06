@@ -5,11 +5,35 @@ import 'package:flutter/material.dart';
 import 'create_course_screen.dart';
 import 'course_detail_screen.dart';
 import '../../config/theme.dart';
-import '../../core/services/Instructor/course_service.dart';
+import '../../core/services/Instructor/course_fetch.dart';
 
 
-class CourseScreen extends StatelessWidget {
+class CourseScreen extends StatefulWidget {
   const CourseScreen({super.key});
+
+  @override
+  State<CourseScreen> createState() => _CourseScreenState();
+}
+
+class _CourseScreenState extends State<CourseScreen> {
+  final CourseFetchService _fetchService = CourseFetchService();
+  List<Map<String, dynamic>> _courses = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    setState(() => _isLoading = true);
+    final courses = await _fetchService.fetchInstructorCoursesFull();
+    setState(() {
+      _courses = courses;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,51 +95,120 @@ class CourseScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: ListView(
-                children: [
-                  CourseCard(
-                    subject: 'Biology',
-                    title: 'Bacterial Biology Overview',
-                    subtitle: 'for College',
-                    students: '2.4k Students',
-                    duration: '3h 30m',
-                    illustration: Icons.biotech,
-                  ),
-                  const SizedBox(height: 16),
-                  CourseCard(
-                    subject: 'Biology',
-                    title: 'Metabolic Biochemistry for High School',
-                    subtitle: '',
-                    students: '1k Students',
-                    duration: '2h 30m',
-                    illustration: Icons.science,
-                  ),
-                  const SizedBox(height: 16),
-                  CourseCard(
-                    subject: 'Biology',
-                    title: 'Mendelian Genetics & Mechanisms of Heredity',
-                    subtitle: '',
-                    students: '3k Students',
-                    duration: '2h 45m',
-                    illustration: Icons.psychology,
-                  ),
-                  const SizedBox(height: 16),
-                  CourseCard(
-                    subject: 'Mathematics',
-                    title: 'High School Algebra I: Help and Review',
-                    subtitle: '',
-                    students: '2.6k Students',
-                    duration: '4h 30m',
-                    illustration: Icons.calculate,
-                  ),
-                  const SizedBox(height: 80), // Extra space for floating button
-                ],
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _courses.isEmpty
+                      ? const Center(child: Text('No courses found.'))
+                      : ListView.separated(
+                          itemCount: _courses.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (context, idx) {
+                            final course = _courses[idx];
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Thumbnail with title and duration
+                                    Container(
+                                      width: 64,
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue[100],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.menu_book, color: Colors.blue[700], size: 28),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              course['duration_days']?.toString() ?? '-',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.blue[900],
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            Text(
+                                              'days',
+                                              style: TextStyle(fontSize: 11, color: Colors.blueGrey),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    // Course title
+                                    Expanded(
+                                      child: Text(
+                                        course['title'] ?? '',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // View button
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => CourseDetailScreen(
+                                              title: course['title'] ?? '',
+                                              subject: course['subject'] ?? '',
+                                              students: course['students'] ?? 0,
+                                              duration: course['duration_days'] ?? 0,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        backgroundColor: Colors.blue[50],
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'View',
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),
       ),
-      // Floating Action Button - Updated to navigate to CreateCourseScreen
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
@@ -123,7 +216,7 @@ class CourseScreen extends StatelessWidget {
             MaterialPageRoute(
               builder: (context) => const CreateCourseScreen(),
             ),
-          );
+          ).then((_) => _loadCourses());
         },
         backgroundColor: Colors.blue[600],
         icon: const Icon(Icons.add, color: Colors.white),
@@ -135,213 +228,10 @@ class CourseScreen extends StatelessWidget {
           ),
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8), // Square/rectangular shape
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );
   }
 }
 
-class CourseCard extends StatelessWidget {
-  final String subject;
-  final String title;
-  final String subtitle;
-  final String students;
-  final String duration;
-  final IconData illustration;
-
-  const CourseCard({
-    super.key,
-    required this.subject,
-    required this.title,
-    required this.subtitle,
-    required this.students,
-    required this.duration,
-    required this.illustration,
-  });
-
-  void _showCourseDetail(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CourseDetailScreen(
-        title: title,
-        subject: subject,
-        students: students,
-        duration: duration,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left side - Illustration and subject tag
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.blue[600],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Stack(
-                  children: [
-                    // Background illustration
-                    Positioned.fill(
-                      child: Icon(
-                        illustration,
-                        color: Colors.white.withOpacity(0.3),
-                        size: 40,
-                      ),
-                    ),
-                    // Subject tag
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          subject,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              // Middle - Course details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 16,
-                      runSpacing: 4,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.people_outline,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              students,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              duration,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Right side - Action button (only View)
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton(
-                    onPressed: () => _showCourseDetail(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      'View',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
