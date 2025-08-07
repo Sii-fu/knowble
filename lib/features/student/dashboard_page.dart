@@ -6,6 +6,7 @@ import '../../data/models/module.dart'; // Import the Module type
 import 'Course_Details.dart';
 import 'unified_search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'courses_lessons.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -165,7 +166,7 @@ class _Header extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hi, Christina',
+              'Hi, Arthur',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -285,7 +286,7 @@ class _RecentLearning extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CourseDetailPage(courseId: course.id),
+                      builder: (_) => CourseLessonsPage(courseId: course.id),
                     ),
                   );
                 },
