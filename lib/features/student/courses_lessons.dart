@@ -3,6 +3,7 @@ import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
 import '../../core/services/student/course_services.dart';
+import '../course/quiz_page.dart';
 
 
 class CourseLessonsPage extends StatelessWidget {
@@ -14,27 +15,25 @@ class CourseLessonsPage extends StatelessWidget {
     final modules = await courseServices.fetchModules(courseId);
     List<Map<String, dynamic>> lessons = [];
     for (final module in modules) {
-      // Each module is a section
-      // Fetch contents for this module (assuming contents are linked to module via section)
-      // If you have sections, you can fetch sections and then contents per section
       final sections = await courseServices.fetchSections(module.id);
-      List<Map<String, dynamic>> items = [];
-      for (final section in sections) {
+      List<Map<String, dynamic>> sectionList = [];
+      for (int i = 0; i < sections.length; i++) {
+        final section = sections[i];
         final contents = await courseServices.fetchContents(section.id);
-        for (final content in contents) {
-          items.add({
-            'number': content.order.toString().padLeft(2, '0'),
-            'title': content.title,
-            'duration': '', // You can add duration if available in content
-            'type': content.type,
-            'url': content.url,
-          });
-        }
+        List<Map<String, dynamic>> contentList = contents.map((content) => {
+          'title': content.title,
+          'type': content.type,
+          'url': content.url,
+        }).toList();
+        sectionList.add({
+          'number': (i + 1).toString(),
+          'title': section.title,
+          'contents': contentList,
+        });
       }
       lessons.add({
-        'section': module.title,
-        'totalTime': '', // You can calculate total time if available
-        'items': items,
+        'module': module.title,
+        'sections': sectionList,
       });
     }
     return lessons;
@@ -48,66 +47,29 @@ class CourseLessonsPage extends StatelessWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
               child: Row(
                 children: [
                   IconButton(
                     icon: Icon(
-                      Icons.arrow_back_ios, 
-                      color: AppTheme.textPrimary,
+                      Icons.arrow_back_ios,
+                      color: AppTheme.primaryTeal,
                     ),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Lessons',
+                    'Course Lessons',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryTeal,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceWhite,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: SizedBox(
-                  height: 45,
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
-                          style: const TextStyle(color: AppTheme.textPrimary),
-                          decoration: InputDecoration(
-                            hintText: '3D Design Illustration',
-                            hintStyle: TextStyle(color: AppTheme.textSecondary),
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryTeal,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.search, color: AppTheme.surfaceWhite, size: 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            // Removed search bar for a cleaner look
             const SizedBox(height: 16),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -120,200 +82,175 @@ class CourseLessonsPage extends StatelessWidget {
                     return Center(child: Text('Error loading lessons'));
                   }
                   final lessons = snapshot.data ?? [];
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                     itemCount: lessons.length,
-                    itemBuilder: (context, index) {
-                      final section = lessons[index];
-                      final items = section['items'] as List<dynamic>;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    separatorBuilder: (context, idx) => const SizedBox(height: 18),
+                    itemBuilder: (context, moduleIndex) {
+                      final module = lessons[moduleIndex];
+                      final sections = module['sections'] as List<dynamic>;
+                      return Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        color: Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                section['section'] as String,
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                ),
+                              Row(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryTeal.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.menu_book, color: AppTheme.primaryTeal, size: 18),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          module['module'] as String,
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.primaryTeal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                    Text(
-                      section['totalTime'] as String,
-                      style: const TextStyle(
-                        color: AppTheme.primaryTeal, 
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                ...items.map((lesson) => Container(
-                  padding: const EdgeInsets.all(14),
-                  margin: const EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [],
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppTheme.accentLight,
-                        child: Text(
-                          lesson['number'],
-                          style: const TextStyle(
-                            color: AppTheme.textPrimary, 
-                            fontWeight: FontWeight.bold,
+                              const SizedBox(height: 14),
+                              ...sections.asMap().entries.map((entry) {
+                                final section = entry.value as Map<String, dynamic>;
+                                final contents = section['contents'] as List<dynamic>;
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 15,
+                                          backgroundColor: AppTheme.accentLight,
+                                          child: Text(
+                                            section['number'],
+                                            style: const TextStyle(
+                                              color: AppTheme.textPrimary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          section['title'],
+                                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.textPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 40, top: 4, bottom: 10),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: contents.map<Widget>((content) {
+                                          IconData icon;
+                                          Color iconColor;
+                                          VoidCallback? onTap;
+                                          if (content['type'] == 'pdf') {
+                                            icon = Icons.picture_as_pdf_outlined;
+                                            iconColor = AppTheme.errorRed;
+                                            onTap = () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => PDFViewerPage(
+                                                    pdfUrl: content['url'],
+                                                    title: content['title'],
+                                                  ),
+                                                ),
+                                              );
+                                            };
+                                          } else if (content['type'] == 'video') {
+                                            icon = Icons.play_circle_fill;
+                                            iconColor = AppTheme.primaryTeal;
+                                            onTap = null;
+                                          } else {
+                                            icon = Icons.insert_drive_file;
+                                            iconColor = AppTheme.primaryTeal;
+                                            onTap = null;
+                                          }
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 2.5),
+                                            child: InkWell(
+                                              onTap: onTap,
+                                              borderRadius: BorderRadius.circular(6),
+                                              child: Row(
+                                                children: [
+                                                  Icon(icon, color: iconColor, size: 18),
+                                                  const SizedBox(width: 6),
+                                                  Flexible(
+                                                    child: Text(
+                                                      content['title'],
+                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                        color: AppTheme.textSecondary,
+                                                      ),
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                    const Divider(height: 18, thickness: 0.7, color: Color(0xFFE0E0E0)),
+                                  ],
+                                );
+                              }).toList(),
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              lesson['title'],
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              lesson['duration'],
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.play_circle_fill, 
-                          color: AppTheme.primaryTeal, 
-                          size: 28,
-                        ),
-                        onPressed: () {
-                          // Play video logic
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.picture_as_pdf_outlined, 
-                          color: AppTheme.errorRed, 
-                          size: 26,
-                        ),
-                        onPressed: () {
-                          // Navigate to PDF viewer with sample PDF
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PDFViewerPage(
-                                pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-                                title: lesson['title'],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                )).toList(),
-              ],
-            );
+                      );
                     },
                   );
                 },
               ),
             ),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: AppTheme.surfaceWhite,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.shadowLight,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => QuizPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.quiz, color: Colors.white),
+                  label: const Text(
+                    'Take Quiz',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                   ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.accentLight,
-                      shape: BoxShape.circle,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.assignment_turned_in_outlined, 
-                      color: AppTheme.primaryTeal,
-                    ),
+                    elevation: 2,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 50,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(30),
-                              gradient: AppTheme.gradient,
-                            ),
-                            child: TextButton.icon(
-                              onPressed: () {
-                                // TODO: Implement restart course logic
-                              },
-                              icon: const Icon(Icons.refresh, color: AppTheme.surfaceWhite),
-                              label: const Text(
-                                'Start Course Again',
-                                style: TextStyle(
-                                  color: AppTheme.surfaceWhite, 
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            height: 50,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(
-                                color: AppTheme.primaryTeal,
-                                width: 2,
-                              ),
-                              color: AppTheme.surfaceWhite,
-                            ),
-                            child: TextButton.icon(
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/quiz');
-                              },
-                              icon: const Icon(Icons.quiz, color: AppTheme.primaryTeal),
-                              label: const Text(
-                                'Take Quiz',
-                                style: TextStyle(
-                                  color: AppTheme.primaryTeal, 
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                ],
+                ),
               ),
-            )
+            ),
           ],
         ),
       ),

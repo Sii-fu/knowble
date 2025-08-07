@@ -241,75 +241,83 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                   final moduleIndex = moduleEntry.key;
                   final module = moduleEntry.value;
                   final isFirstChapter = moduleIndex == 0;
-                  final isSecondChapter = moduleIndex == 1;
-                  final isLocked = !_enrolled && moduleIndex > 1;
-                  final isBlurred = !_enrolled && isSecondChapter;
-                  return Opacity(
-                    opacity: isBlurred ? 0.5 : 1.0,
-                    child: ExpansionTile(
-                      title: Row(
-                        children: [
-                          Text('Chapter ${moduleIndex + 1}: ${module.title}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-                          if (!_enrolled && (isLocked || isBlurred))
-                            const Icon(Icons.lock, color: Colors.red, size: 18),
-                        ],
+                  final isLocked = !_enrolled && moduleIndex > 0;
+                  final isBlurred = !_enrolled && moduleIndex > 0;
+                  // If not enrolled and not first chapter, show blurred, non-expandable tile
+                  if (!_enrolled && moduleIndex > 0) {
+                    return Opacity(
+                      opacity: 0.5,
+                      child: ListTile(
+                        title: Text(
+                          'Chapter ${moduleIndex + 1}: ${module.title}',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        leading: const Icon(Icons.lock, color: Colors.red, size: 18),
+                        enabled: false,
                       ),
-                      initiallyExpanded: isFirstChapter || (_enrolled && !isLocked),
+                    );
+                  }
+                  // Otherwise, show normal ExpansionTile
+                  return ExpansionTile(
+                    title: Row(
                       children: [
-                        ..._sections.where((section) => section.moduleId == module.id).toList().asMap().entries.map((sectionEntry) {
-                          final sectionIndex = sectionEntry.key;
-                          final section = sectionEntry.value;
-                          final isFirstSection = isFirstChapter && sectionIndex == 0;
-                          final sectionLocked = !_enrolled && isFirstChapter && !isFirstSection;
-                          final showSection = _enrolled || isFirstChapter || isSecondChapter;
-                          if (!showSection) {
-                            return ListTile(
-                              leading: const Icon(Icons.lock, color: Colors.red),
-                              title: Text(section.title, style: const TextStyle(color: Colors.grey)),
-                              enabled: false,
-                            );
-                          }
-                          return ExpansionTile(
-                            title: Row(
-                              children: [
-                                Text(section.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400)),
-                                if (sectionLocked || (isBlurred && !_enrolled))
-                                  const Icon(Icons.lock, color: Colors.red, size: 18),
-                              ],
-                            ),
-                            initiallyExpanded: isFirstSection,
-                            children: [
-                              ..._contents.where((content) => content.sectionId == section.id && content.type == 'pdf').map((content) {
-                                final contentLocked = sectionLocked || (isBlurred && !_enrolled);
-                                return ListTile(
-                                  leading: contentLocked
-                                      ? const Icon(Icons.lock, color: Colors.red)
-                                      : const Icon(Icons.picture_as_pdf, color: Colors.red),
-                                  title: Text(content.title),
-                                  enabled: _enrolled,
-                                  onTap: _enrolled
-                                      ? () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => PDFViewerPage(
-                                                pdfUrl: content.url,
-                                                title: content.title,
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      : null,
-                                  subtitle: contentLocked
-                                      ? const Text('Locked', style: TextStyle(color: Colors.red))
-                                      : null,
-                                );
-                              }),
-                            ],
-                          );
-                        }),
+                        Text('Chapter ${moduleIndex + 1}: ${module.title}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                        if (!_enrolled && moduleIndex == 0 && _modules.length > 1)
+                          const Icon(Icons.lock_open, color: Colors.green, size: 18),
                       ],
                     ),
+                    initiallyExpanded: isFirstChapter,
+                    children: [
+                      ..._sections.where((section) => section.moduleId == module.id).toList().asMap().entries.map((sectionEntry) {
+                        final sectionIndex = sectionEntry.key;
+                        final section = sectionEntry.value;
+                        final isFirstSection = isFirstChapter && sectionIndex == 0;
+                        final sectionLocked = !_enrolled && isFirstChapter && !isFirstSection;
+                        if (!_enrolled && !isFirstChapter) {
+                          // Should never reach here, but just in case
+                          return const SizedBox.shrink();
+                        }
+                        return ExpansionTile(
+                          title: Row(
+                            children: [
+                              Text(section.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w400)),
+                              if (sectionLocked)
+                                const Icon(Icons.lock, color: Colors.red, size: 18),
+                            ],
+                          ),
+                          initiallyExpanded: isFirstSection,
+                          children: [
+                            ..._contents.where((content) => content.sectionId == section.id && content.type == 'pdf').map((content) {
+                              final contentLocked = sectionLocked;
+                              return ListTile(
+                                leading: contentLocked
+                                    ? const Icon(Icons.lock, color: Colors.red)
+                                    : const Icon(Icons.picture_as_pdf, color: Colors.red),
+                                title: Text(content.title),
+                                enabled: _enrolled,
+                                onTap: _enrolled
+                                    ? () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => PDFViewerPage(
+                                              pdfUrl: content.url,
+                                              title: content.title,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    : null,
+                                subtitle: contentLocked
+                                    ? const Text('Locked', style: TextStyle(color: Colors.red))
+                                    : null,
+                              );
+                            }),
+                          ],
+                        );
+                      }),
+                    ],
                   );
                 }),
 
