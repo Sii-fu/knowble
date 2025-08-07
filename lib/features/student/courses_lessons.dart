@@ -1,30 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
 import '../../core/services/student/course_services.dart';
+import '../../data/models/content.dart';
+import '../../data/models/course.dart';
+import 'chat/chat_detail_page.dart';
 import '../course/quiz_page.dart';
+import 'chatbot/chatbotpage.dart';
 
-
-class CourseLessonsPage extends StatelessWidget {
+class CourseLessonsPage extends StatefulWidget {
   final String courseId;
-  CourseLessonsPage({super.key, required this.courseId});
+  const CourseLessonsPage({super.key, required this.courseId});
 
-  Future<List<Map<String, dynamic>>> _fetchLessons() async {
-    final courseServices = CourseServices();
-    final modules = await courseServices.fetchModules(courseId);
+  @override
+  State<CourseLessonsPage> createState() => _CourseLessonsPageState();
+}
+
+class _CourseLessonsPageState extends State<CourseLessonsPage> {
+  final CourseServices _service = CourseServices();
+  bool _isLoading = true;
+  Course? _course;
+  List<Content> _contents = [];
+  bool _enrolled = false;
+  List<Map<String, dynamic>> _lessons = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourseLessons();
+  }
+
+  Future<void> _loadCourseLessons() async {
+    final course = await _service.fetchCourseById(widget.courseId);
+    final modules = await _service.fetchModules(widget.courseId);
+
+    List<Content> allContents = [];
     List<Map<String, dynamic>> lessons = [];
+
     for (final module in modules) {
-      final sections = await courseServices.fetchSections(module.id);
+      final sections = await _service.fetchSections(module.id);
       List<Map<String, dynamic>> sectionList = [];
       for (int i = 0; i < sections.length; i++) {
         final section = sections[i];
-        final contents = await courseServices.fetchContents(section.id);
+        final contents = await _service.fetchContents(section.id);
+        allContents.addAll(contents);
         List<Map<String, dynamic>> contentList = contents.map((content) => {
-          'title': content.title,
-          'type': content.type,
-          'url': content.url,
-        }).toList();
+              'title': content.title,
+              'type': content.type,
+              'url': content.url,
+            }).toList();
         sectionList.add({
           'number': (i + 1).toString(),
           'title': section.title,
@@ -36,256 +62,307 @@ class CourseLessonsPage extends StatelessWidget {
         'sections': sectionList,
       });
     }
-    return lessons;
+
+    // Check enrollment
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final enrollments = await _service.fetchUserEnrollments(userId);
+    final enrolled = enrollments.any((e) => e.courseId == widget.courseId);
+
+    setState(() {
+      _course = course;
+      _contents = allContents;
+      _lessons = lessons;
+      _enrolled = enrolled;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _startInstructorChat() async {
+    try {
+      final instructorId = _course?.instructorId;
+      if (instructorId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Instructor information not available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (currentUserId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to chat with instructor'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final instructorData = await Supabase.instance.client
+          .from('users')
+          .select('name, profile_pic')
+          .eq('id', instructorId)
+          .maybeSingle();
+
+      final instructorName = instructorData?['name'] ?? 'Instructor';
+      final profileImage = instructorData?['profile_pic'];
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailPage(
+            courseId: widget.courseId,
+            receiverId: instructorId,
+            instructorName: instructorName,
+            courseCode: _course!.title,
+            profileImage: profileImage,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error starting chat: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
-              child: Row(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: Column(
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.arrow_back_ios,
-                      color: AppTheme.primaryTeal,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primaryTeal),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Course Lessons',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryTeal,
+                                letterSpacing: 0.5,
+                              ),
+                        ),
+                      ],
                     ),
-                    onPressed: () => Navigator.pop(context),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Course Lessons',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryTeal,
-                      letterSpacing: 0.5,
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      itemCount: _lessons.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 18),
+                      itemBuilder: (_, moduleIndex) {
+                        final module = _lessons[moduleIndex];
+                        final sections = module['sections'] as List<dynamic>;
+                        return Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryTeal.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.menu_book, color: AppTheme.primaryTeal, size: 18),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            module['module'] as String,
+                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.primaryTeal,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                ...sections.asMap().entries.map((entry) {
+                                  final section = entry.value as Map<String, dynamic>;
+                                  final contents = section['contents'] as List<dynamic>;
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 15,
+                                            backgroundColor: AppTheme.accentLight,
+                                            child: Text(
+                                              section['number'],
+                                              style: const TextStyle(
+                                                color: AppTheme.textPrimary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            section['title'],
+                                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.textPrimary,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 40, top: 4, bottom: 10),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: contents.map<Widget>((content) {
+                                            IconData icon;
+                                            Color iconColor;
+                                            VoidCallback? onTap;
+                                            if (content['type'] == 'pdf') {
+                                              icon = Icons.picture_as_pdf_outlined;
+                                              iconColor = AppTheme.errorRed;
+                                              onTap = () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => PDFViewerPage(
+                                                      pdfUrl: content['url'],
+                                                      title: content['title'],
+                                                    ),
+                                                  ),
+                                                );
+                                              };
+                                            } else {
+                                              icon = Icons.insert_drive_file;
+                                              iconColor = AppTheme.primaryTeal;
+                                              onTap = null;
+                                            }
+                                            return Padding(
+                                              padding: const EdgeInsets.only(bottom: 2.5),
+                                              child: InkWell(
+                                                onTap: onTap,
+                                                borderRadius: BorderRadius.circular(6),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(icon, color: iconColor, size: 18),
+                                                    const SizedBox(width: 6),
+                                                    Flexible(
+                                                      child: Text(
+                                                        content['title'],
+                                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                              color: AppTheme.textSecondary,
+                                                            ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                      const Divider(height: 18, thickness: 0.7, color: Color(0xFFE0E0E0)),
+                                    ],
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const QuizPage()),
+                              );
+                            },
+                            icon: const Icon(Icons.quiz, color: Colors.white),
+                            label: const Text(
+                              'Take Quiz',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryTeal,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            // Removed search bar for a cleaner look
-            const SizedBox(height: 16),
-            Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _fetchLessons(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error loading lessons'));
-                  }
-                  final lessons = snapshot.data ?? [];
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                    itemCount: lessons.length,
-                    separatorBuilder: (context, idx) => const SizedBox(height: 18),
-                    itemBuilder: (context, moduleIndex) {
-                      final module = lessons[moduleIndex];
-                      final sections = module['sections'] as List<dynamic>;
-                      return Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        color: Colors.white,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primaryTeal.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.menu_book, color: AppTheme.primaryTeal, size: 18),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          module['module'] as String,
-                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.primaryTeal,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              ...sections.asMap().entries.map((entry) {
-                                final section = entry.value as Map<String, dynamic>;
-                                final contents = section['contents'] as List<dynamic>;
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 15,
-                                          backgroundColor: AppTheme.accentLight,
-                                          child: Text(
-                                            section['number'],
-                                            style: const TextStyle(
-                                              color: AppTheme.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(
-                                          section['title'],
-                                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            color: AppTheme.textPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 40, top: 4, bottom: 10),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: contents.map<Widget>((content) {
-                                          IconData icon;
-                                          Color iconColor;
-                                          VoidCallback? onTap;
-                                          if (content['type'] == 'pdf') {
-                                            icon = Icons.picture_as_pdf_outlined;
-                                            iconColor = AppTheme.errorRed;
-                                            onTap = () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => PDFViewerPage(
-                                                    pdfUrl: content['url'],
-                                                    title: content['title'],
-                                                  ),
-                                                ),
-                                              );
-                                            };
-                                          } else if (content['type'] == 'video') {
-                                            icon = Icons.play_circle_fill;
-                                            iconColor = AppTheme.primaryTeal;
-                                            onTap = null;
-                                          } else {
-                                            icon = Icons.insert_drive_file;
-                                            iconColor = AppTheme.primaryTeal;
-                                            onTap = null;
-                                          }
-                                          return Padding(
-                                            padding: const EdgeInsets.only(bottom: 2.5),
-                                            child: InkWell(
-                                              onTap: onTap,
-                                              borderRadius: BorderRadius.circular(6),
-                                              child: Row(
-                                                children: [
-                                                  Icon(icon, color: iconColor, size: 18),
-                                                  const SizedBox(width: 6),
-                                                  Flexible(
-                                                    child: Text(
-                                                      content['title'],
-                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                        color: AppTheme.textSecondary,
-                                                      ),
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                    const Divider(height: 18, thickness: 0.7, color: Color(0xFFE0E0E0)),
-                                  ],
-                                );
-                              }).toList(),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
+      floatingActionButton: _enrolled
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  heroTag: 'ai',
                   onPressed: () {
+                    final pdfContents = _contents
+                        .where((content) => content.type == 'pdf')
+                        .map((c) => {'title': c.title, 'url': c.url})
+                        .toList();
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => QuizPage(),
+                        builder: (_) => ChatBotPage(
+                          courseTitle: _course?.title ?? '',
+                          courseDescription: _course?.description ?? '',
+                          pdfContents: pdfContents,
+                        ),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.quiz, color: Colors.white),
-                  label: const Text(
-                    'Take Quiz',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
+                  backgroundColor: AppTheme.primaryTeal,
+                  child: const Icon(Icons.chat_bubble_outline),
+                  tooltip: 'Ask AI Assistant',
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          gradient: AppTheme.gradient,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryTeal.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ChatBotPage(),
-              ),
-            );
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(
-            Icons.chat_bubble_outline,
-            color: AppTheme.surfaceWhite,
-            size: 28,
-          ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+                const SizedBox(height: 12),
+                FloatingActionButton(
+                  heroTag: 'instructor',
+                  onPressed: _startInstructorChat,
+                  backgroundColor: Colors.orange,
+                  child: const Icon(Icons.person_outline),
+                  tooltip: 'Chat with Instructor',
+                ),
+              ],
+            )
+          : null,
     );
   }
 }
