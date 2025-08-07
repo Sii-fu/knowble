@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
 import 'chat/chat_detail_page.dart';
+import 'courses_lessons.dart';
 
 
 
@@ -337,6 +338,30 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                           setState(() {
                             _enrolled = true;
                           });
+                          // Show success dialog
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => AlertDialog(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              title: const Text('Successfully Enrolled!', style: TextStyle(fontWeight: FontWeight.bold)),
+                              content: const Text('You have been enrolled in this course.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => CourseLessonsPage(courseId: widget.courseId),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('Continue'),
+                                ),
+                              ],
+                            ),
+                          );
                         }
                       },
                       child: const Row(
