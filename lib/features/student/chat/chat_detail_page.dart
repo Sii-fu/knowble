@@ -29,6 +29,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _textFieldFocus = FocusNode();
   bool _sending = false;
+  bool _hasText = false;
   RealtimeChannel? _realtimeChannel;
   String? _currentUserId;
 
@@ -36,6 +37,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   void initState() {
     super.initState();
     _initChat();
+    // Track whether there's text to enable/disable the send action
+    _controller.addListener(() {
+      final has = _controller.text.trim().isNotEmpty;
+      if (has != _hasText && mounted) {
+        setState(() => _hasText = has);
+      }
+    });
     
     // Listen for focus changes to handle keyboard appearance
     _textFieldFocus.addListener(() {
@@ -172,9 +180,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         appBar: AppBar(
           backgroundColor: theme.appBarTheme.backgroundColor,
           foregroundColor: theme.appBarTheme.foregroundColor,
-          elevation: theme.appBarTheme.elevation,
+          elevation: 0,
+          titleSpacing: 0,
           title: Row(
             children: [
+              const SizedBox(width: 8),
               CircleAvatar(
                 radius: 18,
                 backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
@@ -182,21 +192,28 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.primaryTeal) : null,
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.instructorName,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppTheme.primaryTeal,
-                      fontWeight: FontWeight.w700,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.instructorName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  Text(
-                    widget.courseCode,
-                    style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal),
-                  ),
-                ],
+                    Text(
+                      widget.courseCode,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -207,44 +224,33 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 itemCount: _messages.length,
-                itemBuilder: (context, index) {
+        itemBuilder: (context, index) {
                   final msg = _messages[index];
                   final isMe = msg['sender_id'] == _currentUserId;
-                  final senderName = isMe ? 'You' : widget.instructorName;
-                  final initials = senderName.isNotEmpty ? senderName.trim().split(' ').map((e) => e[0]).take(2).join() : '';
                   final dt = DateTime.tryParse(msg['timestamp'] ?? '') ?? DateTime.now();
-                  return Row(
-                    mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-                    children: [
-                      if (!isMe)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: CircleAvatar(
-                            radius: 14,
-                            backgroundColor: AppTheme.accentLight,
-                            child: Text(initials, style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal)),
-                          ),
-                        ),
-                      Flexible(
-                        child: ChatBubble(
-                          text: msg['message'] ?? '',
-                          isMe: isMe,
-                          timestamp: dt,
-                          sender: senderName,
-                        ),
-                      ),
-                    ],
+                  return Align(
+                    alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                    child: ChatBubble(
+                      text: msg['message'] ?? '',
+                      isMe: isMe,
+          timestamp: dt,
+                    ),
                   );
                 },
               ),
             ),
-            Container(
-              color: AppTheme.surfaceWhite,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: SafeArea(
-                top: false,
+            SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceWhite,
+                  boxShadow: [
+                    BoxShadow(color: AppTheme.shadowLight, blurRadius: 8, offset: const Offset(0, -2)),
+                  ],
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -254,29 +260,56 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         enabled: !_sending,
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           filled: true,
                           fillColor: AppTheme.accentLight,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
+                            borderSide: BorderSide(color: AppTheme.borderSubtle, width: 1),
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: AppTheme.borderSubtle, width: 1),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: AppTheme.primaryTeal, width: 1.2),
+                          ),
+                          suffixIcon: Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: _sending
+                                ? const SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryTeal),
+                                  )
+                                : InkWell(
+                                    onTap: _hasText && !_sending ? _sendMessage : null,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(vertical: 6),
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: _hasText ? AppTheme.primaryTeal : AppTheme.borderSubtle,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.send,
+                                        size: 18,
+                                        color: _hasText ? AppTheme.surfaceWhite : AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                         ),
+                        minLines: 1,
+                        maxLines: 4,
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _sendMessage(),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _sending
-                        ? const SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryTeal),
-                          )
-                        : IconButton(
-                            icon: const Icon(Icons.send, color: AppTheme.primaryTeal),
-                            onPressed: _sendMessage,
-                          ),
                   ],
                 ),
               ),
@@ -292,72 +325,49 @@ class ChatBubble extends StatelessWidget {
   final String text;
   final bool isMe;
   final DateTime timestamp;
-  final String? sender;
 
   const ChatBubble({
     super.key,
     required this.text,
     required this.isMe,
     required this.timestamp,
-    this.sender,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor = isMe ? AppTheme.accentLight : AppTheme.surfaceWhite;
     final align = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final radius = isMe
-        ? const BorderRadius.only(
-            topLeft: Radius.circular(18),
-            topRight: Radius.circular(18),
-            bottomLeft: Radius.circular(18),
-          )
-        : const BorderRadius.only(
-            topLeft: Radius.circular(18),
-            topRight: Radius.circular(18),
-            bottomRight: Radius.circular(18),
-          );
+    final bg = isMe ? AppTheme.primaryTeal.withValues(alpha: 01.0) : AppTheme.surfaceWhite;
+    // final border = isMe ? AppTheme.primaryTeal : AppTheme.borderSubtle;
+    final textColor = isMe ? AppTheme.surfaceWhite : AppTheme.textPrimary;
+    final maxWidth = MediaQuery.of(context).size.width * 0.75;
+
     return Padding(
-      padding: EdgeInsets.only(
-        left: isMe ? 40 : 8,
-        right: isMe ? 8 : 40,
-        bottom: 10,
-      ),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Column(
         crossAxisAlignment: align,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: bubbleColor,
-              borderRadius: radius,
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.shadowLight,
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: align,
-              children: [
-                if (!isMe && sender != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Text(sender!, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal)),
-                  ),
-                Text(
-                  text,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(14),
+                // border: Border.all(color: border, width: 1),
+                boxShadow: [
+                  BoxShadow(color: AppTheme.shadowLight, blurRadius: 6, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Text(
+                text,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: textColor),
+              ),
             ),
           ),
           const SizedBox(height: 2),
           Text(
             timeago.format(timestamp),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.primaryTeal),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary),
           ),
         ],
       ),
