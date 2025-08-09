@@ -152,20 +152,12 @@ class _NewPasswordCreationScreenState extends State<NewPasswordCreationScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 25.w,
-                  height: 25.w,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.surfaceWhite,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/logo 3.png',
-                      width: 12.w,
-                      height: 12.w,
-                      fit: BoxFit.contain,
-                    ),
+                Center(
+                  child: Image.asset(
+                    'assets/images/logo 3.png',
+                    width: 25.w,
+                    height: 25.w,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 SizedBox(height: 3.h),
