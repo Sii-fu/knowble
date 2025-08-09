@@ -19,14 +19,23 @@ class UserFilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primaryTeal : AppTheme.surfaceWhite,
-          borderRadius: BorderRadius.circular(2),
+          borderRadius: BorderRadius.circular(25),
           border: Border.all(
             color: isSelected ? AppTheme.primaryTeal : AppTheme.borderSubtle,
             width: 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryTeal.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,

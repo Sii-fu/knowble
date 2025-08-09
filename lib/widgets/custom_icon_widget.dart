@@ -134,6 +134,15 @@ class CustomIconWidget extends StatelessWidget {
       case 'description':
         iconData = Icons.description;
         break;
+      case 'feedback':
+        iconData = Icons.feedback;
+        break;
+      case 'person_add':
+        iconData = Icons.person_add;
+        break;
+      case 'flag':
+        iconData = Icons.flag;
+        break;
       case 'favorite':
         iconData = Icons.favorite;
         break;

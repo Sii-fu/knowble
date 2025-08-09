@@ -222,7 +222,9 @@ class _AdminDashboardState extends State<AdminDashboard>
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.pushNamed(context, '/notifications');
+            },
             icon: CustomIconWidget(
               iconName: 'notifications',
               color: AppTheme.textSecondary,
@@ -234,27 +236,26 @@ class _AdminDashboardState extends State<AdminDashboard>
               // Handle logout
               showDialog(
                 context: context,
-                builder:
-                    (context) => AlertDialog(
-                      title: const Text('Logout'),
-                      content: const Text('Are you sure you want to logout?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            _logout(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.errorRed,
-                          ),
-                          child: const Text('Logout'),
-                        ),
-                      ],
+                builder: (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
                     ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _logout(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.errorRed,
+                      ),
+                      child: const Text('Logout'),
+                    ),
+                  ],
+                ),
               );
             },
             icon: CustomIconWidget(
@@ -398,10 +399,9 @@ class _AdminDashboardState extends State<AdminDashboard>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'dashboard',
-              color:
-                  _currentIndex == 0
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 0
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Dashboard',
@@ -409,10 +409,9 @@ class _AdminDashboardState extends State<AdminDashboard>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'school',
-              color:
-                  _currentIndex == 1
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 1
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Instructors',
@@ -420,10 +419,9 @@ class _AdminDashboardState extends State<AdminDashboard>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'book',
-              color:
-                  _currentIndex == 2
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 2
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Courses',
@@ -431,10 +429,9 @@ class _AdminDashboardState extends State<AdminDashboard>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'people',
-              color:
-                  _currentIndex == 3
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 3
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Users',
@@ -451,79 +448,78 @@ class _AdminDashboardState extends State<AdminDashboard>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (context) => Container(
-            padding: EdgeInsets.all(4.w),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12.w,
-                  height: 0.5.h,
-                  decoration: BoxDecoration(
-                    color: AppTheme.borderSubtle,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  'Quick Actions',
-                  style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                if (activity["status"] == "pending") ...[
-                  ListTile(
-                    leading: CustomIconWidget(
-                      iconName: 'check_circle',
-                      color: AppTheme.successGreen,
-                      size: 24,
-                    ),
-                    title: Text(
-                      'Approve',
-                      style: AppTheme.lightTheme.textTheme.bodyLarge,
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Handle approve action
-                    },
-                  ),
-                  ListTile(
-                    leading: CustomIconWidget(
-                      iconName: 'cancel',
-                      color: AppTheme.errorRed,
-                      size: 24,
-                    ),
-                    title: Text(
-                      'Reject',
-                      style: AppTheme.lightTheme.textTheme.bodyLarge,
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Handle reject action
-                    },
-                  ),
-                ],
-                ListTile(
-                  leading: CustomIconWidget(
-                    iconName: 'visibility',
-                    color: AppTheme.primaryTeal,
-                    size: 24,
-                  ),
-                  title: Text(
-                    'View Details',
-                    style: AppTheme.lightTheme.textTheme.bodyLarge,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Handle view details action
-                  },
-                ),
-                SizedBox(height: 2.h),
-              ],
+      builder: (context) => Container(
+        padding: EdgeInsets.all(4.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12.w,
+              height: 0.5.h,
+              decoration: BoxDecoration(
+                color: AppTheme.borderSubtle,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
+            SizedBox(height: 2.h),
+            Text(
+              'Quick Actions',
+              style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            if (activity["status"] == "pending") ...[
+              ListTile(
+                leading: CustomIconWidget(
+                  iconName: 'check_circle',
+                  color: AppTheme.successGreen,
+                  size: 24,
+                ),
+                title: Text(
+                  'Approve',
+                  style: AppTheme.lightTheme.textTheme.bodyLarge,
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Handle approve action
+                },
+              ),
+              ListTile(
+                leading: CustomIconWidget(
+                  iconName: 'cancel',
+                  color: AppTheme.errorRed,
+                  size: 24,
+                ),
+                title: Text(
+                  'Reject',
+                  style: AppTheme.lightTheme.textTheme.bodyLarge,
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Handle reject action
+                },
+              ),
+            ],
+            ListTile(
+              leading: CustomIconWidget(
+                iconName: 'visibility',
+                color: AppTheme.primaryTeal,
+                size: 24,
+              ),
+              title: Text(
+                'View Details',
+                style: AppTheme.lightTheme.textTheme.bodyLarge,
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                // Handle view details action
+              },
+            ),
+            SizedBox(height: 2.h),
+          ],
+        ),
+      ),
     );
   }
 }
