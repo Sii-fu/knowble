@@ -227,6 +227,18 @@ class CustomIconWidget extends StatelessWidget {
       case 'refresh':
         iconData = Icons.refresh;
         break;
+      case 'verified':
+        iconData = Icons.verified;
+        break;
+      case 'warning':
+        iconData = Icons.warning;
+        break;
+      case 'radio_button_unchecked':
+        iconData = Icons.radio_button_unchecked;
+        break;
+      case 'help':
+        iconData = Icons.help;
+        break;
       default:
         iconData = Icons.help_outline; // Default icon
     }
