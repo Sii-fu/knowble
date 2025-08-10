@@ -185,14 +185,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           SizedBox(height: screenHeight * 0.02),
 
                           // User Type Dropdown (includes Admin option for login)
-                          LoginUserTypeDropdownWidget(
-                            value: _selectedUserType,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedUserType = value;
-                              });
-                            },
-                          ),
+                          // LoginUserTypeDropdownWidget(
+                          //   value: _selectedUserType,
+                          //   onChanged: (value) {
+                          //     setState(() {
+                          //       _selectedUserType = value;
+                          //     });
+                          //   },
+                          // ),
 
                           SizedBox(height: screenHeight * 0.02),
 

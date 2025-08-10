@@ -140,7 +140,7 @@ class CompletedCoursesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final userId = '6d072914-9fdd-454f-b768-4f4edabd7df6';
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
     return FutureBuilder<List<Course>>(
       future: _fetchCompletedCourses(userId),
       builder: (context, snapshot) {
@@ -202,7 +202,7 @@ class OngoingCoursesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final userId = '6d072914-9fdd-454f-b768-4f4edabd7df6';
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
     return FutureBuilder<List<Course>>(
       future: _fetchOngoingCourses(userId),
       builder: (context, snapshot) {
@@ -248,7 +248,7 @@ class StudentCoursesPageRefactored extends StatelessWidget {
       title: 'My Courses',
       showBackButton: false,
       bodyBuilder: (selectedTab) {
-        final userId = '6d072914-9fdd-454f-b768-4f4edabd7df6';
+        final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
         switch (selectedTab) {
           case CourseTab.all:
             return AllCoursesTab(userId: userId);

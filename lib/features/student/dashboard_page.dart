@@ -6,6 +6,7 @@ import '../../data/models/module.dart'; // Import the Module type
 import 'Course_Details.dart';
 import 'unified_search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'courses_lessons.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -14,16 +15,33 @@ class StudentDashboardPage extends StatefulWidget {
   State<StudentDashboardPage> createState() => _StudentDashboardPageState();
 }
 
+
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   final CourseServices _courseServices = CourseServices();
   List<Course> _recommendedCourses = [];
   List<Course> _recentLearningCourses = [];
   bool _isLoading = true;
+  String? _userName;
+
 
   @override
   void initState() {
     super.initState();
+    _loadUserName();
     _loadRecommendedCourses();
+  }
+
+  Future<void> _loadUserName() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    final userData = await Supabase.instance.client
+        .from('users')
+        .select('name')
+        .eq('id', userId)
+        .maybeSingle();
+    setState(() {
+      _userName = userData?['name'] ?? 'Student';
+    });
   }
 
   Future<void> _loadRecommendedCourses() async {
@@ -70,7 +88,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  const _Header(),
+                  _Header(userName: _userName),
                   const SizedBox(height: 16),
                   const _SearchBar(),
                   const SizedBox(height: 24),
@@ -152,8 +170,10 @@ class _RecommendedCoursesList extends StatelessWidget {
   }
 }
 
+
 class _Header extends StatelessWidget {
-  const _Header();
+  final String? userName;
+  const _Header({this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -165,7 +185,7 @@ class _Header extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hi, Christina',
+              'Hi, ${userName ?? ''}',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -285,7 +305,7 @@ class _RecentLearning extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CourseDetailPage(courseId: course.id),
+                      builder: (_) => CourseLessonsPage(courseId: course.id),
                     ),
                   );
                 },

@@ -28,6 +28,7 @@ class _TaskEditModalState extends State<TaskEditModal> {
   bool _hasChanges = false;
   bool _isLoading = false;
   bool _isLoadingCourses = true;
+  DateTime _selectedDate = DateTime.now();
   Reminder? _currentReminder;
   final List<String> _priorityOptions = ['Low', 'Medium', 'High'];
   List<Course> _enrolledCourses = [];
@@ -104,6 +105,13 @@ class _TaskEditModalState extends State<TaskEditModal> {
 
       // Parse DateTime to TimeOfDay for start and end times
       _startTime = TimeOfDay.fromDateTime(_currentReminder!.time);
+
+      // Set the selected date from the reminder's date
+      _selectedDate = DateTime(
+        _currentReminder!.time.year,
+        _currentReminder!.time.month,
+        _currentReminder!.time.day,
+      );
 
       if (_currentReminder!.endTime != null) {
         _endTime = TimeOfDay.fromDateTime(_currentReminder!.endTime!);
@@ -221,6 +229,102 @@ class _TaskEditModalState extends State<TaskEditModal> {
     return '$hour:$minute $period';
   }
 
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(
+        const Duration(days: 1),
+      ), // Allow today
+      lastDate: DateTime.now().add(
+        const Duration(days: 365),
+      ), // Allow up to 1 year in future
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            datePickerTheme: DatePickerThemeData(
+              backgroundColor: AppTheme.surfaceWhite,
+              headerBackgroundColor: AppTheme.primaryTeal,
+              headerForegroundColor: AppTheme.surfaceWhite,
+              dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppTheme.surfaceWhite;
+                }
+                return AppTheme.textPrimary;
+              }),
+              dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppTheme.primaryTeal;
+                }
+                return Colors.transparent;
+              }),
+              todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppTheme.primaryTeal;
+                }
+                return AppTheme.primaryTeal.withOpacity(0.1);
+              }),
+              todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppTheme.surfaceWhite;
+                }
+                return AppTheme.primaryTeal;
+              }),
+              yearForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppTheme.surfaceWhite;
+                }
+                return AppTheme.textPrimary;
+              }),
+              yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppTheme.primaryTeal;
+                }
+                return Colors.transparent;
+              }),
+              cancelButtonStyle: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal),
+              ),
+              confirmButtonStyle: ButtonStyle(
+                foregroundColor: WidgetStateProperty.all(AppTheme.primaryTeal),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate && mounted) {
+      setState(() {
+        _selectedDate = picked;
+        _hasChanges = true;
+      });
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
+      return 'Today, ${date.day}/${date.month}/${date.year}';
+    } else if (date.year == tomorrow.year &&
+        date.month == tomorrow.month &&
+        date.day == tomorrow.day) {
+      return 'Tomorrow, ${date.day}/${date.month}/${date.year}';
+    } else if (date.year == yesterday.year &&
+        date.month == yesterday.month &&
+        date.day == yesterday.day) {
+      return 'Yesterday, ${date.day}/${date.month}/${date.year}';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+
   Color _getPriorityColor(String priority) {
     switch (priority) {
       case 'High':
@@ -278,19 +382,18 @@ class _TaskEditModalState extends State<TaskEditModal> {
       _isLoading = true;
     });
 
-    // Use the existing reminder's date for start and end DateTime
-    final DateTime date = _currentReminder?.time ?? DateTime.now();
+    // Use the selected date for start and end DateTime
     final DateTime startDateTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
       _startTime!.hour,
       _startTime!.minute,
     );
     final DateTime endDateTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
       _endTime!.hour,
       _endTime!.minute,
     );
@@ -536,6 +639,56 @@ class _TaskEditModalState extends State<TaskEditModal> {
                             }
                             return null;
                           },
+                        ),
+
+                        SizedBox(height: 3.h),
+
+                        // Date Selection
+                        Text(
+                          'Date',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'Jost',
+                          ),
+                        ),
+                        SizedBox(height: 1.h),
+                        GestureDetector(
+                          onTap: _selectDate,
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 4.w,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.backgroundLight,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppTheme.primaryTeal,
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _formatDate(_selectedDate),
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    color: AppTheme.textPrimary,
+                                    fontFamily: 'Jost',
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.calendar_today,
+                                  color: AppTheme.primaryTeal,
+                                  size: 5.w,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
 
                         SizedBox(height: 3.h),

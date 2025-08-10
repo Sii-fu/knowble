@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:knowble_app/config/theme.dart';
 import './widgets/course_list_item_card.dart';
+import './widgets/course_preview_modal.dart';
 import '../../widgets/custom_icon_widget.dart';
 
 class AdminCoursesManagement extends StatefulWidget {
@@ -196,62 +197,60 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
                       size: 20,
                     ),
                   ),
-                  suffixIcon:
-                      _searchQuery.isNotEmpty
-                          ? IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              _onSearchChanged('');
-                            },
-                            icon: CustomIconWidget(
-                              iconName: 'clear',
-                              color: AppTheme.textSecondary,
-                              size: 20,
-                            ),
-                          )
-                          : null,
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                          icon: CustomIconWidget(
+                            iconName: 'clear',
+                            color: AppTheme.textSecondary,
+                            size: 20,
+                          ),
+                        )
+                      : null,
                 ),
               ),
             ),
             // Courses List
             Expanded(
-              child:
-                  _filteredCourses.isEmpty
-                      ? _buildEmptyState()
-                      : RefreshIndicator(
-                        onRefresh: () async {
-                          await Future.delayed(Duration(seconds: 1));
-                        },
-                        color: AppTheme.primaryTeal,
-                        child: ListView.builder(
-                          padding: EdgeInsets.symmetric(vertical: 1.h),
-                          itemCount: _filteredCourses.length,
-                          itemBuilder: (context, index) {
-                            final course = _filteredCourses[index];
-                            final courseId = course['id'] as int;
-                            final isSelected = _selectedCourses.contains(
-                              courseId,
-                            );
+              child: _filteredCourses.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        await Future.delayed(Duration(seconds: 1));
+                      },
+                      color: AppTheme.primaryTeal,
+                      child: ListView.builder(
+                        padding: EdgeInsets.symmetric(vertical: 1.h),
+                        itemCount: _filteredCourses.length,
+                        itemBuilder: (context, index) {
+                          final course = _filteredCourses[index];
+                          final courseId = course['id'] as int;
+                          final isSelected = _selectedCourses.contains(
+                            courseId,
+                          );
 
-                            return CourseListItemCard(
-                              course: course,
-                              isSelectionMode: _isSelectionMode,
-                              isSelected: isSelected,
-                              onTap: () {
-                                if (_isSelectionMode) {
-                                  _toggleCourseSelection(courseId);
-                                } else {
-                                  // Handle course tap
-                                }
-                              },
-                              onApprove: () => _approveCourse(course),
-                              onFlag: () => _flagCourse(course),
-                              onDelete: () => _deleteCourse(course),
-                              onPreview: () => _showCoursePreview(course),
-                            );
-                          },
-                        ),
+                          return CourseListItemCard(
+                            course: course,
+                            isSelectionMode: _isSelectionMode,
+                            isSelected: isSelected,
+                            onTap: () {
+                              if (_isSelectionMode) {
+                                _toggleCourseSelection(courseId);
+                              } else {
+                                // Handle course tap
+                              }
+                            },
+                            onApprove: () => _approveCourse(course),
+                            onFlag: () => _flagCourse(course),
+                            onDelete: () => _deleteCourse(course),
+                            onPreview: () => _showCoursePreview(course),
+                          );
+                        },
                       ),
+                    ),
             ),
           ],
         ),
@@ -268,10 +267,9 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'dashboard',
-              color:
-                  _currentIndex == 0
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 0
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Dashboard',
@@ -279,10 +277,9 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'school',
-              color:
-                  _currentIndex == 1
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 1
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Instructors',
@@ -290,10 +287,9 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'book',
-              color:
-                  _currentIndex == 2
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 2
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Courses',
@@ -301,10 +297,9 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'people',
-              color:
-                  _currentIndex == 3
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 3
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Users',
@@ -335,39 +330,100 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   void _deleteCourse(Map<String, dynamic> course) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Course'),
-            content: Text(
-              'Are you sure you want to delete "${course['title']}"? This action cannot be undone.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Course "${course['title']}" deleted'),
-                      backgroundColor: AppTheme.errorRed,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Course'),
+        content: Text(
+          'Are you sure you want to delete "${course['title']}"? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Course "${course['title']}" deleted'),
                   backgroundColor: AppTheme.errorRed,
                 ),
-                child: const Text('Delete'),
-              ),
-            ],
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
+            child: const Text('Delete'),
           ),
+        ],
+      ),
     );
   }
 
   void _showCoursePreview(Map<String, dynamic> course) {
-    // Implementation for course preview
+    showDialog(
+      context: context,
+      builder: (context) => CoursePreviewModal(
+        course: course,
+        onDecision: (decision, reason) {
+          _handleCourseDecision(course, decision, reason);
+        },
+      ),
+    );
+  }
+
+  void _handleCourseDecision(
+    Map<String, dynamic> course,
+    String decision,
+    String? reason,
+  ) {
+    String message;
+    Color backgroundColor;
+
+    switch (decision) {
+      case 'approve':
+        message = 'Course "${course['title']}" has been approved';
+        backgroundColor = AppTheme.successGreen;
+        // Update course status in mock data
+        setState(() {
+          course['status'] = 'approved';
+        });
+        break;
+      case 'reject':
+        message = 'Course "${course['title']}" has been rejected';
+        backgroundColor = AppTheme.errorRed;
+        // Update course status in mock data
+        setState(() {
+          course['status'] = 'rejected';
+        });
+        break;
+      case 'flag':
+        message = 'Course "${course['title']}" has been flagged for review';
+        backgroundColor = Colors.orange;
+        // Update course status in mock data
+        setState(() {
+          course['status'] = 'flagged';
+        });
+        break;
+      default:
+        return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            if (reason != null && reason.isNotEmpty) ...[
+              SizedBox(height: 0.5.h),
+              Text('Reason: $reason', style: TextStyle(fontSize: 12)),
+            ],
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: Duration(seconds: 4),
+      ),
+    );
   }
 
   Widget _buildEmptyState() {

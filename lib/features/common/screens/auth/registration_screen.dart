@@ -424,7 +424,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 content: Text(
                   _selectedUserType?.toLowerCase() == 'student'
                       ? 'Registration successful! Let\'s personalize your learning experience.'
-                      : 'Registration successful! Please check your email to verify your account.',
+                      : 'Registration successful! Please login to finish creating your account.',
                 ),
                 backgroundColor: Colors.green,
               ),
