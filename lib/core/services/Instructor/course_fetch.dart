@@ -77,10 +77,10 @@ class CourseFetchService {
 
   /// Fetches full details for a single course (modules, sections, contents)
   Future<Map<String, dynamic>?> fetchCourseDetail(String courseId) async {
-    // Fetch course info
+    // Fetch course info including banner
     final course = await supabase
         .from('courses')
-        .select('id, title, description, duration_days')
+        .select('id, title, description, duration_days, banner')
         .eq('id', courseId)
         .maybeSingle();
     if (course == null) return null;
@@ -130,6 +130,7 @@ class CourseFetchService {
       'title': course['title'],
       'description': course['description'],
       'duration_days': course['duration_days'],
+      'banner': course['banner'],
       'chapters': chapters,
     };
   }
