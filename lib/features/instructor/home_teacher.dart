@@ -326,7 +326,7 @@ class StatisticCard extends StatelessWidget {
   }
 }
 
-// News Tile
+
 class NewsTile extends StatelessWidget {
   final String category;
   final String title;
