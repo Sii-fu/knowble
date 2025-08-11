@@ -11,7 +11,7 @@ class CourseFetchService {
         .select('id, title, "order"')
         .eq('course_id', courseId)
         .order('order');
-
+ 
     List<Map<String, dynamic>> moduleList = [];
     for (final module in modules) {
       // Fetch sections (lessons)
@@ -54,10 +54,24 @@ class CourseFetchService {
     if (user == null) return [];
     // Fetch all courses for this instructor (with duration_days)
     final courses = await supabase
-        .from('courses')
-        .select('id, title, description, duration_days')
-        .eq('instructor_id', user.id)
-        .order('created_at', ascending: false);
+      .from('courses')
+      .select('''
+        id,
+        title,
+        description,
+        duration_days,  
+        course_tags (
+          tags (
+            name
+          )
+        ),
+        enrollments (
+          id
+        )
+      ''')
+      .eq('instructor_id', 'c2e56f95-6eb7-40fe-90c4-f0a36e428a39')
+      .order('created_at', ascending: false);
+
     return List<Map<String, dynamic>>.from(courses);
   }
 

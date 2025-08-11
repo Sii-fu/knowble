@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../config/theme.dart';
+import '../../config/theme_instructor.dart';
 import 'course_screen.dart';
 import 'create_course_screen.dart';
 
@@ -30,15 +30,15 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.lightTheme;
+    final theme = AppThemeInstructor.lightTheme;
     
     return Theme(
       data: theme,
       child: Scaffold(
-        backgroundColor: AppTheme.backgroundLight,
+        backgroundColor: AppThemeInstructor.backgroundLight,
         appBar: AppBar(
           elevation: 0,
-          backgroundColor: AppTheme.surfaceWhite,
+          backgroundColor: AppThemeInstructor.surfaceWhite,
           automaticallyImplyLeading: false,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,13 +46,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               Text(
                 'Good morning',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: AppThemeInstructor.textSecondary,
                 ),
               ),
               Text(
                 'Samuel Thompson',
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: AppTheme.textPrimary,
+                  color: AppThemeInstructor.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -62,13 +62,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             Container(
               margin: const EdgeInsets.only(right: 16),
               decoration: BoxDecoration(
-                color: AppTheme.accentLight,
+                color: AppThemeInstructor.accentLight,
                 shape: BoxShape.circle,
               ),
               child: IconButton(
                 icon: Icon(
                   Icons.notifications_outlined,
-                  color: AppTheme.primaryTeal,
+                  color: AppThemeInstructor.primaryBlue,
                 ),
                 onPressed: () {
                   // Handle notifications
@@ -121,14 +121,14 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppTheme.primaryTeal,
-            AppTheme.primaryTeal.withOpacity(0.8),
+            AppThemeInstructor.primaryBlue,
+            AppThemeInstructor.primaryBlue.withOpacity(0.8),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryTeal.withOpacity(0.3),
+            color: AppThemeInstructor.primaryBlue.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -139,7 +139,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         children: [
           Text(
             'Quick Actions',
-            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+            style: AppThemeInstructor.lightTheme.textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
@@ -234,26 +234,26 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Overview',
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppTheme.textPrimary,
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+                color: AppThemeInstructor.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.accentLight,
+                color: AppThemeInstructor.accentLight,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: AppTheme.primaryTeal),
+                  Icon(Icons.calendar_today, size: 16, color: AppThemeInstructor.primaryBlue),
                   const SizedBox(width: 4),
                   Text(
                     'This Month',
                     style: TextStyle(
-                      color: AppTheme.primaryTeal,
+                      color: AppThemeInstructor.primaryBlue,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -273,7 +273,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 value: '12',
                 change: '+2 this week',
                 isPositive: true,
-                color: AppTheme.primaryTeal,
+                color: AppThemeInstructor.primaryBlue,
               ),
             ),
             const SizedBox(width: 12),
@@ -284,7 +284,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 value: '1,847',
                 change: '+127 this month',
                 isPositive: true,
-                color: AppTheme.successGreen,
+                color: AppThemeInstructor.successGreen,
               ),
             ),
           ],
@@ -330,12 +330,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
+        color: AppThemeInstructor.surfaceWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: AppThemeInstructor.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.shadowLight.withOpacity(0.1),
+            color: AppThemeInstructor.shadowLight.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -357,7 +357,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               const Spacer(),
               Icon(
                 isPositive ? Icons.trending_up : Icons.trending_down,
-                color: isPositive ? AppTheme.successGreen : AppTheme.errorRed,
+                color: isPositive ? AppThemeInstructor.successGreen : AppThemeInstructor.errorRed,
                 size: 16,
               ),
             ],
@@ -365,23 +365,23 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
-              color: AppTheme.textPrimary,
+            style: AppThemeInstructor.lightTheme.textTheme.headlineSmall?.copyWith(
+              color: AppThemeInstructor.textPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
+            style: AppThemeInstructor.lightTheme.textTheme.bodyMedium?.copyWith(
+              color: AppThemeInstructor.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             change,
             style: TextStyle(
-              color: isPositive ? AppTheme.successGreen : AppTheme.errorRed,
+              color: isPositive ? AppThemeInstructor.successGreen : AppThemeInstructor.errorRed,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -400,8 +400,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Course Progress',
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppTheme.textPrimary,
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+                color: AppThemeInstructor.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -415,7 +415,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: Text(
                 'View All',
                 style: TextStyle(
-                  color: AppTheme.primaryTeal,
+                  color: AppThemeInstructor.primaryBlue,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -433,14 +433,14 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 subject: "Mobile Development",
                 progress: 0.75,
                 students: 234,
-                color: AppTheme.primaryTeal,
+                color: AppThemeInstructor.primaryBlue,
               ),
               _buildCourseCard(
                 title: "Introduction to Data Science",
                 subject: "Data Science",
                 progress: 0.45,
                 students: 156,
-                color: AppTheme.successGreen,
+                color: AppThemeInstructor.successGreen,
               ),
               _buildCourseCard(
                 title: "UI/UX Design Fundamentals",
@@ -468,12 +468,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       margin: const EdgeInsets.only(right: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
+        color: AppThemeInstructor.surfaceWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: AppThemeInstructor.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.shadowLight.withOpacity(0.1),
+            color: AppThemeInstructor.shadowLight.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -500,14 +500,14 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.more_horiz, color: AppTheme.textSecondary),
+              Icon(Icons.more_horiz, color: AppThemeInstructor.textSecondary),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             title,
-            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
-              color: AppTheme.textPrimary,
+            style: AppThemeInstructor.lightTheme.textTheme.titleMedium?.copyWith(
+              color: AppThemeInstructor.textPrimary,
               fontWeight: FontWeight.bold,
             ),
             maxLines: 2,
@@ -516,12 +516,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           const Spacer(),
           Row(
             children: [
-              Icon(Icons.people_outline, size: 16, color: AppTheme.textSecondary),
+              Icon(Icons.people_outline, size: 16, color: AppThemeInstructor.textSecondary),
               const SizedBox(width: 4),
               Text(
                 '$students students',
                 style: TextStyle(
-                  color: AppTheme.textSecondary,
+                  color: AppThemeInstructor.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -537,7 +537,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   Text(
                     'Progress',
                     style: TextStyle(
-                      color: AppTheme.textSecondary,
+                      color: AppThemeInstructor.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -554,7 +554,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               const SizedBox(height: 6),
               LinearProgressIndicator(
                 value: progress,
-                backgroundColor: AppTheme.borderSubtle,
+                backgroundColor: AppThemeInstructor.borderSubtle,
                 valueColor: AlwaysStoppedAnimation<Color>(color),
                 borderRadius: BorderRadius.circular(2),
               ),
@@ -569,12 +569,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
+        color: AppThemeInstructor.surfaceWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: AppThemeInstructor.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.shadowLight.withOpacity(0.1),
+            color: AppThemeInstructor.shadowLight.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -588,15 +588,15 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             children: [
               Text(
                 'Revenue Overview',
-                style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                  color: AppTheme.textPrimary,
+                style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+                  color: AppThemeInstructor.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentLight,
+                  color: AppThemeInstructor.accentLight,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -605,13 +605,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     Text(
                       '2024',
                       style: TextStyle(
-                        color: AppTheme.primaryTeal,
+                        color: AppThemeInstructor.primaryBlue,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.keyboard_arrow_down, size: 16, color: AppTheme.primaryTeal),
+                    Icon(Icons.keyboard_arrow_down, size: 16, color: AppThemeInstructor.primaryBlue),
                   ],
                 ),
               ),
@@ -625,20 +625,20 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 children: [
                   Text(
                     '\$24,850',
-                    style: AppTheme.lightTheme.textTheme.headlineMedium?.copyWith(
-                      color: AppTheme.textPrimary,
+                    style: AppThemeInstructor.lightTheme.textTheme.headlineMedium?.copyWith(
+                      color: AppThemeInstructor.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.trending_up, size: 16, color: AppTheme.successGreen),
+                      Icon(Icons.trending_up, size: 16, color: AppThemeInstructor.successGreen),
                       const SizedBox(width: 4),
                       Text(
                         '+12.5% from last month',
                         style: TextStyle(
-                          color: AppTheme.successGreen,
+                          color: AppThemeInstructor.successGreen,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -669,12 +669,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                       FlSpot(6, 9),
                     ],
                     isCurved: true,
-                    color: AppTheme.primaryTeal,
+                    color: AppThemeInstructor.primaryBlue,
                     barWidth: 3,
                     dotData: FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppTheme.primaryTeal.withOpacity(0.1),
+                      color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
                     ),
                   ),
                 ],
@@ -696,8 +696,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Recent Activity',
-              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppTheme.textPrimary,
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+                color: AppThemeInstructor.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -708,7 +708,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: Text(
                 'View All',
                 style: TextStyle(
-                  color: AppTheme.primaryTeal,
+                  color: AppThemeInstructor.primaryBlue,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -718,12 +718,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: AppTheme.surfaceWhite,
+            color: AppThemeInstructor.surfaceWhite,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderSubtle),
+            border: Border.all(color: AppThemeInstructor.borderSubtle),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.shadowLight.withOpacity(0.1),
+                color: AppThemeInstructor.shadowLight.withOpacity(0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -736,9 +736,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 title: 'New student enrolled',
                 subtitle: 'Sarah Johnson joined "Advanced Flutter Development"',
                 time: '2 hours ago',
-                color: AppTheme.successGreen,
+                color: AppThemeInstructor.successGreen,
               ),
-              Divider(color: AppTheme.borderSubtle, height: 1),
+              Divider(color: AppThemeInstructor.borderSubtle, height: 1),
               _buildActivityItem(
                 icon: Icons.star_outline,
                 title: 'New 5-star review',
@@ -746,13 +746,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 time: '4 hours ago',
                 color: Colors.amber,
               ),
-              Divider(color: AppTheme.borderSubtle, height: 1),
+              Divider(color: AppThemeInstructor.borderSubtle, height: 1),
               _buildActivityItem(
                 icon: Icons.quiz_outlined,
                 title: 'Quiz completed',
                 subtitle: '23 students completed Module 3 quiz',
                 time: '6 hours ago',
-                color: AppTheme.primaryTeal,
+                color: AppThemeInstructor.primaryBlue,
               ),
             ],
           ),
@@ -787,16 +787,16 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               children: [
                 Text(
                   title,
-                  style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textPrimary,
+                  style: AppThemeInstructor.lightTheme.textTheme.bodyMedium?.copyWith(
+                    color: AppThemeInstructor.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
+                  style: AppThemeInstructor.lightTheme.textTheme.bodySmall?.copyWith(
+                    color: AppThemeInstructor.textSecondary,
                   ),
                 ),
               ],
@@ -804,8 +804,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           ),
           Text(
             time,
-            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
-              color: AppTheme.textSecondary,
+            style: AppThemeInstructor.lightTheme.textTheme.bodySmall?.copyWith(
+              color: AppThemeInstructor.textSecondary,
             ),
           ),
         ],
