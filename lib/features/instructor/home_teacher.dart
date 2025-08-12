@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'custom_widgets.dart';
 // Make sure this is the stateless navbar with currentIndex and onTap
 import 'course_screen.dart'; // Import the CourseScreen
 

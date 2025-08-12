@@ -24,7 +24,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final TextEditingController _tagController = TextEditingController();
 
   // Dynamic chapters and lessons structure
-  List<ChapterData> _chapters = [];
+  final List<ChapterData> _chapters = [];
 
   // Question section controllers
   final TextEditingController _questionTitleController = TextEditingController();

@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import 'create_course_screen.dart';
-import 'course_detail_screen.dart';
 
 class CourseScreen extends StatefulWidget {
   const CourseScreen({super.key});

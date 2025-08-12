@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/widgets/login_user_type_dropdown_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:knowble_app/core/services/auth_manager.dart';
 

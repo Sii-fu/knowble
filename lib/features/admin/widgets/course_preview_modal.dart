@@ -102,7 +102,7 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
       builder: (context) => AlertDialog(
         title: Text('Confirm ${decision.toUpperCase()}'),
         content: Text(
-          'Are you sure you want to ${decision} the course "${widget.course['title']}"?',
+          'Are you sure you want to $decision the course "${widget.course['title']}"?',
         ),
         actions: [
           TextButton(

@@ -877,7 +877,7 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
             ),
           ],
         ),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
