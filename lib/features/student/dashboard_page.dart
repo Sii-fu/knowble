@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../core/services/student/course_services.dart';
 import '../../data/models/course.dart';
-import '../../data/models/module.dart'; // Import the Module type
+import '../../data/models/module.dart'; 
 import 'Course_Details.dart';
 import 'unified_search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';

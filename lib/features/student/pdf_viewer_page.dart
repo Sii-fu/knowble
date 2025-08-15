@@ -136,6 +136,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not launch PDF URL.')),
         );
