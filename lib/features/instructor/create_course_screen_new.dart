@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:Knowble/core/services/Instructor/course_service.dart';
-import 'package:Knowble/core/services/Instructor/questionai_service.dart';
+import '../../core/services/Instructor/course_service.dart';
+import '../../core/services/Instructor/questionai_service.dart';
 import 'package:flutter/foundation.dart';
 import '../../config/theme.dart';
 
