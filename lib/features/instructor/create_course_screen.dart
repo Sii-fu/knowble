@@ -485,7 +485,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: [
+                        children: [ 
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(

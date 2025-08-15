@@ -42,24 +42,37 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     setState(() => _isLoading = true);
     
     try {
-      // Fetch course modules with sections and contents
-      final modules = await _fetchService.fetchCourseModulesWithSectionsAndContents(widget.id);
-      
-      // Fetch course details including banner
-      final courseDetails = await _fetchService.fetchCourseDetail(widget.id);
-      
+      // Fetch course detail once (includes chapters/modules with sections & contents)
+      final courseDetails = await _fetch_service_safeFetchDetail(widget.id);
+
+      // ensure this state is still mounted before updating
+      if (!mounted) return;
+
       setState(() {
-        _modules = modules;
-        _courseBanner = courseDetails?['banner'];
+        final chapters = courseDetails?['chapters'] as List? ?? [];
+        // Normalize chapters into List<Map<String, dynamic>>
+        _modules = chapters.map<Map<String, dynamic>>((c) => Map<String, dynamic>.from(c as Map)).toList();
+        _courseBanner = courseDetails?['banner'] ?? courseDetails?['banner_url'] ?? courseDetails?['image_url'] ?? courseDetails?['thumbnail'];
         _isLoading = false;
       });
     } catch (e) {
-      print('Error fetching course details: $e');
+      debugPrint('Error fetching course details: $e');
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
     }
   }
+
+    // small wrapper to avoid direct long-running calls inside try/await which helps readability
+    Future<Map<String, dynamic>?> _fetch_service_safeFetchDetail(String courseId) async {
+      try {
+        return await _fetchService.fetchCourseDetail(courseId);
+      } catch (e) {
+        debugPrint('fetch detail error: $e');
+        return null;
+      }
+    }
 
   @override
   Widget build(BuildContext context) {
