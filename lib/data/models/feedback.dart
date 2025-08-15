@@ -26,20 +26,28 @@ class Feedback {
 
   /// Create Feedback from database map
   factory Feedback.fromMap(Map<String, dynamic> map) {
-    return Feedback(
-      id: map['id'] as String,
-      userId: map['user_id'] as String,
-      userRole: map['user_role'] as String?,
-      type: map['type'] as String,
-      category: map['category'] as String,
-      message: map['message'] as String,
-      status: map['status'] as String,
-      submittedAt: DateTime.parse(map['submitted_at'] as String),
-      resolvedAt: map['resolved_at'] != null
-          ? DateTime.parse(map['resolved_at'] as String)
-          : null,
-      adminNotes: map['admin_notes'] as String?,
-    );
+    try {
+      print('🔍 Creating Feedback from map: $map');
+      return Feedback(
+        id: map['id'] as String,
+        userId: map['user_id'] as String,
+        userRole: map['user_role'] as String?,
+        type: map['type'] as String,
+        category: map['category'] as String,
+        message: map['message'] as String,
+        status: map['status'] as String,
+        submittedAt: DateTime.parse(map['submitted_at'] as String),
+        resolvedAt: map['resolved_at'] != null
+            ? DateTime.parse(map['resolved_at'] as String)
+            : null,
+        adminNotes: map['admin_notes'] as String?,
+      );
+    } catch (e, stackTrace) {
+      print('❌ Error creating Feedback from map: $e');
+      print('📊 Map data: $map');
+      print('📚 Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Convert Feedback to database map

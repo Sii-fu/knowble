@@ -143,6 +143,11 @@ class FeedbackService {
 
       print('✅ Found ${response.length} feedback entries');
 
+      // Debug: Log the first feedback entry to see the data structure
+      if (response.isNotEmpty) {
+        print('📊 Sample feedback data: ${response.first}');
+      }
+
       // Convert response to Feedback model objects
       return response
           .map((feedbackData) => Feedback.fromMap(feedbackData))
@@ -153,6 +158,44 @@ class FeedbackService {
     } catch (e) {
       print('❌ Unexpected error while fetching feedback history: $e');
       return [];
+    }
+  }
+
+  /// Get a single feedback item by ID (for detail view)
+  /// Useful to fetch latest version with admin notes
+  Future<Feedback?> getFeedbackById(String feedbackId) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        print('❌ User not authenticated');
+        return null;
+      }
+
+      print('🔄 Fetching feedback by ID: $feedbackId');
+
+      final response = await _supabase
+          .from('feedback_issues')
+          .select('*')
+          .eq('id', feedbackId)
+          .eq(
+            'user_id',
+            user.id,
+          ) // Ensure user can only access their own feedback
+          .maybeSingle();
+
+      if (response == null) {
+        print('📭 Feedback not found or access denied');
+        return null;
+      }
+
+      print('✅ Found feedback with ID: $feedbackId');
+      return Feedback.fromMap(response);
+    } on PostgrestException catch (e) {
+      print('❌ Database error while fetching feedback: ${e.message}');
+      return null;
+    } catch (e) {
+      print('❌ Unexpected error while fetching feedback: $e');
+      return null;
     }
   }
 
