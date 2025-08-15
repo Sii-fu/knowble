@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/reminder.dart';
+import 'notification_service.dart';
 
 /// ReminderService handles all reminder-related operations with Supabase
 /// Similar to AuthManager pattern but for reminder CRUD operations
@@ -46,6 +47,13 @@ class ReminderService {
       // Get user's role for created_by field
       final userRole = await _getCurrentUserRole();
 
+      // Convert times to Bangladesh Standard Time (GMT+6) before storing
+      final bstStartTime = convertToBangladeshTime(startTime);
+      final bstEndTime = convertToBangladeshTime(endTime);
+
+      print('🔍 Original start time: ${startTime.toString()}');
+      print('🔍 BST start time: ${bstStartTime.toString()}');
+
       // Prepare reminder data for database insertion
       final reminderData = {
         'user_id': user.id, // Current authenticated user's ID
@@ -53,16 +61,43 @@ class ReminderService {
         'title': title.trim(), // Remove extra whitespace from title
         'description': description
             .trim(), // Remove extra whitespace from description
-        'time': startTime
-            .toIso8601String(), // Convert start DateTime to ISO string for database
-        'end_time': endTime
-            .toIso8601String(), // Convert end DateTime to ISO string for database
+        'time': bstStartTime
+            .toIso8601String(), // Convert BST DateTime to ISO string for database
+        'end_time': bstEndTime
+            .toIso8601String(), // Convert BST DateTime to ISO string for database
         'created_by': userRole, // Set user role (student, instructor, or admin)
         'priority': priority, // Store priority in dedicated priority column
       };
 
       // Insert reminder into Supabase reminders table
-      await _supabase.from('reminders').insert(reminderData);
+      final response = await _supabase
+          .from('reminders')
+          .insert(reminderData)
+          .select()
+          .single();
+
+      // Get the created reminder ID for notification scheduling
+      final String createdReminderId = response['id'];
+
+      print('🔍 Reminder created with ID: $createdReminderId');
+      print(
+        '🔍 About to schedule notification for time: ${startTime.toString()}',
+      );
+
+      // Schedule notification for the reminder (use original local time for notification scheduling)
+      final notificationId =
+          await NotificationService.scheduleReminderNotification(
+            reminderId: createdReminderId,
+            title: title.trim(),
+            description: description.trim().isNotEmpty
+                ? description.trim()
+                : 'Reminder for your task',
+            scheduledTime:
+                startTime, // Use original local time for notification scheduling
+            priority: priority,
+          );
+
+      print('🔍 Notification service returned ID: $notificationId');
 
       // Log success for debugging purposes
       print('✅ Reminder created successfully: $title');
@@ -72,6 +107,9 @@ class ReminderService {
       );
       print('   🎯 Priority: $priority');
       print('   👤 Created by: $userRole');
+      if (notificationId != null) {
+        print('   📱 Notification scheduled with ID: $notificationId');
+      }
 
       return null; // Return null to indicate success (AuthManager pattern)
     } on PostgrestException catch (e) {
@@ -222,12 +260,19 @@ class ReminderService {
         return 'User not authenticated';
       }
 
+      // Convert times to Bangladesh Standard Time (GMT+6) before storing
+      final bstStartTime = convertToBangladeshTime(startTime);
+      final bstEndTime = convertToBangladeshTime(endTime);
+
+      print('🔍 Update - Original start time: ${startTime.toString()}');
+      print('🔍 Update - BST start time: ${bstStartTime.toString()}');
+
       // Prepare updated data
       final updateData = {
         'title': title.trim(), // Updated title
         'description': description.trim(), // Updated description
-        'time': startTime.toIso8601String(), // Updated start time
-        'end_time': endTime.toIso8601String(), // Updated end time
+        'time': bstStartTime.toIso8601String(), // Updated start time in BST
+        'end_time': bstEndTime.toIso8601String(), // Updated end time in BST
         'course_id': courseId, // Updated course reference (can be null)
         'priority': priority, // Updated priority
       };
@@ -239,8 +284,28 @@ class ReminderService {
           .eq('id', reminderId) // Match by reminder ID
           .eq('user_id', user.id); // Security: ensure user owns this reminder
 
+      // Cancel any existing notifications for this reminder
+      // Note: In a production app, you'd store notification IDs with reminders
+      // For now, we'll schedule a new notification
+
+      // Schedule new notification for updated reminder
+      final notificationId =
+          await NotificationService.scheduleReminderNotification(
+            reminderId: reminderId,
+            title: title.trim(),
+            description: description.trim().isNotEmpty
+                ? description.trim()
+                : 'Reminder for your task',
+            scheduledTime:
+                startTime, // Use original local time for notification scheduling
+            priority: priority,
+          );
+
       // Log success
       print('✅ Reminder updated successfully: $title');
+      if (notificationId != null) {
+        print('   📱 New notification scheduled with ID: $notificationId');
+      }
       return null; // Success
     } on PostgrestException catch (e) {
       // Handle database errors
@@ -270,6 +335,10 @@ class ReminderService {
           .eq('id', reminderId) // Match by reminder ID
           .eq('user_id', user.id); // Security: ensure user owns this reminder
 
+      // Note: In a production app, you'd store notification IDs with reminders
+      // to properly cancel them. For now, this is a basic implementation.
+      // You could query the notifications table and cancel related notifications
+
       // Log success
       print('✅ Reminder deleted successfully');
       return null; // Success
@@ -281,6 +350,92 @@ class ReminderService {
       // Handle other errors
       print('❌ Error deleting reminder: $e');
       return 'Failed to delete reminder. Please try again.';
+    }
+  }
+
+  /// Convert a DateTime to Bangladesh Standard Time (GMT+6)
+  static DateTime convertToBangladeshTime(DateTime dateTime) {
+    // Bangladesh Standard Time is GMT+6
+    // Add 6 hours to convert to Bangladesh time
+    DateTime bangladeshTime = dateTime.add(Duration(hours: 6));
+
+    print('🔍 Input time: ${dateTime.toString()}');
+    print('🔍 Bangladesh time (GMT+6): ${bangladeshTime.toString()}');
+
+    return bangladeshTime;
+  }
+
+  /// Convert a Bangladesh time back to local time for notifications
+  /// Update existing reminders' timestamps to Bangladesh Standard Time
+  static Future<String?> convertExistingRemindersToBasT() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        return 'User not authenticated';
+      }
+
+      print(
+        '🔧 Starting conversion of existing reminders to Bangladesh Standard Time...',
+      );
+
+      // Get all reminders for the current user
+      final response = await _supabase
+          .from('reminders')
+          .select('*')
+          .eq('user_id', user.id);
+
+      if (response.isEmpty) {
+        print('✅ No reminders found to convert');
+        return null;
+      }
+
+      int convertedCount = 0;
+
+      for (final reminderData in response) {
+        try {
+          final String reminderId = reminderData['id'];
+          final DateTime originalTime = DateTime.parse(reminderData['time']);
+          final DateTime? originalEndTime = reminderData['end_time'] != null
+              ? DateTime.parse(reminderData['end_time'])
+              : null;
+
+          // Convert times to Bangladesh Standard Time
+          final bstTime = convertToBangladeshTime(originalTime);
+          final bstEndTime = originalEndTime != null
+              ? convertToBangladeshTime(originalEndTime)
+              : null;
+
+          // Update the reminder with Bangladesh time
+          final updateData = {
+            'time': bstTime.toIso8601String(),
+            if (bstEndTime != null) 'end_time': bstEndTime.toIso8601String(),
+          };
+
+          await _supabase
+              .from('reminders')
+              .update(updateData)
+              .eq('id', reminderId);
+
+          convertedCount++;
+
+          print('✅ Converted reminder: ${reminderData['title']}');
+          print('   Original: ${originalTime.toString()}');
+          print('   BST: ${bstTime.toString()}');
+        } catch (e) {
+          print('❌ Error converting reminder ${reminderData['id']}: $e');
+        }
+      }
+
+      print(
+        '✅ Conversion completed. $convertedCount reminders converted to Bangladesh Standard Time.',
+      );
+      return null;
+    } on PostgrestException catch (e) {
+      print('❌ Database Error converting reminders: ${e.message}');
+      return 'Database error: ${e.message}';
+    } catch (e) {
+      print('❌ Error converting reminders: $e');
+      return 'Failed to convert reminders. Please try again.';
     }
   }
 }

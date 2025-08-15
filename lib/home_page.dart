@@ -1,5 +1,6 @@
 //not a valid page. dummy placement page for first version
 import 'package:flutter/material.dart';
+import 'core/services/notification_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -77,6 +78,37 @@ class _HomePageState extends State<HomePage> {
             label: 'Chat',
           ),
         ],
+      ),
+      // Temporary test button for notifications - REMOVE after testing
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Test immediate notification
+          await NotificationService.showImmediateNotification(
+            title: 'Test Notification',
+            description: 'This is a test notification!',
+            priority: 'high',
+          );
+
+          // Test scheduled notification (10 seconds from now)
+          await NotificationService.testNotification();
+
+          // Test database insertion directly
+          await NotificationService.testDatabaseInsertion();
+
+          // Show snackbar confirmation
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '🧪 Tests triggered! Check console & notification table.',
+                ),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        },
+        child: const Icon(Icons.notifications_active),
+        tooltip: 'Test Notifications',
       ),
     );
   }

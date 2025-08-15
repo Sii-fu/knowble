@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'app.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/services/notification_service.dart';
 // import '../features/instructor/course_screen.dart';
 
 void main() async {
@@ -13,11 +14,16 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://bwlkahcglanmmtfcuktp.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bGthaGNnbGFubW10ZmN1a3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyMjI0MjEsImV4cCI6MjA2Njc5ODQyMX0.znzlkDWQln4UG1zRGyvinX3GGH7zdxBDCGT85b-Xbm8',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bGthaGNnbGFubW10ZmN1a3RwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEyMjI0MjEsImV4cCI6MjA2Njc5ODQyMX0.znzlkDWQln4UG1zRGyvinX3GGH7zdxBDCGT85b-Xbm8',
     authOptions: const FlutterAuthClientOptions(
-      detectSessionInUri: false, // Disable deep link detection to prevent the error
+      detectSessionInUri:
+          false, // Disable deep link detection to prevent the error
     ),
   );
+
+  // Initialize notification service
+  await NotificationService.initialize();
   // if (Supabase.instance.client != null) {
   //   print('connecteddddddddddddddd');
   // }
