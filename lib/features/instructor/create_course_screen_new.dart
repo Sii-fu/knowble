@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:Knowble/core/services/Instructor/course_service.dart';
-import 'package:Knowble/core/services/Instructor/questionai_service.dart';
+// import 'package:Knowble/core/services/Instructor/questionai_service.dart';
 import 'package:flutter/foundation.dart';
 import '../../config/theme.dart';
 
@@ -93,18 +93,18 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   // Store all chapters and their lessons before upload
   final List<Map<String, dynamic>> _allChapters = [];
 
-  String? _createdCourseId;
+  // String? _createdCourseId;
   // Question section controllers
   final TextEditingController _questionTitleController = TextEditingController();
   final TextEditingController _questionMarksController = TextEditingController();
 
   // Helper to get the current courseId (you may want to store this after course creation)
-  Future<String?> _getCurrentCourseId() async {
-    return _createdCourseId;
-  }
+  // Future<String?> _getCurrentCourseId() async {
+  //   return _createdCourseId;
+  // }
   // Gemini API key (replace with your actual key or load from secure storage)
-  final String _geminiApiKey = 'AIzaSyAUoA_MGBSzZHSIQsMRZ4BgM6vQcKhM9pI';
-  late final QuestionAIService _questionAIService;
+  // final String _geminiApiKey = 'AIzaSyAUoA_MGBSzZHSIQsMRZ4BgM6vQcKhM9pI';
+  // late final QuestionAIService _questionAIService;
 
 
   final CourseService _courseService = CourseService();
@@ -153,7 +153,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     _lessonCountController.text = '';
     _updateLessonControllers();
 
-    _questionAIService = QuestionAIService(geminiApiKey: _geminiApiKey);
+    // _questionAIService = QuestionAIService(geminiApiKey: _geminiApiKey);
   }
 
   void _updateLessonControllers() {
@@ -302,9 +302,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     }
   }
 
-  void _handleQuestionUpload() {
-    _showSuccessDialog('Question uploaded successfully!');
-  }
+  // void _handleQuestionUpload() {
+  //   _showSuccessDialog('Question uploaded successfully!');
+  // }
 
   // Helper to collect current chapter's data into _allChapters
   void _saveCurrentChapterToList() {
@@ -373,7 +373,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       _hideLoadingDialog();
       setState(() {
         _isUploading = false;
-        _createdCourseId = courseId;
+        // _createdCourseId = courseId;
       });
       if (courseId == null) {
         _showSuccessDialog('Failed to create course.');
