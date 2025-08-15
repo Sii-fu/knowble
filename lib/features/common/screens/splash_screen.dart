@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/core/services/auth_manager.dart';
+import 'package:Knowble/config/theme.dart';
+import 'package:Knowble/core/services/auth_manager.dart';
 
 /// SplashScreen - Entry point of the app that shows logo animation and navigates to onboarding
 /// Called from AppRoutes as the initial route ('/')

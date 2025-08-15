@@ -4,7 +4,7 @@ import '../../config/theme_instructor.dart';
 import 'course_screen.dart';
 import 'create_course_screen.dart';
 
-import 'package:knowble_app/features/instructor/chat/chat_list_page.dart';
+import 'package:Knowble/features/instructor/chat/chat_list_page.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 
 class PaginationDotsWidget extends StatefulWidget {
   final int currentIndex;

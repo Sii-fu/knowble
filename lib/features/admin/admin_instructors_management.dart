@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 import './widgets/instructor_list_item_card.dart';
 import '../../widgets/custom_icon_widget.dart';
 import '../../core/services/admin_instructor_verification_service.dart';

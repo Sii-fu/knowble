@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/widgets/custom_icon_widget.dart';
+import 'package:Knowble/config/theme.dart';
+import 'package:Knowble/widgets/custom_icon_widget.dart';
 import '../../widgets/notifications/notification_list_widget.dart';
 
 class NotificationsScreen extends StatefulWidget {

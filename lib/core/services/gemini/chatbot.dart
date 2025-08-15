@@ -1,18 +1,20 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:knowble_app/core/config/api_config.dart';
+import 'package:Knowble/core/config/api_config.dart';
 
 class GeminiService {
   final String apiKey = ApiConfig.geminiApiKey;
-  static const String baseURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-  static const String fallbackURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  static const String baseURL =
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  static const String fallbackURL =
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
   GeminiService();
 
   Future<String> _generateResponse(String userPrompt, String option) async {
-
     final formattedPrompt = await _promptFactory(userPrompt, option);
-    final systemPrompt = '''You are StudyBuddy-G, a smart, chill, no-nonsense study assistant who helps the user with learning anything — from breaking down tough concepts to summarizing dense textbooks. You speak in a friendly, engaging tone with a mix of clarity. You always aim to:
+    final systemPrompt =
+        '''You are StudyBuddy-G, a smart, chill, no-nonsense study assistant who helps the user with learning anything — from breaking down tough concepts to summarizing dense textbooks. You speak in a friendly, engaging tone with a mix of clarity. You always aim to:
 - simplify complex stuff without dumbing it down,
 - explain using analogies, visuals (if asked), or examples,
 - suggest better ways to remember/study a topic,
@@ -95,53 +97,52 @@ You’re not just a tutor — you’re the user’s academic ride-or-die.
     }
   }
 
-
   /// Generate content using Gemini API with retry mechanism
   Future<String> generateContent(String prompt, {int maxRetries = 3}) async {
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         final url = Uri.parse('$baseURL?key=$apiKey');
-        
+
         final requestBody = {
           'contents': [
             {
               'parts': [
-                {'text': prompt}
-              ]
-            }
+                {'text': prompt},
+              ],
+            },
           ],
           'generationConfig': {
             'temperature': 0.9,
             'topK': 10,
             'topP': 0.8,
             'maxOutputTokens': 1500,
-            'stopSequences': []
-          }
+            'stopSequences': [],
+          },
         };
 
         final response = await http.post(
           url,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: {'Content-Type': 'application/json'},
           body: json.encode(requestBody),
         );
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
-          
-          if (data['candidates'] != null && 
+
+          if (data['candidates'] != null &&
               data['candidates'].isNotEmpty &&
               data['candidates'][0]['content'] != null &&
               data['candidates'][0]['content']['parts'] != null &&
               data['candidates'][0]['content']['parts'].isNotEmpty) {
-            
-            return data['candidates'][0]['content']['parts'][0]['text'] ?? 'No response generated';
+            return data['candidates'][0]['content']['parts'][0]['text'] ??
+                'No response generated';
           } else {
             return 'Sorry, I couldn\'t generate a response. Please try again.';
           }
         } else if (response.statusCode == 503) {
-          print('Gemini API Overloaded (Attempt $attempt/$maxRetries): ${response.body}');
+          print(
+            'Gemini API Overloaded (Attempt $attempt/$maxRetries): ${response.body}',
+          );
           if (attempt < maxRetries) {
             // Wait with exponential backoff: 1s, 2s, 4s
             final delay = Duration(seconds: attempt * attempt);
@@ -165,13 +166,15 @@ You’re not just a tutor — you’re the user’s academic ride-or-die.
         }
       }
     }
-    
+
     return 'Sorry, I\'m unable to respond right now. Please try again later.';
   }
 
-
   /// Try with fallback model if primary model fails
-  Future<String> generateContentWithFallback(String prompt, String option) async {
+  Future<String> generateContentWithFallback(
+    String prompt,
+    String option,
+  ) async {
     // First try the primary model
     String response = await _generateResponse(prompt, option);
     return response;
@@ -182,5 +185,4 @@ You’re not just a tutor — you’re the user’s academic ride-or-die.
   // }
 
   /// Generate educational content with context
-  
 }

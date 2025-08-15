@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/widgets/custom_icon_widget.dart';
+import 'package:Knowble/config/theme.dart';
+import 'package:Knowble/widgets/custom_icon_widget.dart';
 
 class OnboardingContentWidget extends StatelessWidget {
   const OnboardingContentWidget({super.key});
@@ -68,11 +68,13 @@ class OnboardingContentWidget extends StatelessWidget {
 
     return Column(
       children: features
-          .map((feature) => _buildFeatureItem(
-                iconName: feature['icon'] as String,
-                title: feature['title'] as String,
-                description: feature['description'] as String,
-              ))
+          .map(
+            (feature) => _buildFeatureItem(
+              iconName: feature['icon'] as String,
+              title: feature['title'] as String,
+              description: feature['description'] as String,
+            ),
+          )
           .toList(),
     );
   }

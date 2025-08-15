@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 import './scheduler/widgets/date_strip_widget.dart';
 import './scheduler/widgets/empty_state_widget.dart';
 import './scheduler/widgets/task_card_widget.dart';

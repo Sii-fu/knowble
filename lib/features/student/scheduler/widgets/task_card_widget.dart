@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 
 class TaskCardWidget extends StatelessWidget {
   final Map<String, dynamic> task;
@@ -132,46 +132,45 @@ class TaskCardWidget extends StatelessWidget {
                           color: AppTheme.textSecondary,
                           size: 5.w,
                         ),
-                        itemBuilder:
-                            (context) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.edit,
-                                      size: 4.w,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                    SizedBox(width: 2.w),
-                                    Text(
-                                      'Edit',
-                                      style: TextStyle(fontFamily: 'Jost'),
-                                    ),
-                                  ],
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  size: 4.w,
+                                  color: AppTheme.textSecondary,
                                 ),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete,
-                                      size: 4.w,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 2.w),
-                                    Text(
-                                      'Delete',
-                                      style: TextStyle(
-                                        fontFamily: 'Jost',
-                                        color: Colors.red,
-                                      ),
-                                    ),
-                                  ],
+                                SizedBox(width: 2.w),
+                                Text(
+                                  'Edit',
+                                  style: TextStyle(fontFamily: 'Jost'),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete,
+                                  size: 4.w,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 2.w),
+                                Text(
+                                  'Delete',
+                                  style: TextStyle(
+                                    fontFamily: 'Jost',
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -280,40 +279,39 @@ class TaskCardWidget extends StatelessWidget {
   void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              'Delete Task',
-              style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Jost'),
-            ),
-            content: Text(
-              'Are you sure you want to delete this task? This action cannot be undone.',
-              style: TextStyle(fontFamily: 'Jost'),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontFamily: 'Jost',
-                  ),
-                ),
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Delete Task',
+          style: TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Jost'),
+        ),
+        content: Text(
+          'Are you sure you want to delete this task? This action cannot be undone.',
+          style: TextStyle(fontFamily: 'Jost'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontFamily: 'Jost',
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  onDelete();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text('Delete', style: TextStyle(fontFamily: 'Jost')),
-              ),
-            ],
+            ),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              onDelete();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Delete', style: TextStyle(fontFamily: 'Jost')),
+          ),
+        ],
+      ),
     );
   }
 }

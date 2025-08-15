@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/widgets/registration_user_type_dropdown_widget.dart';
-import 'package:knowble_app/widgets/terms_checkbox_widget.dart';
+import 'package:Knowble/config/theme.dart';
+import 'package:Knowble/widgets/registration_user_type_dropdown_widget.dart';
+import 'package:Knowble/widgets/terms_checkbox_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegistrationScreen extends StatefulWidget {

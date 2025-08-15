@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/widgets/custom_icon_widget.dart';
+import 'package:Knowble/config/theme.dart';
+import 'package:Knowble/widgets/custom_icon_widget.dart';
 
 class OnboardingIllustrationWidget extends StatelessWidget {
   const OnboardingIllustrationWidget({super.key});
@@ -32,10 +32,7 @@ class OnboardingIllustrationWidget extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.accentLight,
-                    AppTheme.surfaceWhite,
-                  ],
+                  colors: [AppTheme.accentLight, AppTheme.surfaceWhite],
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -104,10 +101,7 @@ class OnboardingIllustrationWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.surfaceWhite,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppTheme.borderSubtle,
-                  width: 1,
-                ),
+                border: Border.all(color: AppTheme.borderSubtle, width: 1),
               ),
               child: Column(
                 children: [
@@ -123,10 +117,7 @@ class OnboardingIllustrationWidget extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    height: 1,
-                    color: AppTheme.borderSubtle,
-                  ),
+                  Container(height: 1, color: AppTheme.borderSubtle),
                 ],
               ),
             ),
@@ -157,23 +148,29 @@ class OnboardingIllustrationWidget extends StatelessWidget {
             bottom: 2.h,
             child: Row(
               children: [
-                _buildLearningIndicator(CustomIconWidget(
-                  iconName: 'laptop',
-                  color: AppTheme.successGreen,
-                  size: 5.w,
-                )),
+                _buildLearningIndicator(
+                  CustomIconWidget(
+                    iconName: 'laptop',
+                    color: AppTheme.successGreen,
+                    size: 5.w,
+                  ),
+                ),
                 SizedBox(width: 2.w),
-                _buildLearningIndicator(CustomIconWidget(
-                  iconName: 'headphones',
-                  color: AppTheme.warningAmber,
-                  size: 5.w,
-                )),
+                _buildLearningIndicator(
+                  CustomIconWidget(
+                    iconName: 'headphones',
+                    color: AppTheme.warningAmber,
+                    size: 5.w,
+                  ),
+                ),
                 SizedBox(width: 2.w),
-                _buildLearningIndicator(CustomIconWidget(
-                  iconName: 'edit',
-                  color: AppTheme.primaryTeal,
-                  size: 5.w,
-                )),
+                _buildLearningIndicator(
+                  CustomIconWidget(
+                    iconName: 'edit',
+                    color: AppTheme.primaryTeal,
+                    size: 5.w,
+                  ),
+                ),
               ],
             ),
           ),
@@ -240,10 +237,7 @@ class OnboardingIllustrationWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceWhite,
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: AppTheme.borderSubtle,
-          width: 0.5,
-        ),
+        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
       ),
       child: Text(
         equation,
@@ -274,10 +268,7 @@ class OnboardingIllustrationWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceWhite,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: AppTheme.borderSubtle,
-          width: 1,
-        ),
+        border: Border.all(color: AppTheme.borderSubtle, width: 1),
       ),
       child: Center(child: icon),
     );

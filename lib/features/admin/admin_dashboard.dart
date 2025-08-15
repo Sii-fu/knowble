@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 import './widgets/admin_info_card.dart';
 import './widgets/admin_list_item_card.dart';
 import './widgets/quick_action_button.dart';
