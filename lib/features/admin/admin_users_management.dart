@@ -167,7 +167,7 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: Text(
-          'Users with Feedback',
+          'User Feedback',
           style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -500,22 +500,8 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
     Map<String, dynamic> feedback,
     Map<String, dynamic> user,
   ) {
-    Color statusColor;
-    IconData statusIcon;
-
-    switch (feedback['status']) {
-      case 'pending':
-        statusColor = AppTheme.warningAmber;
-        statusIcon = Icons.pending;
-        break;
-      case 'resolved':
-        statusColor = AppTheme.successGreen;
-        statusIcon = Icons.check_circle;
-        break;
-      default:
-        statusColor = AppTheme.textSecondary;
-        statusIcon = Icons.help;
-    }
+    final statusColor = _getStatusColor(feedback['status']);
+    final statusIcon = _getStatusIcon(feedback['status']);
 
     return Container(
       padding: EdgeInsets.all(16),
@@ -645,17 +631,15 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: feedback['status'] == 'pending'
-                          ? AppTheme.warningAmber.withOpacity(0.1)
-                          : AppTheme.successGreen.withOpacity(0.1),
+                      color: _getStatusColor(
+                        feedback['status'],
+                      ).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       feedback['status'].toUpperCase(),
                       style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
-                        color: feedback['status'] == 'pending'
-                            ? AppTheme.warningAmber
-                            : AppTheme.successGreen,
+                        color: _getStatusColor(feedback['status']),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -726,7 +710,10 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
                   ),
                 ),
               ),
-              if (feedback['status'] == 'pending')
+              if (feedback['status'] == 'submitted' ||
+                  feedback['status'] == 'in_review' ||
+                  feedback['status'] == 'in_progress' ||
+                  feedback['status'] == 'pending')
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.only(top: 16),
@@ -1002,5 +989,43 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
         ),
       ),
     );
+  }
+
+  /// Get color for feedback status
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'submitted':
+      case 'pending':
+        return AppTheme.warningAmber;
+      case 'in_review':
+        return Colors.blue;
+      case 'in_progress':
+        return Colors.orange;
+      case 'resolved':
+        return AppTheme.successGreen;
+      case 'closed':
+        return Colors.grey;
+      default:
+        return AppTheme.textSecondary;
+    }
+  }
+
+  /// Get icon for feedback status
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'submitted':
+      case 'pending':
+        return Icons.pending;
+      case 'in_review':
+        return Icons.rate_review;
+      case 'in_progress':
+        return Icons.work_outline;
+      case 'resolved':
+        return Icons.check_circle;
+      case 'closed':
+        return Icons.close;
+      default:
+        return Icons.help;
+    }
   }
 }
