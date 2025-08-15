@@ -5,44 +5,49 @@ class CourseFetchService {
 
   // Fetch all modules (chapters), sections (lessons), and contents for a course by courseId
   Future<List<Map<String, dynamic>>> fetchCourseModulesWithSectionsAndContents(String courseId) async {
-    // Fetch modules (chapters)
+    // Use a nested select to fetch modules with their sections and contents in one round-trip
     final modules = await supabase
         .from('modules')
-        .select('id, title, "order"')
+        .select('''
+          id,
+          title,
+          "order",
+          sections (
+            id,
+            title,
+            description,
+            "order",
+            contents (id, type, title, url, "order")
+          )
+        ''')
         .eq('course_id', courseId)
         .order('order');
- 
-    List<Map<String, dynamic>> moduleList = [];
-    for (final module in modules) {
-      // Fetch sections (lessons)
-      final sections = await supabase
-          .from('sections')
-          .select('id, title, description, "order"')
-          .eq('module_id', module['id'])
-          .order('order');
 
-      List<Map<String, dynamic>> sectionList = [];
-      for (final section in sections) {
-        // Fetch contents (PDFs, etc)
-        final contents = await supabase
-            .from('contents')
-            .select('id, type, title, url, "order"')
-            .eq('section_id', section['id'])
-            .order('order');
+  final moduleList = <Map<String, dynamic>>[];
 
-        sectionList.add({
-          'id': section['id'],
-          'title': section['title'],
-          'description': section['description'],
-          'order': section['order'],
-          'contents': contents,
+    for (final m in modules as List) {
+      final secs = <Map<String, dynamic>>[];
+      final rawSecs = m['sections'] as List? ?? [];
+      for (final s in rawSecs) {
+        secs.add({
+          'id': s['id'],
+          'title': s['title'],
+          'description': s['description'],
+          'order': s['order'],
+          'contents': (s['contents'] as List? ?? []).map((c) => {
+                'id': c['id'],
+                'type': c['type'],
+                'title': c['title'],
+                'url': c['url'],
+                'order': c['order'],
+              }).toList(),
         });
       }
       moduleList.add({
-        'id': module['id'],
-        'title': module['title'],
-        'order': module['order'],
-        'sections': sectionList,
+        'id': m['id'],
+        'title': m['title'],
+        'order': m['order'],
+        'sections': secs,
       });
     }
     return moduleList;
@@ -84,54 +89,59 @@ class CourseFetchService {
         .eq('id', courseId)
         .maybeSingle();
     if (course == null) return null;
-
-    // Fetch modules (chapters)
+    // Use nested select to fetch modules -> sections -> contents in a single request
     final modules = await supabase
         .from('modules')
-        .select('id, title, "order"')
+        .select('''
+          id,
+          title,
+          "order",
+          sections (
+            id,
+            title,
+            description,
+            "order",
+            contents (id, type, title, url, "order")
+          )
+        ''')
         .eq('course_id', courseId)
         .order('order');
 
-    List<Map<String, dynamic>> chapters = [];
-    for (final module in modules) {
-      // Fetch sections (lessons)
-      final sections = await supabase
-          .from('sections')
-          .select('id, title, description, "order"')
-          .eq('module_id', module['id'])
-          .order('order');
+  final chaptersList = <Map<String, dynamic>>[];
 
-      List<Map<String, dynamic>> lessons = [];
-      for (final section in sections) {
-        // Fetch contents (PDFs, etc)
-        final contents = await supabase
-            .from('contents')
-            .select('id, type, title, url, "order"')
-            .eq('section_id', section['id'])
-            .order('order');
-
+    for (final m in modules as List) {
+      final rawSecs = m['sections'] as List? ?? [];
+      final lessons = <Map<String, dynamic>>[];
+      for (final s in rawSecs) {
         lessons.add({
-          'id': section['id'],
-          'title': section['title'],
-          'description': section['description'],
-          'order': section['order'],
-          'contents': contents,
+          'id': s['id'],
+          'title': s['title'],
+          'description': s['description'],
+          'order': s['order'],
+          'contents': (s['contents'] as List? ?? []).map((c) => {
+                'id': c['id'],
+                'type': c['type'],
+                'title': c['title'],
+                'url': c['url'],
+                'order': c['order'],
+              }).toList(),
         });
       }
-      chapters.add({
-        'id': module['id'],
-        'title': module['title'],
-        'order': module['order'],
+      chaptersList.add({
+        'id': m['id'],
+        'title': m['title'],
+        'order': m['order'],
         'lessons': lessons,
       });
     }
+
     return {
       'id': course['id'],
       'title': course['title'],
       'description': course['description'],
       'duration_days': course['duration_days'],
       'banner': course['banner'],
-      'chapters': chapters,
+      'chapters': chaptersList,
     };
   }
 }

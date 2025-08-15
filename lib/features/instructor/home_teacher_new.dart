@@ -15,6 +15,7 @@ class TeacherHomePage extends StatefulWidget {
 
 class _TeacherHomePageState extends State<TeacherHomePage> {
   int _selectedIndex = 0;
+  String _selectedRevenueYear = '2024';
 
   void _onTabSelected(int index) {
     setState(() {
@@ -36,6 +37,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       data: theme,
       child: Scaffold(
         backgroundColor: AppThemeInstructor.backgroundLight,
+        
         appBar: AppBar(
           elevation: 0,
           backgroundColor: AppThemeInstructor.surfaceWhite,
@@ -83,9 +85,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Quick Actions
-              _buildQuickActions(),
+              // _buildQuickActions(),
               
-              const SizedBox(height: 24),
+              // const SizedBox(height: 24),
               
               // Statistics Overview
               _buildStatisticsSection(),
@@ -599,25 +601,36 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                 decoration: BoxDecoration(
                   color: AppThemeInstructor.accentLight,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '2024',
-                      style: TextStyle(
-                        color: AppThemeInstructor.primaryBlue,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.keyboard_arrow_down, size: 16, color: AppThemeInstructor.primaryBlue),
-                  ],
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedRevenueYear,
+                    icon: Icon(Icons.keyboard_arrow_down, size: 18, color: AppThemeInstructor.primaryBlue),
+                    items: ['2022', '2023', '2024', '2025']
+                        .map((y) => DropdownMenuItem<String>(
+                              value: y,
+                              child: Text(
+                                y,
+                                style: TextStyle(
+                                  color: AppThemeInstructor.primaryBlue,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val == null) return;
+                      setState(() {
+                        _selectedRevenueYear = val;
+                        // TODO: update chart/data based on selected year
+                      });
+                    },
+                  ),
                 ),
               ),
             ],
