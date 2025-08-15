@@ -11,8 +11,6 @@ class FeedbackDetailDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
@@ -30,7 +28,8 @@ class FeedbackDetailDialog extends StatelessWidget {
                     _buildInfoSection(context),
                     SizedBox(height: 3.h),
                     _buildMessageSection(context),
-                    if (feedback['admin_response'] != null) ...[
+                    if (feedback['admin_notes'] != null &&
+                        (feedback['admin_notes'] as String).isNotEmpty) ...[
                       SizedBox(height: 3.h),
                       _buildResponseSection(context),
                     ],
@@ -92,9 +91,9 @@ class FeedbackDetailDialog extends StatelessWidget {
 
   Widget _buildInfoSection(BuildContext context) {
     final theme = Theme.of(context);
-    final type = feedback['feedback_type'] as String? ?? 'General Feedback';
+    final type = feedback['type'] as String? ?? 'General Feedback';
     final category = feedback['category'] as String? ?? 'Other';
-    final status = feedback['status'] as String? ?? 'Submitted';
+    final status = feedback['status'] as String? ?? 'submitted';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +220,7 @@ class FeedbackDetailDialog extends StatelessWidget {
 
   Widget _buildResponseSection(BuildContext context) {
     final theme = Theme.of(context);
-    final response = feedback['admin_response'] as String;
+    final response = feedback['admin_notes'] as String;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,7 +234,7 @@ class FeedbackDetailDialog extends StatelessWidget {
             ),
             SizedBox(width: 2.w),
             Text(
-              'Admin Response',
+              'Admin Notes',
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -267,8 +266,8 @@ class FeedbackDetailDialog extends StatelessWidget {
 
   Widget _buildTimestampSection(BuildContext context) {
     final theme = Theme.of(context);
-    final createdAt = feedback['created_at'] as String?;
-    final updatedAt = feedback['updated_at'] as String?;
+    final submittedAt = feedback['submitted_at'] as String?;
+    final resolvedAt = feedback['resolved_at'] as String?;
 
     return Container(
       padding: EdgeInsets.all(4.w),
@@ -278,20 +277,20 @@ class FeedbackDetailDialog extends StatelessWidget {
       ),
       child: Column(
         children: [
-          if (createdAt != null)
+          if (submittedAt != null)
             _buildTimestampRow(
               context,
               'Submitted',
-              _formatFullDate(createdAt),
+              _formatFullDate(submittedAt),
               'schedule',
             ),
-          if (updatedAt != null && updatedAt != createdAt) ...[
+          if (resolvedAt != null) ...[
             SizedBox(height: 1.h),
             _buildTimestampRow(
               context,
-              'Last Updated',
-              _formatFullDate(updatedAt),
-              'update',
+              'Resolved',
+              _formatFullDate(resolvedAt),
+              'check_circle',
             ),
           ],
         ],

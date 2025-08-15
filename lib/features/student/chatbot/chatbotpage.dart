@@ -56,7 +56,7 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
         final pdf = widget.pdfContents![i];
         if (pdf['textContent'] != null) {
           final textContent = pdf['textContent'].toString();
-          print('pdfContents[$i]["textContent"] parameter: "${textContent.length > 300 ? textContent.substring(0, 300) + "..." : textContent}"');
+          print('pdfContents[$i]["textContent"] parameter: "${textContent.length > 300 ? "${textContent.substring(0, 300)}..." : textContent}"');
           print('Total textContent length: ${textContent.length} characters');
         } else {
           print('pdfContents[$i]["textContent"] parameter: null');

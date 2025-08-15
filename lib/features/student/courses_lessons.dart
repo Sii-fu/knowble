@@ -421,7 +421,7 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                       const Divider(height: 18, thickness: 0.7, color: Color(0xFFE0E0E0)),
                                     ],
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                           ),
@@ -468,8 +468,8 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(Icons.school_outlined, size: 24),
                           tooltip: 'Ask Instructor',
+                          child: const Icon(Icons.school_outlined, size: 24),
                         ),
                 );
               },

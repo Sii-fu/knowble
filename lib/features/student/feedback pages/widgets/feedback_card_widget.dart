@@ -38,7 +38,10 @@ class FeedbackCardWidget extends StatelessWidget {
                   _buildTypeBadge(context),
                   const Spacer(),
                   Text(
-                    _formatDate((feedback['created_at'] as String)),
+                    _formatDate(
+                      (feedback['submitted_at'] as String?) ??
+                          DateTime.now().toIso8601String(),
+                    ),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -71,7 +74,7 @@ class FeedbackCardWidget extends StatelessWidget {
 
   Widget _buildTypeBadge(BuildContext context) {
     final theme = Theme.of(context);
-    final type = feedback['feedback_type'] as String? ?? 'General Feedback';
+    final type = feedback['type'] as String? ?? 'General Feedback';
 
     Color badgeColor;
     switch (type.toLowerCase()) {

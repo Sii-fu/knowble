@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../config/theme.dart';
+import '../../config/theme_instructor.dart';
 import '../../core/services/instructor/profile.dart';
 import 'instructor_settings_page.dart';
 
@@ -98,11 +98,11 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppThemeInstructor.surfaceWhite,
         title: Text(
           'Edit Name',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppThemeInstructor.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -115,19 +115,19 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ),
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
           autofocus: true,  
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppThemeInstructor.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, nameController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
+              backgroundColor: AppThemeInstructor.primaryBlue,
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
@@ -148,11 +148,11 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppThemeInstructor.surfaceWhite,
         title: Text(
           'Edit Bio',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppThemeInstructor.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -167,19 +167,19 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ),
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppThemeInstructor.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, bioController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
+              backgroundColor: AppThemeInstructor.primaryBlue,
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
@@ -200,11 +200,11 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppThemeInstructor.surfaceWhite,
         title: Text(
           'Edit Phone Number',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppThemeInstructor.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -218,19 +218,19 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ),
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppThemeInstructor.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, phoneController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
+              backgroundColor: AppThemeInstructor.primaryBlue,
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
@@ -251,11 +251,11 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppThemeInstructor.surfaceWhite,
         title: Text(
           'Edit Teaching Experience',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppThemeInstructor.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -269,19 +269,19 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ),
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppThemeInstructor.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, experienceController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
+              backgroundColor: AppThemeInstructor.primaryBlue,
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
@@ -313,11 +313,11 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppThemeInstructor.surfaceWhite,
         title: Text(
           'Edit Specialization',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppThemeInstructor.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -331,19 +331,19 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ),
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppThemeInstructor.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, specializationController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
+              backgroundColor: AppThemeInstructor.primaryBlue,
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
@@ -364,11 +364,11 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppThemeInstructor.surfaceWhite,
         title: Text(
           'Edit Education',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppThemeInstructor.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -382,19 +382,19 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ),
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppThemeInstructor.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, educationController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
+              backgroundColor: AppThemeInstructor.primaryBlue,
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
@@ -415,11 +415,11 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
+        backgroundColor: AppThemeInstructor.surfaceWhite,
         title: Text(
           'Edit Location',
-          style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
-            color: AppTheme.textPrimary,
+          style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
+            color: AppThemeInstructor.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -433,19 +433,19 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ),
           style: TextStyle(
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: AppThemeInstructor.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, locationController.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryTeal,
+              backgroundColor: AppThemeInstructor.primaryBlue,
             ),
             child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
@@ -470,7 +470,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$field updated successfully'),
-            backgroundColor: AppTheme.successGreen,
+            backgroundColor: AppThemeInstructor.successGreen,
           ),
         );
       }
@@ -479,7 +479,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update $field: $e'),
-            backgroundColor: AppTheme.errorRed,
+            backgroundColor: AppThemeInstructor.errorRed,
           ),
         );
       }
@@ -512,7 +512,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Profile picture updated successfully'),
-              backgroundColor: AppTheme.successGreen,
+              backgroundColor: AppThemeInstructor.successGreen,
             ),
           );
         }
@@ -526,7 +526,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error uploading image: $e'),
-            backgroundColor: AppTheme.errorRed,
+            backgroundColor: AppThemeInstructor.errorRed,
           ),
         );
       }
@@ -535,16 +535,16 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.lightTheme;
+  final theme = AppThemeInstructor.lightTheme;
     
     if (_isLoading) {
       return Theme(
         data: theme,
         child: Scaffold(
-          backgroundColor: AppTheme.backgroundLight,
+          backgroundColor: AppThemeInstructor.backgroundLight,
           body: Center(
             child: CircularProgressIndicator(
-              color: AppTheme.primaryTeal,
+              color: AppThemeInstructor.primaryBlue,
             ),
           ),
         ),
@@ -555,7 +555,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
       return Theme(
         data: theme,
         child: Scaffold(
-          backgroundColor: AppTheme.backgroundLight,
+          backgroundColor: AppThemeInstructor.backgroundLight,
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -563,14 +563,14 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                 Text(
                   _errorMessage!,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: AppTheme.errorRed,
+                    color: AppThemeInstructor.errorRed,
                   ),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _fetchUserProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryTeal,
+                    backgroundColor: AppThemeInstructor.primaryBlue,
                   ),
                   child: const Text('Retry', style: TextStyle(color: Colors.white)),
                 ),
@@ -588,18 +588,18 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
           title: Text(
             'Profile',
             style: theme.textTheme.titleLarge?.copyWith(
-              color: AppTheme.textPrimary,
+              color: AppThemeInstructor.textPrimary,
               fontWeight: FontWeight.w700,
             ),
           ),
-          backgroundColor: AppTheme.surfaceWhite,
-          foregroundColor: AppTheme.textPrimary,
+          backgroundColor: AppThemeInstructor.surfaceWhite,
+          foregroundColor: AppThemeInstructor.textPrimary,
           elevation: 0.5,
-          shadowColor: AppTheme.shadowLight,
+          shadowColor: AppThemeInstructor.shadowLight,
           automaticallyImplyLeading: false,
           actions: [
             IconButton(
-              icon: Icon(Icons.settings, color: AppTheme.primaryTeal),
+              icon: Icon(Icons.settings, color: AppThemeInstructor.primaryBlue),
               tooltip: 'Settings',
               onPressed: () {
                 Navigator.push(
@@ -612,7 +612,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
             ),
           ],
         ),
-        backgroundColor: AppTheme.backgroundLight,
+        backgroundColor: AppThemeInstructor.backgroundLight,
         body: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -622,15 +622,15 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
+                    color: AppThemeInstructor.surfaceWhite,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppTheme.borderSubtle,
+                      color: AppThemeInstructor.borderSubtle,
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.shadowLight.withOpacity(0.1),
+                        color: AppThemeInstructor.shadowLight.withOpacity(0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -643,7 +643,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                         children: [
                           CircleAvatar(
                             radius: 50,
-                            backgroundColor: AppTheme.accentLight,
+                            backgroundColor: AppThemeInstructor.accentLight,
                             backgroundImage: _userProfile?['profile_picture_url'] != null
                                 ? NetworkImage(_userProfile!['profile_picture_url'])
                                 : null,
@@ -651,7 +651,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                                 ? Icon(
                                     Icons.person,
                                     size: 50,
-                                    color: AppTheme.primaryTeal,
+                                    color: AppThemeInstructor.primaryBlue,
                                   )
                                 : null,
                           ),
@@ -663,16 +663,16 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryTeal,
+                                  color: AppThemeInstructor.primaryBlue,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: AppTheme.surfaceWhite,
+                                    color: AppThemeInstructor.surfaceWhite,
                                     width: 2,
                                   ),
                                 ),
                                 child: Icon(
                                   Icons.camera_alt,
-                                  color: AppTheme.surfaceWhite,
+                                  color: AppThemeInstructor.surfaceWhite,
                                   size: 18,
                                 ),
                               ),
@@ -687,7 +687,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                       Text(
                         _userProfile?['name'] ?? 'Instructor Name',
                         style: theme.textTheme.headlineSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                          color: AppThemeInstructor.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -702,7 +702,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                                 : _userProfile!['specialization'].toString())
                             : 'Add your specialization',
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: AppThemeInstructor.textSecondary,
                         ),
                       ),
                       
@@ -713,13 +713,13 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.accentLight,
+                            color: AppThemeInstructor.accentLight,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             _userProfile!['bio'],
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textPrimary,
+                              color: AppThemeInstructor.textPrimary,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -733,15 +733,15 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                 // Profile Information Card
                 Container(
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
+                    color: AppThemeInstructor.surfaceWhite,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppTheme.borderSubtle,
+                      color: AppThemeInstructor.borderSubtle,
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.shadowLight.withOpacity(0.1),
+                        color: AppThemeInstructor.shadowLight.withOpacity(0.1),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -755,7 +755,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                         child: Text(
                           'Profile Information',
                           style: theme.textTheme.titleMedium?.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: AppThemeInstructor.textPrimary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -832,8 +832,8 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                   child: ElevatedButton(
                     onPressed: () => _logout(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.errorRed,
-                      foregroundColor: AppTheme.surfaceWhite,
+                      backgroundColor: AppThemeInstructor.errorRed,
+                      foregroundColor: AppThemeInstructor.surfaceWhite,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -843,7 +843,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
                     child: Text(
                       'LOG OUT',
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: AppTheme.surfaceWhite,
+                        color: AppThemeInstructor.surfaceWhite,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -865,32 +865,32 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
     required String value,
     VoidCallback? onEdit,
   }) {
-    final theme = AppTheme.lightTheme;
+    final theme = AppThemeInstructor.lightTheme;
     return ListTile(
       leading: Container(
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: AppTheme.accentLight,
+          color: AppThemeInstructor.accentLight,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
-          color: AppTheme.primaryTeal,
+          color: AppThemeInstructor.primaryBlue,
           size: 22,
         ),
       ),
       title: Text(
         title,
         style: theme.textTheme.bodyMedium?.copyWith(
-          color: AppTheme.textSecondary,
+          color: AppThemeInstructor.textSecondary,
           fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(
         value,
         style: theme.textTheme.bodyLarge?.copyWith(
-          color: AppTheme.textPrimary,
+          color: AppThemeInstructor.textPrimary,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -898,7 +898,7 @@ class _InstructorProfilePageState extends State<InstructorProfilePage> {
           ? IconButton(
               icon: Icon(
                 Icons.edit,
-                color: AppTheme.primaryTeal,
+                color: AppThemeInstructor.primaryBlue,
                 size: 20,
               ),
               onPressed: onEdit,

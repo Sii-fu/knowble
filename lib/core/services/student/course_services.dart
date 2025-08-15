@@ -5,7 +5,6 @@ import '../../../data/models/module.dart';
 import '../../../data/models/section.dart';
 import '../../../data/models/content.dart';
 import '../../../data/models/enrollment.dart';
-import '../../../data/models/certificate.dart';
 
 class CourseServices {
   final _client = Supabase.instance.client;

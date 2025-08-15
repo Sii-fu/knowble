@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../config/theme.dart';
+import '../../../config/theme_instructor.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String courseId;
@@ -167,22 +167,22 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.lightTheme;
+    final theme = AppThemeInstructor.lightTheme;
     return Theme(
       data: theme,
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          backgroundColor: AppTheme.instructorPrimary,
-          foregroundColor: AppTheme.surfaceWhite,
+          backgroundColor: AppThemeInstructor.primaryBlue,
+          foregroundColor: AppThemeInstructor.surfaceWhite,
           elevation: 0,
           title: Row(
             children: [
               CircleAvatar(
-                radius: 18,
+                radius: 20,
                 backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
-                backgroundColor: AppTheme.surfaceWhite,
-                child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.instructorPrimary) : null,
+                backgroundColor: AppThemeInstructor.surfaceWhite,
+                child: widget.profileImage == null ? Icon(Icons.person, color: AppThemeInstructor.primaryBlue) : null,
               ),
               const SizedBox(width: 12),
               Column(
@@ -191,61 +191,53 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   Text(
                     widget.instructorName,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppTheme.surfaceWhite,
+                      color: AppThemeInstructor.surfaceWhite,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   Text(
                     widget.courseCode,
-                    style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.surfaceWhite),
+                    style: theme.textTheme.labelSmall?.copyWith(color: AppThemeInstructor.surfaceWhite.withOpacity(0.85)),
                   ),
                 ],
               ),
             ],
           ),
         ),
-        backgroundColor: theme.scaffoldBackgroundColor,
+        backgroundColor: AppThemeInstructor.backgroundLight,
         body: Column(
           children: [
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
                   final msg = _messages[index];
                   final isMe = msg['sender_id'] == _currentUserId;
                   final senderName = isMe ? 'You' : widget.instructorName;
-                  final initials = senderName.isNotEmpty ? senderName.trim().split(' ').map((e) => e[0]).take(2).join() : '';
                   final dt = DateTime.tryParse(msg['timestamp'] ?? '') ?? DateTime.now();
-                  return Row(
-                    mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-                    children: [
-                      if (!isMe)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: CircleAvatar(
-                            radius: 14,
-                            backgroundColor: AppTheme.instructorAccent,
-                            child: Text(initials, style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.instructorPrimary)),
-                          ),
-                        ),
-                      Flexible(
-                        child: ChatBubble(
-                          text: msg['message'] ?? '',
-                          isMe: isMe,
-                          timestamp: dt,
-                          sender: senderName,
-                        ),
-                      ),
-                    ],
+                  return ChatBubble(
+                    text: msg['message'] ?? '',
+                    isMe: isMe,
+                    timestamp: dt,
+                    sender: senderName,
                   );
                 },
               ),
             ),
             Container(
-              color: AppTheme.surfaceWhite,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppThemeInstructor.surfaceWhite,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppThemeInstructor.shadowLight.withOpacity(0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: SafeArea(
                 top: false,
                 child: Row(
@@ -257,12 +249,20 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                         enabled: !_sending,
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           filled: true,
-                          fillColor: const Color.fromARGB(255, 241, 249, 255),
+                          fillColor: AppThemeInstructor.backgroundLight,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide.none,
+                            borderSide: BorderSide(color: AppThemeInstructor.borderSubtle),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide(color: AppThemeInstructor.borderSubtle),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: const BorderSide(color: AppThemeInstructor.primaryBlue, width: 2),
                           ),
                         ),
                         textInputAction: TextInputAction.send,
@@ -272,13 +272,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                     const SizedBox(width: 8),
                     _sending
                         ? const SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.instructorPrimary),
+                            width: 34,
+                            height: 34,
+                            child: CircularProgressIndicator(strokeWidth: 2.4, color: AppThemeInstructor.primaryBlue),
                           )
-                        : IconButton(
-                            icon: const Icon(Icons.send, color: AppTheme.instructorPrimary),
-                            onPressed: _sendMessage,
+                        : Material(
+                            color: AppThemeInstructor.primaryBlue,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: _sendMessage,
+                              child: const Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: Icon(Icons.send, color: Colors.white, size: 20),
+                              ),
+                            ),
                           ),
                   ],
                 ),
@@ -307,7 +315,8 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor = isMe ? AppTheme.instructorAccent : AppTheme.surfaceWhite;
+    final bubbleColor = isMe ? AppThemeInstructor.primaryBlue : AppThemeInstructor.surfaceWhite;
+    final textColor = isMe ? Colors.white : AppThemeInstructor.textPrimary;
     final align = isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
     final radius = isMe
         ? const BorderRadius.only(
@@ -322,9 +331,9 @@ class ChatBubble extends StatelessWidget {
           );
     return Padding(
       padding: EdgeInsets.only(
-        left: isMe ? 40 : 8,
-        right: isMe ? 8 : 40,
-        bottom: 10,
+        left: isMe ? 60 : 8,
+        right: isMe ? 8 : 60,
+        bottom: 12,
       ),
       child: Column(
         crossAxisAlignment: align,
@@ -335,9 +344,9 @@ class ChatBubble extends StatelessWidget {
               borderRadius: radius,
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.shadowLight,
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+                  color: AppThemeInstructor.shadowLight.withOpacity(0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -347,20 +356,23 @@ class ChatBubble extends StatelessWidget {
               children: [
                 if (!isMe && sender != null)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: Text(sender!, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.instructorPrimary)),
+                    padding: const EdgeInsets.only(bottom: 0  ),
+                    
                   ),
                 Text(
                   text,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: textColor),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             timeago.format(timestamp),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.instructorPrimary),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppThemeInstructor.textSecondary,
+                  fontSize: 11,
+                ),
           ),
         ],
       ),

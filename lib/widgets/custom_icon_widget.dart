@@ -134,6 +134,15 @@ class CustomIconWidget extends StatelessWidget {
       case 'description':
         iconData = Icons.description;
         break;
+      case 'feedback':
+        iconData = Icons.feedback;
+        break;
+      case 'person_add':
+        iconData = Icons.person_add;
+        break;
+      case 'flag':
+        iconData = Icons.flag;
+        break;
       case 'favorite':
         iconData = Icons.favorite;
         break;
@@ -217,6 +226,18 @@ class CustomIconWidget extends StatelessWidget {
         break;
       case 'refresh':
         iconData = Icons.refresh;
+        break;
+      case 'verified':
+        iconData = Icons.verified;
+        break;
+      case 'warning':
+        iconData = Icons.warning;
+        break;
+      case 'radio_button_unchecked':
+        iconData = Icons.radio_button_unchecked;
+        break;
+      case 'help':
+        iconData = Icons.help;
         break;
       default:
         iconData = Icons.help_outline; // Default icon

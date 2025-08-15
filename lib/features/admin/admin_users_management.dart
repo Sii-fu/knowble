@@ -3,6 +3,7 @@ import 'package:knowble_app/config/theme.dart';
 import './widgets/user_filter_chip.dart';
 import './widgets/user_list_item_card.dart';
 import '../../widgets/custom_icon_widget.dart';
+import '../../core/services/admin/admin_user_management_service.dart';
 
 class AdminUsersManagement extends StatefulWidget {
   const AdminUsersManagement({super.key});
@@ -15,42 +16,58 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
     with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final AdminUserManagementService _userService = AdminUserManagementService();
+
   String _selectedFilter = 'All';
+  List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _filteredUsers = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
   int _currentIndex = 3; // Users tab active
 
-  final List<Map<String, dynamic>> _mockUsers = [
-    {
-      "id": 1,
-      "name": "Sarah Johnson",
-      "email": "sarah.johnson@email.com",
-      "profileImage":
-          "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400",
-      "role": "Student",
-      "registrationDate": DateTime.now().subtract(const Duration(days: 45)),
-      "status": "Active",
-      "lastActivity": DateTime.now().subtract(const Duration(hours: 2)),
-    },
-    {
-      "id": 2,
-      "name": "Michael Rodriguez",
-      "email": "m.rodriguez@university.edu",
-      "profileImage":
-          "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400",
-      "role": "Instructor",
-      "registrationDate": DateTime.now().subtract(const Duration(days: 120)),
-      "status": "Active",
-      "lastActivity": DateTime.now().subtract(const Duration(minutes: 30)),
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
-    _filteredUsers = List.from(_mockUsers);
+    _loadUsers(); // Load real data from database
     _scrollController.addListener(_onScroll);
+  }
+
+  /// Load users from database using the service
+  /// ONLY loads users who have submitted complaints/feedback
+  Future<void> _loadUsers() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final users = await _userService.getUsersWithComplaints(
+        limit: 50,
+        role: _selectedFilter != 'All' ? _selectedFilter : null,
+        searchQuery: _searchController.text.trim().isNotEmpty
+            ? _searchController.text.trim()
+            : null,
+      );
+
+      setState(() {
+        _users = users;
+        _filteredUsers = users;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading users: $e');
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load users with complaints: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -68,69 +85,57 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
   }
 
   void _loadMoreUsers() {
-    if (!_isLoadingMore) {
+    if (!_isLoadingMore && _users.isNotEmpty) {
       setState(() {
         _isLoadingMore = true;
       });
 
-      // Simulate loading more users
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() {
-            _isLoadingMore = false;
+      // Load more users with pagination - only users with complaints
+      _userService
+          .getUsersWithComplaints(
+            limit: 20,
+            offset: _users.length,
+            role: _selectedFilter != 'All' ? _selectedFilter : null,
+            searchQuery: _searchController.text.trim().isNotEmpty
+                ? _searchController.text.trim()
+                : null,
+          )
+          .then((moreUsers) {
+            if (mounted) {
+              setState(() {
+                _users.addAll(moreUsers);
+                _filteredUsers.addAll(moreUsers);
+                _isLoadingMore = false;
+              });
+            }
+          })
+          .catchError((e) {
+            print('Error loading more users: $e');
+            if (mounted) {
+              setState(() {
+                _isLoadingMore = false;
+              });
+            }
           });
-        }
-      });
     }
   }
 
   void _filterUsers(String query) {
-    setState(() {
-      if (query.isEmpty && _selectedFilter == 'All') {
-        _filteredUsers = List.from(_mockUsers);
-      } else {
-        _filteredUsers =
-            _mockUsers.where((user) {
-              final matchesQuery =
-                  query.isEmpty ||
-                  (user['name'] as String).toLowerCase().contains(
-                    query.toLowerCase(),
-                  ) ||
-                  (user['email'] as String).toLowerCase().contains(
-                    query.toLowerCase(),
-                  );
-
-              final matchesFilter =
-                  _selectedFilter == 'All' ||
-                  (user['role'] as String) == _selectedFilter;
-
-              return matchesQuery && matchesFilter;
-            }).toList();
-      }
-    });
+    // Reload data with new search query using the service
+    _loadUsers();
   }
 
   void _onFilterChanged(String filter) {
     setState(() {
       _selectedFilter = filter;
     });
-    _filterUsers(_searchController.text);
+    // Reload data with new filter using the service
+    _loadUsers();
   }
 
   Future<void> _onRefresh() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate refresh
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _filteredUsers = List.from(_mockUsers);
-      });
-    }
+    // Refresh by reloading data from the service
+    await _loadUsers();
   }
 
   void _onBottomNavTap(int index) {
@@ -162,7 +167,7 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: Text(
-          'Users Management',
+          'User Feedback',
           style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -183,102 +188,105 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
                 child: TextField(
                   controller: _searchController,
                   onChanged: _filterUsers,
+                  style: TextStyle(
+                    color: AppTheme.textPrimary, // Fix white text issue
+                  ),
                   decoration: InputDecoration(
-                    hintText: 'Search by name or email...',
+                    hintText: 'Search users with feedback...',
+                    hintStyle: TextStyle(color: AppTheme.textSecondary),
                     prefixIcon: CustomIconWidget(
                       iconName: 'search',
                       color: AppTheme.textSecondary,
                       size: 20,
                     ),
-                    suffixIcon:
-                        _searchController.text.isNotEmpty
-                            ? IconButton(
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterUsers('');
-                              },
-                              icon: CustomIconWidget(
-                                iconName: 'clear',
-                                color: AppTheme.textSecondary,
-                                size: 20,
-                              ),
-                            )
-                            : null,
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              _filterUsers('');
+                            },
+                            icon: CustomIconWidget(
+                              iconName: 'clear',
+                              color: AppTheme.textSecondary,
+                              size: 20,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               ),
 
               // Filter Chips
               Container(
-                height: 80,
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 color: AppTheme.surfaceWhite,
-                child: ListView(
+                child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  children: [
-                    UserFilterChip(
-                      label: 'All',
-                      isSelected: _selectedFilter == 'All',
-                      onTap: () => _onFilterChanged('All'),
-                    ),
-                    SizedBox(width: 8),
-                    UserFilterChip(
-                      label: 'Students',
-                      isSelected: _selectedFilter == 'Student',
-                      onTap: () => _onFilterChanged('Student'),
-                    ),
-                    SizedBox(width: 8),
-                    UserFilterChip(
-                      label: 'Instructors',
-                      isSelected: _selectedFilter == 'Instructor',
-                      onTap: () => _onFilterChanged('Instructor'),
-                    ),
-                    SizedBox(width: 8),
-                    UserFilterChip(
-                      label: 'Admins',
-                      isSelected: _selectedFilter == 'Admin',
-                      onTap: () => _onFilterChanged('Admin'),
-                    ),
-                  ],
+                  child: Row(
+                    children: [
+                      UserFilterChip(
+                        label: 'All',
+                        isSelected: _selectedFilter == 'All',
+                        onTap: () => _onFilterChanged('All'),
+                      ),
+                      SizedBox(width: 8),
+                      UserFilterChip(
+                        label: 'Students',
+                        isSelected: _selectedFilter == 'Student',
+                        onTap: () => _onFilterChanged('Student'),
+                      ),
+                      SizedBox(width: 8),
+                      UserFilterChip(
+                        label: 'Instructors',
+                        isSelected: _selectedFilter == 'Instructor',
+                        onTap: () => _onFilterChanged('Instructor'),
+                      ),
+                      SizedBox(width: 8),
+                      UserFilterChip(
+                        label: 'Admins',
+                        isSelected: _selectedFilter == 'Admin',
+                        onTap: () => _onFilterChanged('Admin'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
               // Users List
               Expanded(
-                child:
-                    _isLoading
-                        ? Center(
-                          child: CircularProgressIndicator(
-                            color: AppTheme.primaryTeal,
-                          ),
-                        )
-                        : _filteredUsers.isEmpty
-                        ? _buildEmptyState()
-                        : ListView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          itemCount:
-                              _filteredUsers.length + (_isLoadingMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == _filteredUsers.length) {
-                              return Container(
-                                padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppTheme.primaryTeal,
-                                  ),
-                                ),
-                              );
-                            }
-
-                            final user = _filteredUsers[index];
-                            return UserListItemCard(
-                              user: user,
-                              onTap: () => _showUserActions(user),
-                              onLongPress: () => _showUserActions(user),
-                            );
-                          },
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primaryTeal,
                         ),
+                      )
+                    : _filteredUsers.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        itemCount:
+                            _filteredUsers.length + (_isLoadingMore ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == _filteredUsers.length) {
+                            return Container(
+                              padding: EdgeInsets.all(16),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: AppTheme.primaryTeal,
+                                ),
+                              ),
+                            );
+                          }
+
+                          final user = _filteredUsers[index];
+                          return UserListItemCard(
+                            user: user,
+                            onTap: () => _showUserActions(user),
+                            onLongPress: () => _showUserActions(user),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -296,10 +304,9 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'dashboard',
-              color:
-                  _currentIndex == 0
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 0
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Dashboard',
@@ -307,10 +314,9 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'school',
-              color:
-                  _currentIndex == 1
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 1
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Instructors',
@@ -318,10 +324,9 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'book',
-              color:
-                  _currentIndex == 2
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 2
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Courses',
@@ -329,10 +334,9 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
           BottomNavigationBarItem(
             icon: CustomIconWidget(
               iconName: 'people',
-              color:
-                  _currentIndex == 3
-                      ? AppTheme.primaryTeal
-                      : AppTheme.textSecondary,
+              color: _currentIndex == 3
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
               size: 24,
             ),
             label: 'Users',
@@ -343,67 +347,611 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
   }
 
   void _showUserActions(Map<String, dynamic> user) {
+    _showUserFeedbacks(user);
+  }
+
+  void _showUserFeedbacks(Map<String, dynamic> user) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surfaceWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (context) => Container(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.borderSubtle,
-                    borderRadius: BorderRadius.circular(2),
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 25,
+                    backgroundImage: NetworkImage(user['profileImage'] ?? ''),
+                    backgroundColor: AppTheme.primaryTeal,
+                    child: user['profileImage'] == null
+                        ? Text(
+                            user['name'][0].toUpperCase(),
+                            style: TextStyle(
+                              color: AppTheme.surfaceWhite,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
                   ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user['name'],
+                          style: AppTheme.lightTheme.textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          user['email'],
+                          style: AppTheme.lightTheme.textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.textSecondary),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryTeal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            user['role'],
+                            style: AppTheme.lightTheme.textTheme.labelSmall
+                                ?.copyWith(
+                                  color: AppTheme.primaryTeal,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Row(
+                children: [
+                  Text(
+                    'User Feedback',
+                    style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Spacer(),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryTeal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      '${user['feedbacks']?.length ?? 0} issues',
+                      style: AppTheme.lightTheme.textTheme.labelMedium
+                          ?.copyWith(
+                            color: AppTheme.primaryTeal,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: user['feedbacks'] == null || user['feedbacks'].isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CustomIconWidget(
+                              iconName: 'feedback',
+                              color: AppTheme.textSecondary,
+                              size: 48,
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'No feedback submitted',
+                              style: AppTheme.lightTheme.textTheme.titleMedium
+                                  ?.copyWith(color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        itemCount: user['feedbacks'].length,
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final feedback = user['feedbacks'][index];
+                          return _buildFeedbackCard(feedback, user);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeedbackCard(
+    Map<String, dynamic> feedback,
+    Map<String, dynamic> user,
+  ) {
+    final statusColor = _getStatusColor(feedback['status']);
+    final statusIcon = _getStatusIcon(feedback['status']);
+
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryTeal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                SizedBox(height: 20),
-                Text(
-                  'User Actions',
-                  style: AppTheme.lightTheme.textTheme.titleLarge,
-                ),
-                SizedBox(height: 20),
-                ListTile(
-                  leading: CustomIconWidget(
-                    iconName: 'person',
+                child: Text(
+                  feedback['category'],
+                  style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
                     color: AppTheme.primaryTeal,
-                    size: 24,
+                    fontWeight: FontWeight.w600,
                   ),
-                  title: Text(
-                    'View Profile',
-                    style: AppTheme.lightTheme.textTheme.bodyLarge,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Handle view profile
-                  },
                 ),
-                ListTile(
-                  leading: CustomIconWidget(
-                    iconName: 'edit',
-                    color: AppTheme.primaryTeal,
-                    size: 24,
-                  ),
-                  title: Text(
-                    'Edit Role',
-                    style: AppTheme.lightTheme.textTheme.bodyLarge,
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Handle edit role
-                  },
+              ),
+              Spacer(),
+              Icon(statusIcon, color: statusColor, size: 16),
+              SizedBox(width: 4),
+              Text(
+                feedback['status'].toUpperCase(),
+                style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
+                  color: statusColor,
+                  fontWeight: FontWeight.w600,
                 ),
-                SizedBox(height: 10),
-              ],
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Text(
+            feedback['type'],
+            style: AppTheme.lightTheme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
+          SizedBox(height: 4),
+          Text(
+            feedback['message'],
+            style: AppTheme.lightTheme.textTheme.bodyMedium,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.access_time, size: 14, color: AppTheme.textSecondary),
+              SizedBox(width: 4),
+              Text(
+                _formatFeedbackDate(feedback['submitted_at']),
+                style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              Spacer(),
+              TextButton(
+                onPressed: () => _showFeedbackDetails(feedback, user),
+                child: Text(
+                  'View Details',
+                  style: TextStyle(
+                    color: AppTheme.primaryTeal,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+
+  void _showFeedbackDetails(
+    Map<String, dynamic> feedback,
+    Map<String, dynamic> user,
+  ) {
+    Navigator.pop(context); // Close the feedbacks sheet
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceWhite,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        maxChildSize: 0.95,
+        minChildSize: 0.6,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                margin: EdgeInsets.only(
+                  left: MediaQuery.of(context).size.width / 2 - 20,
+                ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                children: [
+                  Text(
+                    'Feedback Details',
+                    style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Spacer(),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(
+                        feedback['status'],
+                      ).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      feedback['status'].toUpperCase(),
+                      style: AppTheme.lightTheme.textTheme.labelSmall?.copyWith(
+                        color: _getStatusColor(feedback['status']),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailSection('User Information', [
+                        _buildDetailItem('Name', user['name']),
+                        _buildDetailItem('Email', user['email']),
+                        _buildDetailItem('Role', user['role']),
+                      ]),
+                      SizedBox(height: 20),
+                      _buildDetailSection('Feedback Information', [
+                        _buildDetailItem('Type', feedback['type']),
+                        _buildDetailItem('Category', feedback['category']),
+                        _buildDetailItem(
+                          'Submitted',
+                          _formatFeedbackDate(feedback['submitted_at']),
+                        ),
+                        _buildDetailItem('Status', feedback['status']),
+                      ]),
+                      SizedBox(height: 20),
+                      _buildDetailSection('Message', [
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.backgroundLight,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.borderSubtle),
+                          ),
+                          child: Text(
+                            feedback['message'],
+                            style: AppTheme.lightTheme.textTheme.bodyMedium,
+                          ),
+                        ),
+                      ]),
+                      if (feedback['admin_notes'] != null) ...[
+                        SizedBox(height: 20),
+                        _buildDetailSection('Admin Notes', [
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryTeal.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppTheme.primaryTeal.withOpacity(0.2),
+                              ),
+                            ),
+                            child: Text(
+                              feedback['admin_notes'],
+                              style: AppTheme.lightTheme.textTheme.bodyMedium
+                                  ?.copyWith(color: AppTheme.textPrimary),
+                            ),
+                          ),
+                        ]),
+                      ],
+                      SizedBox(height: 80), // Extra space for button
+                    ],
+                  ),
+                ),
+              ),
+              if (feedback['status'] == 'submitted' ||
+                  feedback['status'] == 'in_review' ||
+                  feedback['status'] == 'in_progress' ||
+                  feedback['status'] == 'pending')
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.only(top: 16),
+                  child: ElevatedButton(
+                    onPressed: () => _showSolveDialog(feedback, user),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryTeal,
+                      foregroundColor: AppTheme.surfaceWhite,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Solve Issue',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+
+  Widget _buildDetailItem(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSolveDialog(
+    Map<String, dynamic> feedback,
+    Map<String, dynamic> user,
+  ) {
+    final TextEditingController notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.edit_note, color: AppTheme.primaryTeal),
+            SizedBox(width: 8),
+            Text(
+              'Solve Issue',
+              style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add your admin notes to resolve this issue:',
+                style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: notesController,
+                maxLines: 5,
+                style: TextStyle(
+                  color: AppTheme.textPrimary, // Fix white text issue
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Enter your response and resolution notes...',
+                  hintStyle: TextStyle(color: AppTheme.textSecondary),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppTheme.borderSubtle),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppTheme.primaryTeal),
+                  ),
+                  filled: true,
+                  fillColor: AppTheme.backgroundLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              notesController.dispose();
+              Navigator.pop(context);
+            },
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (notesController.text.trim().isNotEmpty) {
+                _solveFeedback(feedback, notesController.text.trim());
+                notesController.dispose();
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Close details sheet
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Issue resolved successfully!'),
+                    backgroundColor: AppTheme.successGreen,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              foregroundColor: AppTheme.surfaceWhite,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('Resolve Issue'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _solveFeedback(Map<String, dynamic> feedback, String adminNotes) async {
+    try {
+      final result = await _userService.updateFeedbackStatus(
+        feedbackId: feedback['id'],
+        newStatus: 'resolved',
+        adminNotes: adminNotes.isNotEmpty ? adminNotes : null,
+      );
+
+      if (result == null) {
+        // Success - reload data to show updated status
+        await _loadUsers();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Feedback resolved successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to resolve feedback: $result'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error resolving feedback: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error resolving feedback: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _formatFeedbackDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inMinutes}m ago';
+    }
   }
 
   Widget _buildEmptyState() {
@@ -445,5 +993,43 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
         ),
       ),
     );
+  }
+
+  /// Get color for feedback status
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'submitted':
+      case 'pending':
+        return AppTheme.warningAmber;
+      case 'in_review':
+        return Colors.blue;
+      case 'in_progress':
+        return Colors.orange;
+      case 'resolved':
+        return AppTheme.successGreen;
+      case 'closed':
+        return Colors.grey;
+      default:
+        return AppTheme.textSecondary;
+    }
+  }
+
+  /// Get icon for feedback status
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'submitted':
+      case 'pending':
+        return Icons.pending;
+      case 'in_review':
+        return Icons.rate_review;
+      case 'in_progress':
+        return Icons.work_outline;
+      case 'resolved':
+        return Icons.check_circle;
+      case 'closed':
+        return Icons.close;
+      default:
+        return Icons.help;
+    }
   }
 }

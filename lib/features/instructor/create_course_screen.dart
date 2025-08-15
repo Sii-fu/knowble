@@ -1,10 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:knowble_app/core/services/Instructor/course_service.dart';
 import 'package:knowble_app/core/services/Instructor/questionai_service.dart';
 import 'package:flutter/foundation.dart';
-import '../../config/theme.dart';
+import '../../config/theme_instructor.dart';
 
 class CreateCourseScreen extends StatefulWidget {
   const CreateCourseScreen({super.key});
@@ -24,7 +23,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final TextEditingController _tagController = TextEditingController();
 
   // Dynamic chapters and lessons structure
-  List<ChapterData> _chapters = [];
+  final List<ChapterData> _chapters = [];
 
   // Question section controllers
   final TextEditingController _questionTitleController = TextEditingController();
@@ -48,11 +47,11 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
             padding: const EdgeInsets.all(32),
             margin: const EdgeInsets.symmetric(horizontal: 40),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceWhite,
+              color: AppThemeInstructor.surfaceWhite,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.shadowLight.withOpacity(0.15),
+                  color: AppThemeInstructor.shadowLight.withOpacity(0.15),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
@@ -65,9 +64,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppTheme.primaryTeal, AppTheme.successGreen],
-                    ),
+                    gradient: AppThemeInstructor.instructorGradient,
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: const Center(
@@ -85,7 +82,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 Text(
                   'Creating Course...',
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: AppThemeInstructor.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -94,7 +91,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 Text(
                   'Please wait while we process your course',
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: AppThemeInstructor.textSecondary,
                     fontSize: 14,
                   ),
                 ),
@@ -238,11 +235,11 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           child: Container(
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceWhite,
+              color: AppThemeInstructor.surfaceWhite,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.shadowLight.withOpacity(0.15),
+                  color: AppThemeInstructor.shadowLight.withOpacity(0.15),
                   blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
@@ -256,7 +253,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   height: 80,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppTheme.successGreen, AppTheme.successGreen.withOpacity(0.8)],
+                      colors: [AppThemeInstructor.primaryBlue, AppThemeInstructor.successGreen.withOpacity(0.8)],
                     ),
                     shape: BoxShape.circle,
                   ),
@@ -272,7 +269,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                    color: AppThemeInstructor.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -280,7 +277,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   message,
                   style: TextStyle(
                     fontSize: 16,
-                    color: AppTheme.textSecondary,
+                    color: AppThemeInstructor.textSecondary,
                     height: 1.5,
                   ),
                   textAlign: TextAlign.center,
@@ -290,9 +287,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   width: double.infinity,
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.primaryTeal, AppTheme.successGreen],
-                      ),
+                      gradient: AppThemeInstructor.instructorGradient,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: ElevatedButton(
@@ -426,24 +421,24 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.lightTheme;
+  final theme = AppThemeInstructor.lightTheme;
     
     return Theme(
       data: theme,
       child: Scaffold(
-        backgroundColor: AppTheme.backgroundLight,
+        backgroundColor: AppThemeInstructor.backgroundLight,
         appBar: AppBar(
-          backgroundColor: AppTheme.surfaceWhite,
+          backgroundColor: AppThemeInstructor.surfaceWhite,
           elevation: 0,
           titleSpacing: 0,
           leading: Container(
             margin: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
             decoration: BoxDecoration(
-              color: AppTheme.accentLight,
+              color: AppThemeInstructor.accentLight,
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary, size: 18),
+              icon: Icon(Icons.arrow_back_ios, color: AppThemeInstructor.textPrimary, size: 18),
               onPressed: () => Navigator.pop(context),
               padding: const EdgeInsets.only(left: 4),
             ),
@@ -453,7 +448,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
             child: Text(
               'Create New Course',
               style: theme.textTheme.titleLarge?.copyWith(
-                color: AppTheme.textPrimary,
+                color: AppThemeInstructor.textPrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
               ),
@@ -461,32 +456,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           ),
           centerTitle: false,
           actions: [
-            Container(
-              margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.primaryTeal.withOpacity(0.1), AppTheme.successGreen.withOpacity(0.1)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.save_outlined, color: AppTheme.primaryTeal, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Draft',
-                    style: TextStyle(
-                      color: AppTheme.primaryTeal,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            
           ],
         ),
         body: SingleChildScrollView(
@@ -500,12 +470,12 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
+                    color: AppThemeInstructor.surfaceWhite,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.borderSubtle),
+                    border: Border.all(color: AppThemeInstructor.borderSubtle),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.shadowLight.withOpacity(0.08),
+                        color: AppThemeInstructor.shadowLight.withOpacity(0.08),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -520,13 +490,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [AppTheme.primaryTeal.withOpacity(0.1), AppTheme.successGreen.withOpacity(0.1)],
+                                colors: [AppThemeInstructor.primaryBlue.withOpacity(0.1), AppThemeInstructor.successGreen.withOpacity(0.1)],
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
                               Icons.school_outlined,
-                              color: AppTheme.primaryTeal,
+                              color: AppThemeInstructor.primaryBlue,
                               size: 24,
                             ),
                           ),
@@ -539,14 +509,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
+                                  color: AppThemeInstructor.textPrimary,
                                 ),
                               ),
                               Text(
                                 'Basic details about your course',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppTheme.textSecondary,
+                                  color: AppThemeInstructor.textSecondary,
                                 ),
                               ),
                             ],
@@ -614,12 +584,12 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceWhite,
+                      color: AppThemeInstructor.surfaceWhite,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppTheme.borderSubtle),
+                      border: Border.all(color: AppThemeInstructor.borderSubtle),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.shadowLight.withOpacity(0.08),
+                          color: AppThemeInstructor.shadowLight.withOpacity(0.08),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
@@ -635,13 +605,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [AppTheme.primaryTeal.withOpacity(0.1), AppTheme.successGreen.withOpacity(0.1)],
+                                  colors: [AppThemeInstructor.primaryBlue.withOpacity(0.1), AppThemeInstructor.successGreen.withOpacity(0.1)],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 Icons.book_outlined,
-                                color: AppTheme.primaryTeal,
+                                color: AppThemeInstructor.primaryBlue,
                                 size: 24,
                               ),
                             ),
@@ -655,14 +625,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.textPrimary,
+                                      color: AppThemeInstructor.textPrimary,
                                     ),
                                   ),
                                   Text(
                                     'Add chapter details and lessons',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: AppTheme.textSecondary,
+                                      color: AppThemeInstructor.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -697,7 +667,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           children: [
                             Icon(
                               Icons.playlist_play_outlined,
-                              color: AppTheme.successGreen,
+                              color: AppThemeInstructor.primaryBlue,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
@@ -706,7 +676,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
+                                color: AppThemeInstructor.textPrimary,
                               ),
                             ),
                             const Spacer(),
@@ -714,7 +684,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                               '${_chapters[chapterIndex].lessons.length} lesson${_chapters[chapterIndex].lessons.length != 1 ? 's' : ''}',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: AppTheme.textSecondary,
+                                color: AppThemeInstructor.textSecondary,
                               ),
                             ),
                           ],
@@ -728,9 +698,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                             padding: const EdgeInsets.all(20),
                             margin: const EdgeInsets.only(bottom: 16),
                             decoration: BoxDecoration(
-                              color: AppTheme.backgroundLight,
+                              color: AppThemeInstructor.backgroundLight,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.borderSubtle),
+                              border: Border.all(color: AppThemeInstructor.borderSubtle),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,7 +712,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                       width: 32,
                                       height: 32,
                                       decoration: BoxDecoration(
-                                        color: AppTheme.primaryTeal,
+                                        color: AppThemeInstructor.primaryBlue,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Center(
@@ -763,7 +733,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
-                                          color: AppTheme.textPrimary,
+                                          color: AppThemeInstructor.textPrimary,
                                         ),
                                       ),
                                     ),
@@ -831,13 +801,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         // Add Lesson Button
                         Container(
                           width: double.infinity,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: AppTheme.primaryTeal.withOpacity(0.3),
-                              style: BorderStyle.solid,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: AppThemeInstructor.primaryBlue.withOpacity(0.3),
+                                  style: BorderStyle.solid,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                           child: InkWell(
                             onTap: () => _addLessonToChapter(chapterIndex),
                             borderRadius: BorderRadius.circular(12),
@@ -848,14 +818,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                 children: [
                                   Icon(
                                     Icons.add_circle_outline,
-                                    color: AppTheme.primaryTeal,
+                                    color: AppThemeInstructor.primaryBlue,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Add Lesson',
                                     style: TextStyle(
-                                      color: AppTheme.primaryTeal,
+                                      color: AppThemeInstructor.primaryBlue,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -878,12 +848,12 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppTheme.primaryTeal.withOpacity(0.1),
-                        AppTheme.successGreen.withOpacity(0.1),
+                        AppThemeInstructor.primaryBlue.withOpacity(0.1),
+                        AppThemeInstructor.successGreen.withOpacity(0.1),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.primaryTeal.withOpacity(0.3)),
+                    border: Border.all(color: AppThemeInstructor.primaryBlue.withOpacity(0.3)),
                   ),
                   child: InkWell(
                     onTap: _addNewChapter,
@@ -894,7 +864,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [AppTheme.primaryTeal, AppTheme.successGreen],
+                              colors: [AppThemeInstructor.primaryBlue, AppThemeInstructor.successGreen],
                             ),
                             shape: BoxShape.circle,
                           ),
@@ -908,7 +878,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         Text(
                           'Add New Chapter',
                           style: TextStyle(
-                            color: AppTheme.primaryTeal,
+                            color: AppThemeInstructor.primaryBlue,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -917,7 +887,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         Text(
                           'Create another chapter for your course',
                           style: TextStyle(
-                            color: AppTheme.textSecondary,
+                            color: AppThemeInstructor.textSecondary,
                             fontSize: 14,
                           ),
                         ),
@@ -931,12 +901,12 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceWhite,
+                    color: AppThemeInstructor.surfaceWhite,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.borderSubtle),
+                    border: Border.all(color: AppThemeInstructor.borderSubtle),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.shadowLight.withOpacity(0.08),
+                        color: AppThemeInstructor.shadowLight.withOpacity(0.08),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -970,14 +940,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
+                                  color: AppThemeInstructor.textPrimary,
                                 ),
                               ),
                               Text(
                                 'Add questions for the course assessment',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppTheme.textSecondary,
+                                  color: AppThemeInstructor.textSecondary,
                                 ),
                               ),
                             ],
@@ -1003,15 +973,15 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppThemeInstructor.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Container(
                             decoration: BoxDecoration(
-                              color: AppTheme.backgroundLight,
+                              color: AppThemeInstructor.backgroundLight,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.borderSubtle),
+                              border: Border.all(color: AppThemeInstructor.borderSubtle),
                             ),
                             child: DropdownButtonFormField<String>(
                               value: _selectedQuestionType,
@@ -1020,7 +990,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                                 prefixIcon: Icon(
                                   Icons.category_outlined,
-                                  color: AppTheme.textSecondary,
+                                  color: AppThemeInstructor.textSecondary,
                                   size: 20,
                                 ),
                               ),
@@ -1035,13 +1005,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                 });
                               },
                               style: TextStyle(
-                                color: AppTheme.textPrimary,
+                                color: AppThemeInstructor.textPrimary,
                                 fontSize: 16,
                               ),
-                              dropdownColor: AppTheme.surfaceWhite,
+                              dropdownColor: AppThemeInstructor.surfaceWhite,
                               icon: Icon(
                                 Icons.expand_more,
-                                color: AppTheme.textSecondary,
+                                color: AppThemeInstructor.textSecondary,
                               ),
                             ),
                           ),
@@ -1067,12 +1037,12 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [AppTheme.successGreen, Colors.green.shade600],
+                      colors: [AppThemeInstructor.primaryBlue, AppThemeInstructor.successGreen.withOpacity(0.8)],
                     ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.successGreen.withOpacity(0.4),
+                        color: AppThemeInstructor.primaryBlue.withOpacity(0.4),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),
@@ -1141,10 +1111,10 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
+        color: AppThemeInstructor.surfaceWhite,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: hasFile ? color.withOpacity(0.5) : AppTheme.borderSubtle,
+          color: hasFile ? color.withOpacity(0.5) : AppThemeInstructor.borderSubtle,
           width: hasFile ? 2 : 1,
         ),
       ),
@@ -1161,12 +1131,12 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: hasFile ? color.withOpacity(0.1) : AppTheme.textSecondary.withOpacity(0.1),
+                      color: hasFile ? color.withOpacity(0.1) : AppThemeInstructor.textSecondary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Icon(
                       hasFile ? Icons.check_circle_outline : icon,
-                      color: hasFile ? color : AppTheme.textSecondary,
+                      color: hasFile ? color : AppThemeInstructor.textSecondary,
                       size: 16,
                     ),
                   ),
@@ -1175,7 +1145,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                     child: Text(
                       hasFile ? '$fileType Added' : 'Add $fileType',
                       style: TextStyle(
-                        color: hasFile ? color : AppTheme.textPrimary,
+                        color: hasFile ? color : AppThemeInstructor.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1188,7 +1158,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 Text(
                   fileInfo['name'] ?? 'Unknown file',
                   style: TextStyle(
-                    color: AppTheme.textSecondary,
+                    color: AppThemeInstructor.textSecondary,
                     fontSize: 10,
                   ),
                   maxLines: 1,
@@ -1220,15 +1190,15 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppThemeInstructor.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: AppTheme.backgroundLight,
+            color: AppThemeInstructor.backgroundLight,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderSubtle),
+            border: Border.all(color: AppThemeInstructor.borderSubtle),
           ),
           child: TextField(
             controller: controller,
@@ -1237,17 +1207,17 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
             onChanged: onChanged,
             style: TextStyle(
               fontSize: 16,
-              color: AppTheme.textPrimary,
+              color: AppThemeInstructor.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: AppTheme.textSecondary,
+                color: AppThemeInstructor.textSecondary,
                 fontSize: 16,
               ),
               prefixIcon: Icon(
                 icon,
-                color: AppTheme.textSecondary,
+                color: AppThemeInstructor.textSecondary,
                 size: 20,
               ),
               border: InputBorder.none,
@@ -1270,25 +1240,25 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
+        color: AppThemeInstructor.surfaceWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(color: AppThemeInstructor.borderSubtle),
       ),
       child: TextField(
         controller: controller,
         style: TextStyle(
           fontSize: 14,
-          color: AppTheme.textPrimary,
+          color: AppThemeInstructor.textPrimary,
         ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            color: AppTheme.textSecondary,
+            color: AppThemeInstructor.textSecondary,
             fontSize: 14,
           ),
           prefixIcon: Icon(
             icon,
-            color: AppTheme.textSecondary,
+            color: AppThemeInstructor.textSecondary,
             size: 18,
           ),
           border: InputBorder.none,

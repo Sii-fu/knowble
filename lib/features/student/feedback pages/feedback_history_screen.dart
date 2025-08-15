@@ -3,6 +3,8 @@ import 'package:sizer/sizer.dart';
 
 import '../../../config/theme.dart';
 import '../../../widgets/custom_icon_widget.dart';
+import '../../../core/services/student/feedback_service.dart';
+import '../../../data/models/feedback.dart' as feedback_model;
 import './widgets/empty_state_widget.dart';
 import './widgets/feedback_card_widget.dart';
 import './widgets/feedback_detail_dialog.dart';
@@ -17,80 +19,16 @@ class FeedbackHistoryScreen extends StatefulWidget {
 class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
+  final FeedbackService _feedbackService = FeedbackService();
 
   bool _isLoading = true;
-  final bool _isSearchVisible = false;
   final String _searchQuery = '';
   final List<String> _activeFilters = [];
   DateTime? _lastSyncTime;
 
-  // Mock feedback data - in real app this would come from Supabase
-  final List<Map<String, dynamic>> _allFeedbackData = [
-    {
-      "id": 1,
-      "user_id": "user_123",
-      "feedback_type": "Bug",
-      "category": "App UI",
-      "message":
-          "The submit button on the feedback form is not responding properly when tapped multiple times. This creates confusion as users don't know if their feedback was submitted successfully.",
-      "status": "Under Review",
-      "created_at": "2025-08-03T14:30:00.000Z",
-      "updated_at": "2025-08-03T16:45:00.000Z",
-      "admin_response": null,
-    },
-    {
-      "id": 2,
-      "user_id": "user_123",
-      "feedback_type": "Feature Request",
-      "category": "Course",
-      "message":
-          "It would be great to have offline video downloads for courses so students can learn without internet connectivity during commutes.",
-      "status": "Resolved",
-      "created_at": "2025-08-01T09:15:00.000Z",
-      "updated_at": "2025-08-02T11:20:00.000Z",
-      "admin_response":
-          "Thank you for your suggestion! We're happy to inform you that offline video downloads are now available in the latest app update. You can find this feature in the course settings.",
-    },
-    {
-      "id": 3,
-      "user_id": "user_123",
-      "feedback_type": "Complaint",
-      "category": "Payment",
-      "message":
-          "I was charged twice for the same course enrollment. The payment went through successfully but I received two separate charges on my credit card statement.",
-      "status": "Closed",
-      "created_at": "2025-07-30T16:20:00.000Z",
-      "updated_at": "2025-07-31T10:30:00.000Z",
-      "admin_response":
-          "We sincerely apologize for the duplicate charge. Our billing team has processed a full refund for the duplicate transaction. You should see the refund in your account within 3-5 business days.",
-    },
-    {
-      "id": 4,
-      "user_id": "user_123",
-      "feedback_type": "General Feedback",
-      "category": "Instructor",
-      "message":
-          "Professor Johnson's teaching style is excellent and very engaging. The interactive examples really help understand complex concepts better.",
-      "status": "Submitted",
-      "created_at": "2025-07-28T13:45:00.000Z",
-      "updated_at": "2025-07-28T13:45:00.000Z",
-      "admin_response": null,
-    },
-    {
-      "id": 5,
-      "user_id": "user_123",
-      "feedback_type": "Bug",
-      "category": "Course",
-      "message":
-          "Video playback keeps buffering even with good internet connection. This makes it difficult to follow along with the lectures smoothly.",
-      "status": "Under Review",
-      "created_at": "2025-07-25T11:10:00.000Z",
-      "updated_at": "2025-07-26T14:15:00.000Z",
-      "admin_response": null,
-    },
-  ];
-
-  List<Map<String, dynamic>> _filteredFeedback = [];
+  // Real feedback data from Supabase
+  List<feedback_model.Feedback> _allFeedback = [];
+  List<feedback_model.Feedback> _filteredFeedback = [];
 
   @override
   void initState() {
@@ -103,46 +41,78 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
       _isLoading = true;
     });
 
-    // Simulate API call delay
-    await Future.delayed(const Duration(milliseconds: 1500));
+    try {
+      // Load real feedback data from Supabase
+      final feedbackList = await _feedbackService.getFeedbackHistory();
 
-    setState(() {
-      _filteredFeedback = List.from(_allFeedbackData);
-      _lastSyncTime = DateTime.now();
-      _isLoading = false;
-    });
+      setState(() {
+        _allFeedback = feedbackList;
+        _filteredFeedback = List.from(_allFeedback);
+        _lastSyncTime = DateTime.now();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading feedback history: $e');
+      setState(() {
+        _allFeedback = [];
+        _filteredFeedback = [];
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load feedback history'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _refreshData() async {
-    // Simulate refresh with real-time updates
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      // Refresh feedback data from Supabase
+      final feedbackList = await _feedbackService.getFeedbackHistory();
 
-    setState(() {
-      _filteredFeedback = List.from(_allFeedbackData);
-      _lastSyncTime = DateTime.now();
-    });
+      setState(() {
+        _allFeedback = feedbackList;
+        _filteredFeedback = List.from(_allFeedback);
+        _lastSyncTime = DateTime.now();
+      });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Feedback history updated'),
-          backgroundColor: AppTheme.successGreen,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Feedback history updated'),
+            backgroundColor: AppTheme.successGreen,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error refreshing feedback history: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh feedback history'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
   void _applyFilters() {
     setState(() {
-      _filteredFeedback = _allFeedbackData.where((feedback) {
+      _filteredFeedback = _allFeedback.where((feedback) {
         // Search query filter
         if (_searchQuery.isNotEmpty) {
-          final message = (feedback['message'] as String? ?? '').toLowerCase();
-          final type = (feedback['feedback_type'] as String? ?? '')
-              .toLowerCase();
-          final category = (feedback['category'] as String? ?? '')
-              .toLowerCase();
+          final message = feedback.message.toLowerCase();
+          final type = feedback.type.toLowerCase();
+          final category = feedback.category.toLowerCase();
 
           if (!message.contains(_searchQuery.toLowerCase()) &&
               !type.contains(_searchQuery.toLowerCase()) &&
@@ -153,8 +123,8 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
 
         // Active filters
         if (_activeFilters.isNotEmpty) {
-          final type = feedback['feedback_type'] as String? ?? '';
-          final category = feedback['category'] as String? ?? '';
+          final type = feedback.type;
+          final category = feedback.category;
 
           if (!_activeFilters.contains(type) &&
               !_activeFilters.contains(category)) {
@@ -167,17 +137,17 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
     });
   }
 
-  void _showFeedbackDetail(Map<String, dynamic> feedback) {
+  void _showFeedbackDetail(feedback_model.Feedback feedback) {
     showDialog(
       context: context,
       builder: (context) => Theme(
         data: AppTheme.lightTheme,
-        child: FeedbackDetailDialog(feedback: feedback),
+        child: FeedbackDetailDialog(feedback: feedback.toMap()),
       ),
     );
   }
 
-  void _showContextMenu(Map<String, dynamic> feedback) {
+  void _showContextMenu(feedback_model.Feedback feedback) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surfaceWhite,
@@ -214,9 +184,8 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
                 _showFeedbackDetail(feedback);
               },
             ),
-            if ((feedback['status'] as String? ?? '').toLowerCase() !=
-                    'resolved' &&
-                (feedback['status'] as String? ?? '').toLowerCase() != 'closed')
+            if (feedback.status.toLowerCase() != 'resolved' &&
+                feedback.status.toLowerCase() != 'closed')
               ListTile(
                 leading: CustomIconWidget(
                   iconName: 'add_comment',
@@ -244,7 +213,16 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
               ),
               onTap: () {
                 Navigator.pop(context);
-                _showDeleteConfirmation(feedback);
+                // Note: Feedback deletion would require backend implementation
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Feedback deletion is not currently available',
+                    ),
+                    backgroundColor: AppTheme.errorRed,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               },
             ),
             SizedBox(height: 2.h),
@@ -254,67 +232,24 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
     );
   }
 
-  void _showDeleteConfirmation(Map<String, dynamic> feedback) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.surfaceWhite,
-        title: Text(
-          'Delete Feedback',
-          style: TextStyle(color: AppTheme.textPrimary),
-        ),
-        content: Text(
-          'Are you sure you want to delete this feedback? This action cannot be undone.',
-          style: TextStyle(color: AppTheme.textPrimary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteFeedback(feedback);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.errorRed,
-              foregroundColor: AppTheme.surfaceWhite,
-            ),
-            child: Text(
-              'Delete',
-              style: TextStyle(color: AppTheme.surfaceWhite),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  void _deleteAllFeedback() {
+    final backupData = List<feedback_model.Feedback>.from(_allFeedback);
 
-  void _deleteFeedback(Map<String, dynamic> feedback) {
     setState(() {
-      _allFeedbackData.removeWhere((item) => item['id'] == feedback['id']);
-      _applyFilters();
+      _allFeedback.clear();
+      _filteredFeedback.clear();
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Feedback deleted successfully'),
+        content: Text('All feedback deleted successfully'),
         backgroundColor: AppTheme.successGreen,
         action: SnackBarAction(
           label: 'Undo',
           textColor: Colors.white,
           onPressed: () {
             setState(() {
-              _allFeedbackData.add(feedback);
-              _allFeedbackData.sort(
-                (a, b) => DateTime.parse(
-                  b['created_at'] as String,
-                ).compareTo(DateTime.parse(a['created_at'] as String)),
-              );
+              _allFeedback.addAll(backupData);
               _applyFilters();
             });
           },
@@ -363,32 +298,6 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _deleteAllFeedback() {
-    final backupData = List<Map<String, dynamic>>.from(_allFeedbackData);
-
-    setState(() {
-      _allFeedbackData.clear();
-      _filteredFeedback.clear();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('All feedback deleted successfully'),
-        backgroundColor: AppTheme.successGreen,
-        action: SnackBarAction(
-          label: 'Undo',
-          textColor: Colors.white,
-          onPressed: () {
-            setState(() {
-              _allFeedbackData.addAll(backupData);
-              _applyFilters();
-            });
-          },
-        ),
       ),
     );
   }
@@ -582,7 +491,7 @@ class _FeedbackHistoryScreenState extends State<FeedbackHistoryScreen> {
         itemBuilder: (context, index) {
           final feedback = _filteredFeedback[index];
           return FeedbackCardWidget(
-            feedback: feedback,
+            feedback: feedback.toMap(),
             onTap: () => _showFeedbackDetail(feedback),
             onLongPress: () => _showContextMenu(feedback),
           );

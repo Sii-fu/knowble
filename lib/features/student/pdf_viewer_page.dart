@@ -186,7 +186,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
               print('courseTitle parameter: "PDF Document"');
               print('courseDescription parameter: "Currently viewing: ${widget.title} - Page ${(currentPage ?? 0) + 1}"');
               if (currentPageText != null && currentPageText.isNotEmpty) {
-                print('pdfContents[0][textContent] parameter (current page): "${currentPageText.length > 200 ? currentPageText.substring(0, 200) + "..." : currentPageText}"');
+                print('pdfContents[0][textContent] parameter (current page): "${currentPageText.length > 200 ? "${currentPageText.substring(0, 200)}..." : currentPageText}"');
                 print('Current page textContent length: ${currentPageText.length} characters');
               } else {
                 print('pdfContents[0][textContent] parameter: null (current page has no text)');
