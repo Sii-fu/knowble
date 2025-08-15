@@ -836,8 +836,12 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
               TextField(
                 controller: notesController,
                 maxLines: 5,
+                style: TextStyle(
+                  color: AppTheme.textPrimary, // Fix white text issue
+                ),
                 decoration: InputDecoration(
                   hintText: 'Enter your response and resolution notes...',
+                  hintStyle: TextStyle(color: AppTheme.textSecondary),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: AppTheme.borderSubtle),
