@@ -33,6 +33,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   final CourseFetchService _fetchService = CourseFetchService();
   bool _isLoading = true;
   List<Map<String, dynamic>> _modules = [];
+  String? _courseBanner;
 
   @override
   void initState() {
@@ -42,15 +43,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
   Future<void> _fetchCourseDetails() async {
 
-    // Use courseId to fetch details
-    final modules = await _fetchService.fetchCourseModulesWithSectionsAndContents(widget.id);
-    setState(() {
-      _modules = modules;
-      _isLoading = false;
-    });
-
     setState(() => _isLoading = true);
-    
     try {
       // Fetch course detail once (includes chapters/modules with sections & contents)
       final courseDetails = await _fetch_service_safeFetchDetail(widget.id);
