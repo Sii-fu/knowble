@@ -3,6 +3,7 @@ import 'package:knowble_app/config/theme.dart';
 import './widgets/user_filter_chip.dart';
 import './widgets/user_list_item_card.dart';
 import '../../widgets/custom_icon_widget.dart';
+import '../../core/services/admin/admin_user_management_service.dart';
 
 class AdminUsersManagement extends StatefulWidget {
   const AdminUsersManagement({super.key});
@@ -15,96 +16,58 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
     with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final AdminUserManagementService _userService = AdminUserManagementService();
+
   String _selectedFilter = 'All';
+  List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _filteredUsers = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
   int _currentIndex = 3; // Users tab active
 
-  final List<Map<String, dynamic>> _mockUsers = [
-    {
-      "id": 1,
-      "name": "Sarah Johnson",
-      "email": "sarah.johnson@email.com",
-      "profileImage":
-          "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=400",
-      "role": "Student",
-      "registrationDate": DateTime.now().subtract(const Duration(days: 45)),
-      "status": "Active",
-      "lastActivity": DateTime.now().subtract(const Duration(hours: 2)),
-      "feedbacks": [
-        {
-          "id": "fb1",
-          "type": "Bug Report",
-          "category": "Video Playback",
-          "message": "Videos are not loading properly in course module 3",
-          "status": "pending",
-          "submitted_at": DateTime.now().subtract(const Duration(days: 2)),
-          "admin_notes": null,
-        },
-        {
-          "id": "fb2",
-          "type": "Feature Request",
-          "category": "UI/UX",
-          "message": "Would like dark mode option for the app",
-          "status": "resolved",
-          "submitted_at": DateTime.now().subtract(const Duration(days: 10)),
-          "admin_notes": "Added to development roadmap for next release",
-        },
-      ],
-    },
-    {
-      "id": 2,
-      "name": "Michael Rodriguez",
-      "email": "m.rodriguez@university.edu",
-      "profileImage":
-          "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400",
-      "role": "Instructor",
-      "registrationDate": DateTime.now().subtract(const Duration(days: 120)),
-      "status": "Active",
-      "lastActivity": DateTime.now().subtract(const Duration(minutes: 30)),
-      "feedbacks": [
-        {
-          "id": "fb3",
-          "type": "Bug Report",
-          "category": "Course Management",
-          "message": "Unable to upload large PDF files to course materials",
-          "status": "pending",
-          "submitted_at": DateTime.now().subtract(const Duration(hours: 5)),
-          "admin_notes": null,
-        },
-      ],
-    },
-    {
-      "id": 3,
-      "name": "Emily Chen",
-      "email": "emily.chen@email.com",
-      "profileImage":
-          "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400",
-      "role": "Student",
-      "registrationDate": DateTime.now().subtract(const Duration(days: 15)),
-      "status": "Active",
-      "lastActivity": DateTime.now().subtract(const Duration(minutes: 45)),
-      "feedbacks": [
-        {
-          "id": "fb4",
-          "type": "General Feedback",
-          "category": "Course Content",
-          "message":
-              "The mathematics course is excellent! Very clear explanations.",
-          "status": "resolved",
-          "submitted_at": DateTime.now().subtract(const Duration(days: 3)),
-          "admin_notes": "Forwarded positive feedback to instructor team",
-        },
-      ],
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
-    _filteredUsers = List.from(_mockUsers);
+    _loadUsers(); // Load real data from database
     _scrollController.addListener(_onScroll);
+  }
+
+  /// Load users from database using the service
+  /// ONLY loads users who have submitted complaints/feedback
+  Future<void> _loadUsers() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final users = await _userService.getUsersWithComplaints(
+        limit: 50,
+        role: _selectedFilter != 'All' ? _selectedFilter : null,
+        searchQuery: _searchController.text.trim().isNotEmpty
+            ? _searchController.text.trim()
+            : null,
+      );
+
+      setState(() {
+        _users = users;
+        _filteredUsers = users;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading users: $e');
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load users with complaints: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -122,68 +85,57 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
   }
 
   void _loadMoreUsers() {
-    if (!_isLoadingMore) {
+    if (!_isLoadingMore && _users.isNotEmpty) {
       setState(() {
         _isLoadingMore = true;
       });
 
-      // Simulate loading more users
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() {
-            _isLoadingMore = false;
+      // Load more users with pagination - only users with complaints
+      _userService
+          .getUsersWithComplaints(
+            limit: 20,
+            offset: _users.length,
+            role: _selectedFilter != 'All' ? _selectedFilter : null,
+            searchQuery: _searchController.text.trim().isNotEmpty
+                ? _searchController.text.trim()
+                : null,
+          )
+          .then((moreUsers) {
+            if (mounted) {
+              setState(() {
+                _users.addAll(moreUsers);
+                _filteredUsers.addAll(moreUsers);
+                _isLoadingMore = false;
+              });
+            }
+          })
+          .catchError((e) {
+            print('Error loading more users: $e');
+            if (mounted) {
+              setState(() {
+                _isLoadingMore = false;
+              });
+            }
           });
-        }
-      });
     }
   }
 
   void _filterUsers(String query) {
-    setState(() {
-      if (query.isEmpty && _selectedFilter == 'All') {
-        _filteredUsers = List.from(_mockUsers);
-      } else {
-        _filteredUsers = _mockUsers.where((user) {
-          final matchesQuery =
-              query.isEmpty ||
-              (user['name'] as String).toLowerCase().contains(
-                query.toLowerCase(),
-              ) ||
-              (user['email'] as String).toLowerCase().contains(
-                query.toLowerCase(),
-              );
-
-          final matchesFilter =
-              _selectedFilter == 'All' ||
-              (user['role'] as String) == _selectedFilter;
-
-          return matchesQuery && matchesFilter;
-        }).toList();
-      }
-    });
+    // Reload data with new search query using the service
+    _loadUsers();
   }
 
   void _onFilterChanged(String filter) {
     setState(() {
       _selectedFilter = filter;
     });
-    _filterUsers(_searchController.text);
+    // Reload data with new filter using the service
+    _loadUsers();
   }
 
   Future<void> _onRefresh() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate refresh
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _filteredUsers = List.from(_mockUsers);
-      });
-    }
+    // Refresh by reloading data from the service
+    await _loadUsers();
   }
 
   void _onBottomNavTap(int index) {
@@ -215,7 +167,7 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: Text(
-          'Users Management',
+          'Users with Feedback',
           style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
@@ -236,8 +188,12 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
                 child: TextField(
                   controller: _searchController,
                   onChanged: _filterUsers,
+                  style: TextStyle(
+                    color: AppTheme.textPrimary, // Fix white text issue
+                  ),
                   decoration: InputDecoration(
-                    hintText: 'Search by name or email...',
+                    hintText: 'Search users with feedback...',
+                    hintStyle: TextStyle(color: AppTheme.textSecondary),
                     prefixIcon: CustomIconWidget(
                       iconName: 'search',
                       color: AppTheme.textSecondary,
@@ -950,12 +906,48 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
     );
   }
 
-  void _solveFeedback(Map<String, dynamic> feedback, String adminNotes) {
-    setState(() {
-      feedback['status'] = 'resolved';
-      feedback['admin_notes'] = adminNotes;
-      feedback['resolved_at'] = DateTime.now();
-    });
+  void _solveFeedback(Map<String, dynamic> feedback, String adminNotes) async {
+    try {
+      final result = await _userService.updateFeedbackStatus(
+        feedbackId: feedback['id'],
+        newStatus: 'resolved',
+        adminNotes: adminNotes.isNotEmpty ? adminNotes : null,
+      );
+
+      if (result == null) {
+        // Success - reload data to show updated status
+        await _loadUsers();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Feedback resolved successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to resolve feedback: $result'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error resolving feedback: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error resolving feedback: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _formatFeedbackDate(DateTime date) {
