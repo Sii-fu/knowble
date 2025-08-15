@@ -3,6 +3,7 @@ import 'package:sizer/sizer.dart';
 
 import '../../../config/theme.dart';
 import '../../../widgets/custom_icon_widget.dart';
+import '../../../core/services/student/feedback_service.dart';
 import './widgets/feedback_category_dropdown.dart';
 import './widgets/feedback_message_field.dart';
 import './widgets/feedback_type_dropdown.dart';
@@ -28,13 +29,11 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> {
   String? _categoryError;
   String? _messageError;
 
-  // Mock user data for demonstration
-  final Map<String, dynamic> _mockUserData = {
-    "user_id": "student_12345",
-    "role": "student",
-    "name": "Alex Johnson",
-    "email": "alex.johnson@university.edu",
-  };
+  // User data
+  Map<String, String>? _userData;
+
+  // Feedback service instance
+  final FeedbackService _feedbackService = FeedbackService();
 
   @override
   void initState() {
@@ -42,6 +41,21 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> {
     _messageController.addListener(() {
       setState(() {});
     });
+    _loadUserData();
+  }
+
+  /// Load current user data from the service
+  Future<void> _loadUserData() async {
+    try {
+      final userInfo = await _feedbackService.getCurrentUserInfo();
+      if (mounted && userInfo != null) {
+        setState(() {
+          _userData = userInfo;
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+    }
   }
 
   @override
@@ -82,49 +96,88 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> {
     });
 
     try {
-      // Simulate Supabase API call
-      await Future.delayed(const Duration(seconds: 2));
+      // Check if user can submit feedback (rate limiting)
+      final canSubmit = await _feedbackService.canSubmitFeedback();
+      if (!canSubmit) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Please wait 5 minutes between feedback submissions.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.surfaceWhite),
+              ),
+              backgroundColor: AppTheme.errorRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: EdgeInsets.all(4.w),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
 
-      // Mock feedback data structure for Supabase insertion
-      final Map<String, dynamic> feedbackData = {
-        "user_id": _mockUserData["user_id"],
-        "role": _mockUserData["role"],
-        "feedback_type": _selectedFeedbackType,
-        "category": _selectedCategory,
-        "message": _messageController.text.trim(),
-        "created_at": DateTime.now().toIso8601String(),
-        "status": "submitted",
-      };
+      // Submit feedback using the service
+      final errorMessage = await _feedbackService.submitFeedback(
+        type: _selectedFeedbackType!,
+        category: _selectedCategory!,
+        message: _messageController.text.trim(),
+      );
 
-      // Simulate successful submission
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Feedback submitted successfully!',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.surfaceWhite),
+        if (errorMessage == null) {
+          // Success - show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Feedback submitted successfully!',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.surfaceWhite),
+              ),
+              backgroundColor: AppTheme.successGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: EdgeInsets.all(4.w),
+              duration: const Duration(seconds: 3),
             ),
-            backgroundColor: AppTheme.successGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: EdgeInsets.all(4.w),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+          );
 
-        // Reset form after successful submission
-        _resetForm();
+          // Reset form after successful submission
+          _resetForm();
+        } else {
+          // Error - show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                errorMessage,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.surfaceWhite),
+              ),
+              backgroundColor: AppTheme.errorRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: EdgeInsets.all(4.w),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to submit feedback. Please try again.',
+              'An unexpected error occurred. Please try again.',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppTheme.surfaceWhite),
@@ -157,71 +210,6 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> {
       _categoryError = null;
       _messageError = null;
     });
-  }
-
-  void _logout() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Logout',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary),
-          ),
-          content: Text(
-            'Are you sure you want to logout?',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(color: AppTheme.textSecondary),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Simulate logout - in real app, clear auth state
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Logged out successfully',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.surfaceWhite,
-                      ),
-                    ),
-                    backgroundColor: AppTheme.primaryTeal,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    margin: EdgeInsets.all(4.w),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.errorRed,
-                foregroundColor: AppTheme.surfaceWhite,
-              ),
-              child: Text(
-                'Logout',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(color: AppTheme.surfaceWhite),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -283,7 +271,7 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome, ${_mockUserData["name"]}',
+                          'Welcome, ${_userData?['name'] ?? 'Student'}',
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: AppTheme.primaryTeal,
                             fontWeight: FontWeight.w600,
