@@ -19,6 +19,26 @@ class CreateCourseScreen extends StatefulWidget {
 }
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
+  // Store picked course banner image info: { 'path': ..., 'bytes': ..., 'name': ... }
+  Map<String, dynamic>? _courseBannerInfo;
+  Future<void> _handleBannerUpload() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.single;
+      Map<String, dynamic> bannerInfo = {
+        'name': file.name,
+      };
+      if (kIsWeb) {
+        bannerInfo['bytes'] = file.bytes;
+      } else {
+        bannerInfo['path'] = file.path;
+      }
+      setState(() {
+        _courseBannerInfo = bannerInfo;
+      });
+      _showSuccessDialog('Course banner image selected successfully!');
+    }
+  }
   bool _isUploading = false;
 
   void _showLoadingDialog() {
@@ -575,7 +595,98 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    
+                    // Banner image upload field
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.backgroundLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.borderSubtle),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Upload Course Banner Image',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: _handleBannerUpload,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: _courseBannerInfo != null ? AppTheme.successGreen.withOpacity(0.1) : AppTheme.surfaceWhite,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _courseBannerInfo != null ? AppTheme.successGreen : AppTheme.borderSubtle,
+                                  width: _courseBannerInfo != null ? 2 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: _courseBannerInfo != null ? AppTheme.successGreen.withOpacity(0.2) : AppTheme.textSecondary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      _courseBannerInfo != null ? Icons.check_circle_outline : Icons.image_outlined,
+                                      color: _courseBannerInfo != null ? AppTheme.successGreen : AppTheme.textSecondary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _courseBannerInfo != null ? 'Banner Image Selected' : 'Upload Banner Image',
+                                          style: TextStyle(
+                                            color: _courseBannerInfo != null ? AppTheme.successGreen : AppTheme.textPrimary,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if (_courseBannerInfo != null)
+                                          Text(
+                                            _courseBannerInfo!['name'] ?? 'Unknown file',
+                                            style: TextStyle(
+                                              color: AppTheme.textSecondary,
+                                              fontSize: 12,
+                                            ),
+                                          )
+                                        else
+                                          Text(
+                                            'Add a visual banner for your course',
+                                            style: TextStyle(
+                                              color: AppTheme.textSecondary,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    color: AppTheme.textSecondary,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     _buildModernTextField(
                       controller: _courseNameController,
                       label: 'Course Name',
@@ -583,7 +694,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       icon: Icons.title_outlined,
                     ),
                     const SizedBox(height: 20),
-                    
                     _buildModernTextField(
                       controller: _courseDescriptionController,
                       label: 'Description',
@@ -592,7 +702,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       maxLines: 3,
                     ),
                     const SizedBox(height: 20),
-                    
                     Row(
                       children: [
                         Expanded(
@@ -617,7 +726,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    
                     Row(
                       children: [
                         Expanded(

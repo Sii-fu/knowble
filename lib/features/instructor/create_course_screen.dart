@@ -14,6 +14,16 @@ class CreateCourseScreen extends StatefulWidget {
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
   bool _isUploading = false;
+  Map<String, dynamic>? _courseBannerInfo;
+  Future<void> _handleBannerUpload() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.single;
+      setState(() {
+        _courseBannerInfo = {'name': file.name};
+      });
+    }
+  }
 
   // Course basic info controllers
   final TextEditingController _courseNameController = TextEditingController();
@@ -572,6 +582,64 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         label: 'Category Tag',
                         hint: 'e.g., Mathematics, Science',
                         icon: Icons.tag_outlined,
+                      ),
+                      const SizedBox(height: 16),
+                      // Simple input field for course banner image upload
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: _handleBannerUpload,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppThemeInstructor.primaryBlue,
+                                      AppThemeInstructor.successGreen.withOpacity(0.8),
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppThemeInstructor.primaryBlue.withOpacity(0.18),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.image_outlined,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                      child: Text(
+                                        _courseBannerInfo != null
+                                            ? 'Banner Selected: ${_courseBannerInfo!['name'] ?? ''}'
+                                            : 'Upload Course Banner',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          letterSpacing: 0.5,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

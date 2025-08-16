@@ -4,6 +4,27 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 class CourseService {
+  /// Upload course banner image to Supabase Storage (bucket: course-banner)
+  Future<String?> uploadBannerToStorage({String? filePath, Uint8List? bytes, required String fileName}) async {
+    // Sanitize filename: replace spaces and special chars with underscores
+    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+    safeFileName = safeFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
+    dynamic response;
+    if (kIsWeb) {
+      if (bytes == null) return null;
+      response = await supabase.storage.from('course-banner').uploadBinary(safeFileName, bytes, fileOptions: const FileOptions(upsert: true));
+    } else {
+      if (filePath == null) return null;
+      final file = io.File(filePath);
+      response = await supabase.storage.from('course-banner').upload(safeFileName, file, fileOptions: const FileOptions(upsert: true));
+    }
+    if (response == null || (response is String && response.isEmpty)) {
+      return null;
+    }
+    // Get public URL
+    final publicUrl = supabase.storage.from('course-banner').getPublicUrl(safeFileName);
+    return publicUrl;
+  }
 
   /// Batch create a course with multiple chapters (modules), lessons (sections), and PDFs (contents)
   /// [courseData] contains: title, description, price, durationDays, tag
@@ -15,6 +36,16 @@ class CourseService {
     final instructorId = await getInstructorId();
     if (instructorId == null) return null;
     final courseId = uuid.v4();
+    // Upload banner image if provided
+    String? bannerUrl;
+    if (courseData['banner'] != null) {
+      final banner = courseData['banner'] as Map<String, dynamic>;
+      if (kIsWeb && banner['bytes'] != null) {
+        bannerUrl = await uploadBannerToStorage(bytes: banner['bytes'], fileName: banner['name']);
+      } else if (!kIsWeb && banner['path'] != null) {
+        bannerUrl = await uploadBannerToStorage(filePath: banner['path'], fileName: banner['name']);
+      }
+    }
     // Insert course
     final response = await supabase.from('courses').insert({
       'id': courseId,
@@ -25,6 +56,7 @@ class CourseService {
       'is_paid': (courseData['price'] ?? 0) > 0,
       'duration_days': courseData['durationDays'],
       'created_at': DateTime.now().toIso8601String(),
+      if (bannerUrl != null) 'banner_url': bannerUrl,
     }).select('id').single();
     if (response['id'] == null) return null;
 
