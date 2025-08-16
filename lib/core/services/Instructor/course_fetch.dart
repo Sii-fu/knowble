@@ -1,3 +1,4 @@
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 // ...existing code...
 // Helper to get public URL for a file in Supabase Storage
@@ -41,6 +42,13 @@ class CourseFetchService {
           'title': s['title'],
           'description': s['description'],
           'order': s['order'],
+          'contents': (s['contents'] as List? ?? []).map((c) => {
+                'id': c['id'],
+                'type': c['type'],
+                'title': c['title'],
+                'url': c['url'],
+                'order': c['order'],
+              }).toList(),
         'contents': (s['contents'] as List? ?? []).map((c) => {
             'id': c['id'],
             'type': c['type'],
@@ -127,6 +135,13 @@ class CourseFetchService {
           'title': s['title'],
           'description': s['description'],
           'order': s['order'],
+          'contents': (s['contents'] as List? ?? []).map((c) => {
+                'id': c['id'],
+                'type': c['type'],
+                'title': c['title'],
+                'url': c['url'],
+                'order': c['order'],
+              }).toList(),
         'contents': (s['contents'] as List? ?? []).map((c) => {
             'id': c['id'],
             'type': c['type'],
