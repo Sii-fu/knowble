@@ -163,6 +163,14 @@ class CourseService {
     // Sanitize filename: replace spaces and special chars with underscores
     String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
     safeFileName = safeFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
+
+    // Check if file already exists in Supabase Storage
+    final existing = await supabase.storage.from('content-pdf').list(path: '').then((files) => files.where((f) => f.name == safeFileName).toList());
+    if (existing.isNotEmpty) {
+      // File already exists, just return its public URL
+      return supabase.storage.from('content-pdf').getPublicUrl(safeFileName);
+    }
+
     dynamic response;
     if (kIsWeb) {
       if (bytes == null) return null;
