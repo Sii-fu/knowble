@@ -1,6 +1,7 @@
 //not a valid page. dummy placement page for first version
 import 'package:flutter/material.dart';
 import 'core/services/notification_service.dart';
+import 'features/student/search_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,7 +14,7 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
   static const List<Widget> _pages = <Widget>[
-    Center(child: Text('Browse Page', style: TextStyle(fontSize: 24))),
+    SearchPage(), // Modern search page implementation
     Center(child: Text('Dashboard Page', style: TextStyle(fontSize: 24))),
     Center(child: Text('Profile Page', style: TextStyle(fontSize: 24))),
     Center(child: Text('Chat Page', style: TextStyle(fontSize: 24))),

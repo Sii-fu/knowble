@@ -1,202 +1,102 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
-import 'filter_page.dart';
 
-class CourseListPage extends StatefulWidget {
-  final String searchQuery;
+class CourseListPage extends StatelessWidget {
+  final List<Map<String, dynamic>> courses;
+  final String title;
+  final VoidCallback? onRefresh;
 
   const CourseListPage({
     super.key,
-    required this.searchQuery,
+    required this.courses,
+    required this.title,
+    this.onRefresh,
   });
 
   @override
-  State<CourseListPage> createState() => _CourseListPageState();
-}
-
-class _CourseListPageState extends State<CourseListPage> {
-  late TextEditingController _searchController;
-  List<CourseItem> _courses = [];
-  Map<String, dynamic>? _appliedFilters;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController = TextEditingController(text: widget.searchQuery);
-    _loadCourses();
-  }
-
-  void _loadCourses() {
-    // Sample course data - in a real app, this would come from your backend
-    _courses = [
-      CourseItem(
-        id: '1',
-        title: 'Graphic Design Advanced',
-        category: 'Graphic Design',
-        rating: 4.8,
-        studentCount: 2341,
-        imageUrl: 'assets/images/gd1.jpg',
-      ),
-      CourseItem(
-        id: '2',
-        title: 'Web Development Bootcamp',
-        category: 'Web Development',
-        rating: 4.9,
-        studentCount: 5678,
-        imageUrl: 'assets/images/web.png',
-      ),
-      CourseItem(
-        id: '3',
-        title: 'UI/UX Design Fundamentals',
-        category: 'Design',
-        rating: 4.7,
-        studentCount: 1234,
-        imageUrl: 'assets/images/gd2.jpg',
-      ),
-      CourseItem(
-        id: '4',
-        title: 'Mobile App Development',
-        category: 'Mobile Development',
-        rating: 4.6,
-        studentCount: 987,
-        imageUrl: 'assets/images/web.png',
-      ),
-      CourseItem(
-        id: '5',
-        title: 'Digital Marketing Mastery',
-        category: 'Marketing',
-        rating: 4.5,
-        studentCount: 3456,
-        imageUrl: 'assets/images/dm.jpg',
-      ),
-    ];
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.lightTheme;
-    return Theme(
-      data: theme,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            'Online Courses',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          backgroundColor: AppTheme.surfaceWhite,
-          foregroundColor: AppTheme.textPrimary,
-          elevation: 0.5,
-          shadowColor: AppTheme.shadowLight,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
-            onPressed: () => Navigator.pop(context),
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundLight,
+      appBar: AppBar(
+        title: Text(
+          title,
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w600,
           ),
         ),
         backgroundColor: AppTheme.backgroundLight,
-        body: Column(
-          children: [
-            // Search bar with filter button
-            Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceWhite,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppTheme.borderSubtle,
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.shadowLight.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search courses...',
-                        hintStyle: TextStyle(color: AppTheme.textSecondary),
-                        prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
+        elevation: 0,
+        iconTheme: IconThemeData(color: AppTheme.textPrimary),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.sort),
+            onPressed: () => _showSortOptions(context),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          onRefresh?.call();
+        },
+        color: AppTheme.primaryTeal,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Text(
+                      '${courses.length} courses found',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppTheme.textSecondary,
                       ),
-                      style: TextStyle(color: AppTheme.textPrimary),
-                      onSubmitted: (value) {
-                        setState(() {
-                          // Update search results based on new query
-                          _loadCourses();
-                        });
-                      },
                     ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.tune,
-                        color: AppTheme.primaryTeal,
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-                      onPressed: () async {
-                        final filters = await Navigator.push<Map<String, dynamic>>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FilterPage(
-                              currentFilters: _appliedFilters,
-                            ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.grid_view,
+                            size: 16,
+                            color: AppTheme.primaryTeal,
                           ),
-                        );
-                        if (filters != null) {
-                          setState(() {
-                            _appliedFilters = filters;
-                            // Apply filters to course list
-                            _loadCourses();
-                          });
-                        }
-                      },
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.list,
+                            size: 16,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Results summary
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Result for '${widget.searchQuery}'",
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppTheme.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  ],
                 ),
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Course list
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _courses.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final course = _courses[index];
-                  return _CourseCard(course: course);
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: _buildCourseCard(courses[index]),
+                  );
                 },
+                childCount: courses.length,
               ),
             ),
           ],
@@ -205,154 +105,300 @@ class _CourseListPageState extends State<CourseListPage> {
     );
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-}
-
-class _CourseCard extends StatelessWidget {
-  final CourseItem course;
-
-  const _CourseCard({required this.course});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = AppTheme.lightTheme;
-    return GestureDetector(
-      onTap: () {
-        // Navigate to course detail page
-        // Navigator.push(context, MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: course.id)));
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceWhite,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppTheme.borderSubtle,
-            width: 1,
+  Widget _buildCourseCard(Map<String, dynamic> course) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.shadowLight.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Course Image/Header
+          Container(
+            height: 160,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppTheme.accentLight,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Course thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  course.imageUrl,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 80,
-                    height: 80,
-                    color: AppTheme.accentLight,
-                    child: Icon(
-                      Icons.image,
-                      color: AppTheme.primaryTeal,
-                      size: 32,
-                    ),
+            child: Stack(
+              children: [
+                Center(
+                  child: Icon(
+                    Icons.play_circle_outline,
+                    size: 48,
+                    color: AppTheme.primaryTeal,
                   ),
                 ),
-              ),
-              
-              const SizedBox(width: 12),
-              
-              // Course details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Category
-                    Text(
-                      course.category,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
-                    
-                    const SizedBox(height: 4),
-                    
-                    // Course title
-                    Text(
-                      course.title,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceWhite,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Rating and student count
-                    Row(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.star,
+                          size: 12,
                           color: AppTheme.warningAmber,
-                          size: 16,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          course.rating.toString(),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textPrimary,
+                          '${course['rating']}',
+                          style: TextStyle(
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.people,
-                          color: AppTheme.textSecondary,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${course.studentCount} students',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryTeal,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      course['level'],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.surfaceWhite,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Course Details
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  course['title'],
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  course['instructor'],
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.people_outline,
+                      size: 16,
+                      color: AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${course['students']} students',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(
+                      Icons.access_time,
+                      size: 16,
+                      color: AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      course['duration'],
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      course['price'],
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryTeal,
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Navigate to course details
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryTeal,
+                        foregroundColor: AppTheme.surfaceWhite,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Enroll',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSortOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceWhite,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(
+                      'Sort by',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildSortOption(
+                      context,
+                      'Most Popular',
+                      Icons.trending_up,
+                    ),
+                    _buildSortOption(
+                      context,
+                      'Highest Rated',
+                      Icons.star,
+                    ),
+                    _buildSortOption(
+                      context,
+                      'Newest',
+                      Icons.schedule,
+                    ),
+                    _buildSortOption(
+                      context,
+                      'Price: Low to High',
+                      Icons.arrow_upward,
+                    ),
+                    _buildSortOption(
+                      context,
+                      'Price: High to Low',
+                      Icons.arrow_downward,
                     ),
                   ],
                 ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSortOption(BuildContext context, String title, IconData icon) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        // Implement sorting logic
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: AppTheme.primaryTeal,
+              size: 20,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
-}
-
-class CourseItem {
-  final String id;
-  final String title;
-  final String category;
-  final double rating;
-  final int studentCount;
-  final String imageUrl;
-
-  CourseItem({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.rating,
-    required this.studentCount,
-    required this.imageUrl,
-  });
 }
