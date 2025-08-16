@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'edit_course_screen.dart';
 import '../../config/theme_instructor.dart';
 import '../../core/services/Instructor/course_fetch.dart';
@@ -677,9 +679,17 @@ class ModernContentWidget extends StatelessWidget {
                   size: 18,
                   color: AppThemeInstructor.primaryBlue,
                 ),
-                onPressed: () {
-                  // Open PDF or link
-                  // You can use url_launcher or similar package
+                onPressed: () async {
+                  if (url.isNotEmpty) {
+                    final uri = Uri.parse(url);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not open PDF in browser')),
+                      );
+                    }
+                  }
                 },
               ),
             ),

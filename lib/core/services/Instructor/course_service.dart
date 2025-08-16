@@ -1,3 +1,4 @@
+
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -108,20 +109,17 @@ class CourseService {
         // Insert PDF content if provided
         if (lesson['pdf'] != null) {
           final pdf = lesson['pdf'] as Map<String, dynamic>;
-          // Always generate a unique filename for each section
-          String uniqueFileName = pdf['fileName'];
+          // Use the actual filename only, no unique suffix
+          String actualFileName = pdf['fileName'];
           // Sanitize filename
-          uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
-          uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
-          // Append sectionId to ensure uniqueness
-          uniqueFileName = uniqueFileName.replaceAll('.pdf', '_$sectionId.pdf');
+          actualFileName = actualFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+          actualFileName = actualFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           String? publicUrl;
           if (kIsWeb && pdf['bytes'] != null) {
-            publicUrl = await uploadPdfToStorage(bytes: pdf['bytes'], fileName: uniqueFileName);
+            publicUrl = await uploadPdfToStorage(bytes: pdf['bytes'], fileName: actualFileName);
           } else if (!kIsWeb && pdf['filePath'] != null) {
-            publicUrl = await uploadPdfToStorage(filePath: pdf['filePath'], fileName: uniqueFileName);
+            publicUrl = await uploadPdfToStorage(filePath: pdf['filePath'], fileName: actualFileName);
           }
-          // Always insert, even if publicUrl is the same as another section
           if (publicUrl != null) {
             await supabase.from('contents').insert({
               'id': uuid.v4(),

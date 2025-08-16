@@ -1,4 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+// ...existing code...
+// Helper to get public URL for a file in Supabase Storage
+String getPublicPdfUrl(String storagePath) {
+  final supabase = Supabase.instance.client;
+  // Use the correct bucket name 'content-pdf'
+  return supabase.storage.from('content-pdf').getPublicUrl(storagePath);
+}
 
 class CourseFetchService {
   final supabase = Supabase.instance.client;
@@ -34,13 +41,15 @@ class CourseFetchService {
           'title': s['title'],
           'description': s['description'],
           'order': s['order'],
-          'contents': (s['contents'] as List? ?? []).map((c) => {
-                'id': c['id'],
-                'type': c['type'],
-                'title': c['title'],
-                'url': c['url'],
-                'order': c['order'],
-              }).toList(),
+        'contents': (s['contents'] as List? ?? []).map((c) => {
+            'id': c['id'],
+            'type': c['type'],
+            'title': c['title'],
+            'url': c['type'] == 'pdf' && c['storage_path'] != null
+              ? getPublicPdfUrl(c['storage_path'])
+              : c['url'],
+            'order': c['order'],
+        }).toList(),
         });
       }
       moduleList.add({
@@ -118,13 +127,15 @@ class CourseFetchService {
           'title': s['title'],
           'description': s['description'],
           'order': s['order'],
-          'contents': (s['contents'] as List? ?? []).map((c) => {
-                'id': c['id'],
-                'type': c['type'],
-                'title': c['title'],
-                'url': c['url'],
-                'order': c['order'],
-              }).toList(),
+        'contents': (s['contents'] as List? ?? []).map((c) => {
+            'id': c['id'],
+            'type': c['type'],
+            'title': c['title'],
+            'url': c['type'] == 'pdf' && c['storage_path'] != null
+              ? getPublicPdfUrl(c['storage_path'])
+              : c['url'],
+            'order': c['order'],
+        }).toList(),
         });
       }
       chaptersList.add({
