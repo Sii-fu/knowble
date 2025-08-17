@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/reminder.dart';
 import 'notification_service.dart';
+import 'reminder_notification_sync_service.dart';
 
 /// ReminderService handles all reminder-related operations with Supabase
 /// Similar to AuthManager pattern but for reminder CRUD operations
@@ -98,6 +99,16 @@ class ReminderService {
           );
 
       print('🔍 Notification service returned ID: $notificationId');
+
+      // Also create notification entry in notification table for display in notifications page
+      // This ensures notifications appear even if push notifications fail due to timing issues
+      await ReminderNotificationSyncService.createNotificationForReminder(
+        reminderId: createdReminderId,
+        title: title.trim(),
+        description: description.trim(),
+        scheduledTime: startTime,
+        priority: priority,
+      );
 
       // Log success for debugging purposes
       print('✅ Reminder created successfully: $title');
@@ -301,6 +312,15 @@ class ReminderService {
             priority: priority,
           );
 
+      // Update notification entry in notification table
+      await ReminderNotificationSyncService.updateNotificationForReminder(
+        reminderId: reminderId,
+        title: title.trim(),
+        description: description.trim(),
+        scheduledTime: startTime,
+        priority: priority,
+      );
+
       // Log success
       print('✅ Reminder updated successfully: $title');
       if (notificationId != null) {
@@ -334,6 +354,11 @@ class ReminderService {
           .delete()
           .eq('id', reminderId) // Match by reminder ID
           .eq('user_id', user.id); // Security: ensure user owns this reminder
+
+      // Delete corresponding notification entry
+      await ReminderNotificationSyncService.deleteNotificationForReminder(
+        reminderId,
+      );
 
       // Note: In a production app, you'd store notification IDs with reminders
       // to properly cancel them. For now, this is a basic implementation.
