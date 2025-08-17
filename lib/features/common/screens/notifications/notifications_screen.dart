@@ -3,6 +3,7 @@ import 'package:sizer/sizer.dart';
 import 'package:Knowble/config/theme.dart';
 import 'package:Knowble/widgets/custom_icon_widget.dart';
 import '../../widgets/notifications/notification_list_widget.dart';
+import '../../../../core/services/notification_data_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -12,103 +13,162 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  bool _isLoading = false;
+  bool _isLoading = true;
+  List<NotificationData> _allNotifications = [];
 
   // Track clicked/read notifications
   final Set<String> _clickedNotifications = <String>{};
 
-  // Mock notification data grouped by date
-  final Map<String, List<NotificationItem>> _notificationData = {
-    'Today': [
-      NotificationItem(
-        id: '1',
-        title: 'New Category Course.!',
-        description:
-            'New category course is now available. Check it out now and start learning today.',
-        icon: 'school',
-        iconColor: AppTheme.primaryTeal,
-        timestamp: '2h ago',
-        type: NotificationType.course,
-      ),
-      NotificationItem(
-        id: '2',
-        title: 'Today\'s Special Offers',
-        description:
-            'Don\'t miss out on today\'s special offers. Get up to 50% off on selected courses.',
-        icon: 'local_offer',
-        iconColor: AppTheme.warningAmber,
-        timestamp: '4h ago',
-        type: NotificationType.offer,
-      ),
-    ],
-    'Yesterday': [
-      NotificationItem(
-        id: '3',
-        title: 'Credit Card Connected.!',
-        description:
-            'Your credit card has been successfully connected to your account. You can now make payments.',
-        icon: 'credit_card',
-        iconColor: AppTheme.successGreen,
-        timestamp: '1 day ago',
-        type: NotificationType.payment,
-      ),
-      NotificationItem(
-        id: '4',
-        title: 'Account Setup Successful.!',
-        description:
-            'Your account has been set up successfully. Welcome to our learning platform!',
-        icon: 'account_circle',
-        iconColor: AppTheme.primaryTeal,
-        timestamp: '1 day ago',
-        type: NotificationType.account,
-      ),
-    ],
-    'Nov 20 2022': [
-      NotificationItem(
-        id: '5',
-        title: 'Course Assignment Due',
-        description:
-            'Reminder: Your assignment for Introduction to Flutter is due in 2 days. Submit before the deadline.',
-        icon: 'assignment',
-        iconColor: AppTheme.warningAmber,
-        timestamp: 'Nov 20, 2022',
-        type: NotificationType.course,
-      ),
-      NotificationItem(
-        id: '6',
-        title: 'Payment Confirmation',
-        description:
-            'Payment of \$29.99 for Premium Course Pack has been confirmed. Receipt sent to your email.',
-        icon: 'payment',
-        iconColor: AppTheme.successGreen,
-        timestamp: 'Nov 20, 2022',
-        type: NotificationType.payment,
-      ),
-    ],
-  };
+  // Dynamic notification data grouped by date
+  Map<String, List<NotificationItem>> _notificationData = {};
 
-  // Handle notification tap to change color
-  void _onNotificationTap(String notificationId) {
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  /// Load notifications from the database
+  Future<void> _loadNotifications() async {
     setState(() {
-      if (_clickedNotifications.contains(notificationId)) {
-        _clickedNotifications.remove(notificationId);
-      } else {
-        _clickedNotifications.add(notificationId);
-      }
+      _isLoading = true;
     });
+
+    try {
+      final notifications =
+          await NotificationDataService.fetchUserNotifications();
+      _allNotifications = notifications;
+
+      // Convert to UI format and group by date
+      final groupedData = NotificationDataService.groupNotificationsByDate(
+        notifications,
+      );
+      final convertedData = <String, List<NotificationItem>>{};
+
+      for (final entry in groupedData.entries) {
+        convertedData[entry.key] = entry.value
+            .map((notif) => notif.toNotificationItem())
+            .toList();
+      }
+
+      // Initialize clicked notifications based on read status
+      for (final notif in notifications) {
+        if (notif.isRead) {
+          _clickedNotifications.add(notif.id);
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _notificationData = convertedData;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading notifications: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar('Failed to load notifications. Please try again.');
+      }
+    }
+  }
+
+  /// Show error message to user
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(4.w),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Show success message to user
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(4.w),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // Handle notification tap to mark as read and change color
+  void _onNotificationTap(String notificationId) async {
+    try {
+      // Toggle read status in UI immediately
+      setState(() {
+        if (_clickedNotifications.contains(notificationId)) {
+          _clickedNotifications.remove(notificationId);
+        } else {
+          _clickedNotifications.add(notificationId);
+        }
+      });
+
+      // Mark as read in database if it wasn't already read
+      if (_clickedNotifications.contains(notificationId)) {
+        final success = await NotificationDataService.markNotificationAsRead(
+          notificationId,
+        );
+        if (!success) {
+          // Revert the UI change if database update failed
+          setState(() {
+            _clickedNotifications.remove(notificationId);
+          });
+          _showErrorSnackBar('Failed to mark notification as read');
+        }
+      }
+    } catch (e) {
+      print('Error handling notification tap: $e');
+      _showErrorSnackBar('Failed to update notification status');
+    }
   }
 
   // Mark all notifications as read
-  void _markAllAsRead() {
-    setState(() {
-      _clickedNotifications.clear();
-      // Add all notification IDs to clicked set
-      for (final notifications in _notificationData.values) {
-        for (final notification in notifications) {
-          _clickedNotifications.add(notification.id);
-        }
+  void _markAllAsRead() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final success =
+          await NotificationDataService.markAllNotificationsAsRead();
+
+      if (success) {
+        setState(() {
+          _clickedNotifications.clear();
+          // Add all notification IDs to clicked set
+          for (final notifications in _notificationData.values) {
+            for (final notification in notifications) {
+              _clickedNotifications.add(notification.id);
+            }
+          }
+          _isLoading = false;
+        });
+        _showSuccessSnackBar('All notifications marked as read');
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar('Failed to mark all notifications as read');
       }
-    });
+    } catch (e) {
+      print('Error marking all as read: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackBar('Failed to mark all notifications as read');
+    }
   }
 
   // Clear all notifications
@@ -117,7 +177,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppTheme.surfaceWhite, // Add white background
+          backgroundColor: AppTheme.surfaceWhite,
           title: Text(
             'Clear All Notifications',
             style: TextStyle(
@@ -138,12 +198,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  _notificationData.clear();
-                  _clickedNotifications.clear();
-                });
+              onPressed: () async {
                 Navigator.of(context).pop();
+                await _performClearAll();
               },
               child: Text(
                 'Clear All',
@@ -156,26 +213,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
+  /// Perform the actual clear all operation
+  Future<void> _performClearAll() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final success = await NotificationDataService.deleteAllNotifications();
+
+      if (success) {
+        setState(() {
+          _notificationData.clear();
+          _clickedNotifications.clear();
+          _allNotifications.clear();
+          _isLoading = false;
+        });
+        _showSuccessSnackBar('All notifications cleared');
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar('Failed to clear notifications');
+      }
+    } catch (e) {
+      print('Error clearing all notifications: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackBar('Failed to clear notifications');
+    }
+  }
+
   // Check if notification is clicked/read
   bool _isNotificationClicked(String notificationId) {
     return _clickedNotifications.contains(notificationId);
   }
 
   Future<void> _onRefresh() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Simulate refresh operation
-      await Future.delayed(const Duration(seconds: 1));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    await _loadNotifications();
   }
 
   @override
