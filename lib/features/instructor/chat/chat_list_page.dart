@@ -193,7 +193,7 @@ class _ChatListPageState extends State<ChatListPage> {
             ],
           ),
         ),
-        ...courseChats.map((chat) => _chatTile(chat)).toList(),
+        ...courseChats.map((chat) => _chatTile(chat)),
       ],
     );
   }

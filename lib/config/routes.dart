@@ -61,6 +61,7 @@ import '../features/student/terms_conditions_page.dart';
 // Feedback screens
 import '../features/student/feedback pages/feedback_form_screen.dart';
 import '../features/student/feedback pages/feedback_history_screen.dart';
+import '../features/instructor/feedback pages/instructor_feedback_history_screen.dart';
 
 // AppRoutes holds all route names and their corresponding widget builders.
 class AppRoutes {
@@ -87,8 +88,8 @@ class AppRoutes {
     '/chats': (context) => const ChatListPage(),
     '/student_dashboard': (context) => const StudentDashboardPage(),
     '/course_screen': (context) => const CourseScreen(),
-    // '/category_page': (context) => const CategoryPage(),
 
+    // '/category_page': (context) => const CategoryPage(),
     '/student': (context) => const StudentLayout(),
     '/instructor': (context) => const InstructorLayout(),
     '/manage_students': (context) => const ManageStudentsPage(),
@@ -132,5 +133,7 @@ class AppRoutes {
     // Feedback pages
     '/feedback-form': (context) => const FeedbackFormScreen(),
     '/feedback-history': (context) => const FeedbackHistoryScreen(),
+    '/instructor-feedback-history': (context) =>
+        const InstructorFeedbackHistoryScreen(),
   };
 }

@@ -108,8 +108,8 @@ class _HomePageState extends State<HomePage> {
             );
           }
         },
-        child: const Icon(Icons.notifications_active),
         tooltip: 'Test Notifications',
+        child: const Icon(Icons.notifications_active),
       ),
     );
   }

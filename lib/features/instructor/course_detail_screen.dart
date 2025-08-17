@@ -211,7 +211,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             // Content
             SliverToBoxAdapter(
               child: _isLoading
-                  ? Container(
+                  ? SizedBox(
                       height: 400,
                       child: const Center(
                         child: CircularProgressIndicator(),
