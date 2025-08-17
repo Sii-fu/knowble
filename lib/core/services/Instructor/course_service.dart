@@ -59,7 +59,7 @@ class CourseService {
       'is_paid': (courseData['price'] ?? 0) > 0,
       'duration_days': courseData['durationDays'],
       'created_at': DateTime.now().toIso8601String(),
-      if (bannerUrl != null) 'banner_url': bannerUrl,
+      if (bannerUrl != null) 'banner': bannerUrl,
     }).select('id').single();
     if (response['id'] == null) return null;
 
@@ -85,27 +85,27 @@ class CourseService {
     // Insert chapters (modules)
     for (int c = 0; c < chapters.length; c++) {
       final chapter = chapters[c];
-      final moduleId = uuid.v4();
-      final moduleRes = await supabase.from('modules').insert({
+  final moduleId = uuid.v4();
+  await supabase.from('modules').insert({
         'id': moduleId,
         'course_id': courseId,
         'title': chapter['title'],
         'order': c + 1,
-      }).select('id').single();
+  }).select('id').single();
       // Remove null check: always continue to insert sections
 
       // Insert lessons (sections)
       final lessons = chapter['lessons'] as List<Map<String, dynamic>>;
       for (int l = 0; l < lessons.length; l++) {
         final lesson = lessons[l];
-        final sectionId = uuid.v4();
-        final sectionRes = await supabase.from('sections').insert({
+  final sectionId = uuid.v4();
+  await supabase.from('sections').insert({
           'id': sectionId,
           'module_id': moduleId,
           'title': lesson['title'],
           'description': lesson['description'],
           'order': l + 1,
-        }).select('id').single();
+  }).select('id').single();
         // Remove null check: always continue to insert PDF content
 
         // Insert PDF content if provided
@@ -196,10 +196,20 @@ class CourseService {
     required double price,
     required int durationDays,
     String? tag, // New: tag name to insert and link
+    Map<String, dynamic>? banner, // optional banner map: { 'name', 'bytes'|'path' }
   }) async {
     final instructorId = await getInstructorId();
     if (instructorId == null) return null;
     final courseId = uuid.v4();
+    // Upload banner if provided
+    String? bannerUrl;
+    if (banner != null) {
+      if (kIsWeb && banner['bytes'] != null) {
+        bannerUrl = await uploadBannerToStorage(bytes: banner['bytes'], fileName: banner['name']);
+      } else if (!kIsWeb && banner['path'] != null) {
+        bannerUrl = await uploadBannerToStorage(filePath: banner['path'], fileName: banner['name']);
+      }
+    }
     // Insert course
     final response = await supabase.from('courses').insert({
       'id': courseId,
@@ -210,6 +220,7 @@ class CourseService {
       'is_paid': price > 0,
       'duration_days': durationDays,
       'created_at': DateTime.now().toIso8601String(),
+      if (bannerUrl != null) 'banner': bannerUrl,
     }).select('id').single();
     if (response['id'] == null) return null;
 

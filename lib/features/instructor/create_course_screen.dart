@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:Knowble/core/services/Instructor/course_service.dart';
-import 'package:Knowble/core/services/Instructor/questionai_service.dart';
 import 'package:flutter/foundation.dart';
 import '../../config/theme_instructor.dart';
 
@@ -21,7 +20,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.single;
       setState(() {
-        _courseBannerInfo = {'name': file.name};
+        // include actual bytes (web) or local path (mobile) so backend can upload
+        final info = <String, dynamic>{'name': file.name};
+        if (kIsWeb) {
+          info['bytes'] = file.bytes;
+        } else {
+          info['path'] = file.path;
+        }
+        _courseBannerInfo = info;
       });
     }
   }
@@ -43,9 +49,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   // Course service and other services
   final CourseService _courseService = CourseService();
-  final String _geminiApiKey = 'AIzaSyAUoA_MGBSzZHSIQsMRZ4BgM6vQcKhM9pI';
-  late final QuestionAIService _questionAIService;
-  String? _createdCourseId;
+  
 
   void _showLoadingDialog() {
     showDialog(
@@ -123,8 +127,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   @override
   void initState() {
     super.initState();
-    _questionAIService = QuestionAIService(geminiApiKey: _geminiApiKey);
-    
     // Initialize with one chapter and one lesson
     _addNewChapter();
   }
@@ -402,7 +404,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         'description': description,
         'price': price,
         'durationDays': durationDays,
-        'tag': tag,
+  'tag': tag,
+  if (_courseBannerInfo != null) 'banner': _courseBannerInfo,
       };
       
       final courseId = await _courseService.createFullCourse(
@@ -413,7 +416,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       _hideLoadingDialog();
       setState(() {
         _isUploading = false;
-        _createdCourseId = courseId;
       });
       
       if (courseId == null) {
