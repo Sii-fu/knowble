@@ -103,10 +103,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // Handle notification tap to mark as read and change color
+  // Handle notification tap to mark as read and navigate to reminder
   void _onNotificationTap(String notificationId) async {
     try {
-      // Toggle read status in UI immediately
+      // Find the notification data to get the navigate field
+      final notification = _allNotifications.firstWhere(
+        (notif) => notif.id == notificationId,
+        orElse: () => throw Exception('Notification not found'),
+      );
+
+      // Mark as read first
       setState(() {
         if (_clickedNotifications.contains(notificationId)) {
           _clickedNotifications.remove(notificationId);
@@ -126,11 +132,269 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             _clickedNotifications.remove(notificationId);
           });
           _showErrorSnackBar('Failed to mark notification as read');
+          return;
         }
+      }
+
+      // Navigate to reminder details if navigate field contains reminder ID
+      if (notification.navigate != null && notification.navigate!.isNotEmpty) {
+        await _navigateToReminderDetails(notification.navigate!);
       }
     } catch (e) {
       print('Error handling notification tap: $e');
       _showErrorSnackBar('Failed to update notification status');
+    }
+  }
+
+  /// Navigate to reminder details page
+  Future<void> _navigateToReminderDetails(String reminderId) async {
+    try {
+      print('📱 Attempting to navigate to reminder: $reminderId');
+
+      // First, verify the reminder exists and belongs to the user
+      final reminderData = await NotificationDataService.getReminderDetails(
+        reminderId,
+      );
+
+      if (reminderData == null) {
+        _showErrorSnackBar('Reminder not found or no longer exists');
+        return;
+      }
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // For now, show reminder details in a dialog
+      // TODO: Replace this with navigation to your actual reminder details screen
+      Navigator.pop(context); // Close loading dialog
+
+      await _showReminderDetailsDialog(reminderData);
+
+      // TODO: Uncomment and modify this when you have your reminder details screen ready
+      // Navigator.push(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (context) => ReminderDetailsScreen(reminderId: reminderId),
+      //   ),
+      // );
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      print('❌ Error navigating to reminder details: $e');
+      _showErrorSnackBar('Failed to open reminder details');
+    }
+  }
+
+  /// Show reminder details in a dialog (temporary implementation)
+  Future<void> _showReminderDetailsDialog(
+    Map<String, dynamic> reminderData,
+  ) async {
+    final DateTime reminderTime = DateTime.parse(reminderData['time']);
+    final DateTime? endTime = reminderData['end_time'] != null
+        ? DateTime.parse(reminderData['end_time'])
+        : null;
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.surfaceWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              CustomIconWidget(
+                iconName: 'event_note',
+                color: AppTheme.primaryTeal,
+                size: 24,
+              ),
+              SizedBox(width: 2.w),
+              Expanded(
+                child: Text(
+                  'Reminder Details',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18.sp,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title
+              Text(
+                'Title',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 0.5.h),
+              Text(
+                reminderData['title'] ?? 'No title',
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 2.h),
+
+              // Description
+              if (reminderData['description'] != null &&
+                  reminderData['description'].toString().isNotEmpty) ...[
+                Text(
+                  'Description',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                SizedBox(height: 0.5.h),
+                Text(
+                  reminderData['description'],
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 14.sp,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+              ],
+
+              // Time
+              Text(
+                'Time',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 0.5.h),
+              Row(
+                children: [
+                  CustomIconWidget(
+                    iconName: 'access_time',
+                    color: AppTheme.primaryTeal,
+                    size: 16,
+                  ),
+                  SizedBox(width: 1.w),
+                  Text(
+                    '${reminderTime.hour.toString().padLeft(2, '0')}:${reminderTime.minute.toString().padLeft(2, '0')}' +
+                        (endTime != null
+                            ? ' - ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}'
+                            : ''),
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 1.h),
+
+              // Date
+              Row(
+                children: [
+                  CustomIconWidget(
+                    iconName: 'calendar_today',
+                    color: AppTheme.primaryTeal,
+                    size: 16,
+                  ),
+                  SizedBox(width: 1.w),
+                  Text(
+                    '${reminderTime.day}/${reminderTime.month}/${reminderTime.year}',
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 2.h),
+
+              // Priority
+              Row(
+                children: [
+                  CustomIconWidget(
+                    iconName: 'flag',
+                    color: _getPriorityColor(
+                      reminderData['priority'] ?? 'Medium',
+                    ),
+                    size: 16,
+                  ),
+                  SizedBox(width: 1.w),
+                  Text(
+                    'Priority: ${reminderData['priority'] ?? 'Medium'}',
+                    style: TextStyle(
+                      color: _getPriorityColor(
+                        reminderData['priority'] ?? 'Medium',
+                      ),
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Close',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14.sp,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // TODO: Navigate to edit reminder screen
+                _showSuccessSnackBar('Edit functionality coming soon');
+              },
+              child: Text(
+                'Edit',
+                style: TextStyle(
+                  color: AppTheme.primaryTeal,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Get color based on priority
+  Color _getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return AppTheme.errorRed;
+      case 'medium':
+        return AppTheme.warningAmber;
+      case 'low':
+        return AppTheme.successGreen;
+      default:
+        return AppTheme.textSecondary;
     }
   }
 

@@ -142,6 +142,39 @@ class NotificationDataService {
     }
   }
 
+  /// Get reminder details by ID (for navigation from notifications)
+  static Future<Map<String, dynamic>?> getReminderDetails(
+    String reminderId,
+  ) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        print('❌ User not authenticated');
+        return null;
+      }
+
+      print('🔍 Fetching reminder details for ID: $reminderId');
+
+      final response = await _supabase
+          .from('reminders')
+          .select('*')
+          .eq('id', reminderId)
+          .eq('user_id', user.id) // Security: ensure user owns this reminder
+          .maybeSingle();
+
+      if (response != null) {
+        print('✅ Found reminder: ${response['title']}');
+        return response;
+      } else {
+        print('❌ Reminder not found or user does not have access');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error fetching reminder details: $e');
+      return null;
+    }
+  }
+
   /// Group notifications by date for display
   static Map<String, List<NotificationData>> groupNotificationsByDate(
     List<NotificationData> notifications,
