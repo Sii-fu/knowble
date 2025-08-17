@@ -5,10 +5,8 @@ import 'package:flutter/material.dart';
 import 'course_detail_screen.dart';
 import 'create_course_screen.dart';
 
-import '../../config/theme.dart';
 
 import '../../core/services/Instructor/course_fetch.dart';
-import 'course_detail_screen.dart';
 
 // import '../../config/theme.dart';
 

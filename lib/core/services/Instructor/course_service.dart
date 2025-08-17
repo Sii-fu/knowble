@@ -1,3 +1,6 @@
+
+
+
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -110,16 +113,22 @@ class CourseService {
           final pdf = lesson['pdf'] as Map<String, dynamic>;
           // Always generate a unique filename for each section
           String uniqueFileName = pdf['fileName'];
+          // Use the actual filename only, no unique suffix
+          String actualFileName = pdf['fileName'];
           // Sanitize filename
           uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
           uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           // Append sectionId to ensure uniqueness
           uniqueFileName = uniqueFileName.replaceAll('.pdf', '_$sectionId.pdf');
+          actualFileName = actualFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+          actualFileName = actualFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           String? publicUrl;
           if (kIsWeb && pdf['bytes'] != null) {
             publicUrl = await uploadPdfToStorage(bytes: pdf['bytes'], fileName: uniqueFileName);
+            publicUrl = await uploadPdfToStorage(bytes: pdf['bytes'], fileName: actualFileName);
           } else if (!kIsWeb && pdf['filePath'] != null) {
             publicUrl = await uploadPdfToStorage(filePath: pdf['filePath'], fileName: uniqueFileName);
+            publicUrl = await uploadPdfToStorage(filePath: pdf['filePath'], fileName: actualFileName);
           }
           // Always insert, even if publicUrl is the same as another section
           if (publicUrl != null) {
@@ -155,6 +164,14 @@ class CourseService {
     // Sanitize filename: replace spaces and special chars with underscores
     String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
     safeFileName = safeFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
+
+    // Check if file already exists in Supabase Storage
+    final existing = await supabase.storage.from('content-pdf').list(path: '').then((files) => files.where((f) => f.name == safeFileName).toList());
+    if (existing.isNotEmpty) {
+      // File already exists, just return its public URL
+      return supabase.storage.from('content-pdf').getPublicUrl(safeFileName);
+    }
+
     dynamic response;
     if (kIsWeb) {
       if (bytes == null) return null;
