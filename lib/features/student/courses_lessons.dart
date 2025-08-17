@@ -8,7 +8,6 @@ import '../../data/models/content.dart';
 import '../../data/models/course.dart';
 import 'chat/chat_detail_page.dart';
 import '../course/quiz_page.dart';
-import 'chatbot/chatbotpage.dart';
 
 class CourseLessonsPage extends StatefulWidget {
   final String courseId;

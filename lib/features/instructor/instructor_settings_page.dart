@@ -6,7 +6,7 @@ import 'instructor_account_privacy_page.dart';
 import 'instructor_terms_conditions_page.dart';
 import 'instructor_privacy_policy_page.dart';
 import 'instructor_help_support_page.dart';
-import 'instructor_send_feedback_page.dart';
+import 'feedback pages/instructor_feedback_form_screen.dart';
 import 'instructor_teaching_analytics_page.dart';
 
 class InstructorSettingsPage extends StatelessWidget {
@@ -177,7 +177,7 @@ class InstructorSettingsPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const InstructorSendFeedbackPage(),
+                        builder: (context) => const InstructorFeedbackFormScreen(),
                       ),
                     );
                   },
