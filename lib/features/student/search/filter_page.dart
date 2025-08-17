@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../config/theme.dart';
+import '../../../config/theme.dart';
 
 class FilterPage extends StatefulWidget {
   final Map<String, dynamic> activeFilters;
@@ -25,7 +25,6 @@ class _FilterPageState extends State<FilterPage> {
     super.initState();
     _filters = Map.from(widget.activeFilters);
     
-    // Initialize default values if not present
     _filters['level'] ??= '';
     _filters['duration'] ??= '';
     _filters['category'] ??= '';
@@ -48,7 +47,6 @@ class _FilterPageState extends State<FilterPage> {
   }
 
   void _applyFilters() {
-    // Remove empty filters
     final cleanedFilters = Map<String, dynamic>.from(_filters);
     cleanedFilters.removeWhere((key, value) {
       if (value is String) return value.isEmpty;
@@ -56,7 +54,6 @@ class _FilterPageState extends State<FilterPage> {
       if (value is double) return value == 0.0;
       return false;
     });
-    
     Navigator.pop(context, cleanedFilters);
   }
 
@@ -75,7 +72,6 @@ class _FilterPageState extends State<FilterPage> {
         builder: (context, scrollController) {
           return Column(
             children: [
-              // Handle bar
               Container(
                 margin: const EdgeInsets.only(top: 8),
                 width: 40,
@@ -85,8 +81,6 @@ class _FilterPageState extends State<FilterPage> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
-              // Header
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -113,8 +107,6 @@ class _FilterPageState extends State<FilterPage> {
                   ],
                 ),
               ),
-
-              // Scrollable content
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -122,7 +114,6 @@ class _FilterPageState extends State<FilterPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Level Filter
                       _buildSectionTitle('Level'),
                       _buildChipSelection(
                         options: _levels,
@@ -134,8 +125,6 @@ class _FilterPageState extends State<FilterPage> {
                         },
                       ),
                       const SizedBox(height: 24),
-
-                      // Category Filter
                       _buildSectionTitle('Category'),
                       _buildChipSelection(
                         options: _categories,
@@ -147,8 +136,6 @@ class _FilterPageState extends State<FilterPage> {
                         },
                       ),
                       const SizedBox(height: 24),
-
-                      // Duration Filter
                       _buildSectionTitle('Duration'),
                       _buildChipSelection(
                         options: _durations,
@@ -160,26 +147,18 @@ class _FilterPageState extends State<FilterPage> {
                         },
                       ),
                       const SizedBox(height: 24),
-
-                      // Price Range Filter
                       _buildSectionTitle('Price Range'),
                       _buildPriceRangeSlider(),
                       const SizedBox(height: 24),
-
-                      // Rating Filter
                       _buildSectionTitle('Minimum Rating'),
                       _buildRatingSlider(),
                       const SizedBox(height: 24),
-
-                      // Free Only Toggle
                       _buildFreeOnlyToggle(),
-                      const SizedBox(height: 100), // Extra space for the apply button
+                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
               ),
-
-              // Apply Button
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(

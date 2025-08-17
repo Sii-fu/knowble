@@ -482,4 +482,3 @@ class ModernCourseCard extends StatelessWidget {
     );
   }
 }
-

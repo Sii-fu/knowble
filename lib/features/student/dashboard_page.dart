@@ -4,10 +4,9 @@ import '../../core/services/student/course_services.dart';
 import '../../data/models/course.dart';
 import '../../data/models/module.dart'; 
 import 'Course_Details.dart';
-import 'search_layout.dart';
+import 'search/search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'courses_lessons.dart';
-import 'search_page.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
