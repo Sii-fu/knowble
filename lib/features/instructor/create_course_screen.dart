@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:Knowble/core/services/Instructor/course_service.dart';
 import 'package:flutter/foundation.dart';
@@ -38,14 +39,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationDaysController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
+  final List<String> _tagSuggestions = [];
+  Timer? _tagDebounce;
 
   // Dynamic chapters and lessons structure
   final List<ChapterData> _chapters = [];
 
-  // Question section controllers
-  final TextEditingController _questionTitleController = TextEditingController();
-  final TextEditingController _questionMarksController = TextEditingController();
-  String _selectedQuestionType = 'Mcq';
+  // (Per-chapter) question section controllers moved into ChapterData
 
   // Course service and other services
   final CourseService _courseService = CourseService();
@@ -129,6 +129,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     super.initState();
     // Initialize with one chapter and one lesson
     _addNewChapter();
+  // Listen to tag input and fetch suggestions
+  _tagController.addListener(_onTagChanged);
   }
 
   @override
@@ -138,15 +140,33 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     _priceController.dispose();
     _durationDaysController.dispose();
     _tagController.dispose();
-    _questionTitleController.dispose();
-    _questionMarksController.dispose();
+  // per-chapter controllers disposed by ChapterData.dispose()
     
     // Dispose all chapters and lessons
     for (var chapter in _chapters) {
       chapter.dispose();
     }
+    _tagDebounce?.cancel();
+    _tagController.removeListener(_onTagChanged);
     
     super.dispose();
+  }
+
+  void _onTagChanged() {
+    final value = _tagController.text.trim();
+    _tagDebounce?.cancel();
+    _tagDebounce = Timer(const Duration(milliseconds: 300), () async {
+      if (value.isEmpty) {
+        setState(() => _tagSuggestions.clear());
+        return;
+      }
+      final tags = await _courseService.fetchTagsByPrefix(value);
+      setState(() {
+        _tagSuggestions
+          ..clear()
+          ..addAll(tags);
+      });
+    });
   }
 
   // Dynamic chapter and lesson management
@@ -154,7 +174,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     setState(() {
       _chapters.add(ChapterData(
         nameController: TextEditingController(),
-        lessons: [_createNewLesson()],
+  lessons: [_createNewLesson()],
+  questionTitleController: TextEditingController(),
+  questionMarksController: TextEditingController(),
       ));
     });
   }
@@ -586,7 +608,24 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         hint: 'e.g., Mathematics, Science',
                         icon: Icons.tag_outlined,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      if (_tagSuggestions.isNotEmpty) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _tagSuggestions.map((s) => GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _tagController.text = s;
+                                _tagSuggestions.clear();
+                              });
+                            },
+                            child: Chip(label: Text(s)),
+                          )).toList(),
+                        ),
+                        const SizedBox(height: 8),
+                      ] else
+                        const SizedBox(height: 8),
                       // Simple input field for course banner image upload
                       Row(
                         children: [
@@ -906,6 +945,102 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                             ),
                           ),
                         ),
+
+                        const SizedBox(height: 16),
+
+                        // Per-chapter Assessment Section
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          margin: const EdgeInsets.only(top: 12),
+                          decoration: BoxDecoration(
+                            color: AppThemeInstructor.surfaceWhite,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppThemeInstructor.borderSubtle),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Colors.orange.withOpacity(0.08), Colors.deepOrange.withOpacity(0.08)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.quiz_outlined,
+                                      color: Colors.orange,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Assessment (Chapter ${chapterIndex + 1})',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppThemeInstructor.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              _buildModernTextField(
+                                controller: _chapters[chapterIndex].questionTitleController,
+                                label: 'Question Title',
+                                hint: 'Enter question for this chapter',
+                                icon: Icons.help_outline,
+                              ),
+                              const SizedBox(height: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Question Type',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppThemeInstructor.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppThemeInstructor.backgroundLight,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: AppThemeInstructor.borderSubtle),
+                                    ),
+                                    child: DropdownButtonFormField<String>(
+                                      value: _chapters[chapterIndex].selectedQuestionType,
+                                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                                      items: const [
+                                        DropdownMenuItem(value: 'Mcq', child: Text('Multiple Choice')),
+                                        DropdownMenuItem(value: 'Code', child: Text('Code Challenge')),
+                                        DropdownMenuItem(value: 'Text', child: Text('Written Answer')),
+                                      ],
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _chapters[chapterIndex].selectedQuestionType = value ?? 'Mcq';
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              _buildModernTextField(
+                                controller: _chapters[chapterIndex].questionMarksController,
+                                label: 'Total Marks',
+                                hint: 'Points for this question',
+                                icon: Icons.star_outline,
+                                keyboardType: TextInputType.number,
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -967,141 +1102,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                
-                // Questions Section
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppThemeInstructor.surfaceWhite,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppThemeInstructor.borderSubtle),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppThemeInstructor.shadowLight.withOpacity(0.08),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.orange.withOpacity(0.1), Colors.deepOrange.withOpacity(0.1)],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.quiz_outlined,
-                              color: Colors.orange,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Assessment',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppThemeInstructor.textPrimary,
-                                ),
-                              ),
-                              Text(
-                                'Add questions for the course assessment',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppThemeInstructor.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      _buildModernTextField(
-                        controller: _questionTitleController,
-                        label: 'Question Title',
-                        hint: 'Enter your question',
-                        icon: Icons.help_outline,
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      // Question Type Dropdown
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Question Type',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppThemeInstructor.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppThemeInstructor.backgroundLight,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppThemeInstructor.borderSubtle),
-                            ),
-                            child: DropdownButtonFormField<String>(
-                              value: _selectedQuestionType,
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                                prefixIcon: Icon(
-                                  Icons.category_outlined,
-                                  color: AppThemeInstructor.textSecondary,
-                                  size: 20,
-                                ),
-                              ),
-                              items: const [
-                                DropdownMenuItem(value: 'Mcq', child: Text('Multiple Choice')),
-                                DropdownMenuItem(value: 'Code', child: Text('Code Challenge')),
-                                DropdownMenuItem(value: 'Text', child: Text('Written Answer')),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedQuestionType = value!;
-                                });
-                              },
-                              style: TextStyle(
-                                color: AppThemeInstructor.textPrimary,
-                                fontSize: 16,
-                              ),
-                              dropdownColor: AppThemeInstructor.surfaceWhite,
-                              icon: Icon(
-                                Icons.expand_more,
-                                color: AppThemeInstructor.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      _buildModernTextField(
-                        controller: _questionMarksController,
-                        label: 'Total Marks',
-                        hint: 'Points for this question',
-                        icon: Icons.star_outline,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 32),
                 
                 // Publish Course Button
                 Container(
@@ -1347,17 +1347,28 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 class ChapterData {
   final TextEditingController nameController;
   final List<LessonData> lessons;
+  // per-chapter assessment controllers
+  final TextEditingController questionTitleController;
+  final TextEditingController questionMarksController;
+  String selectedQuestionType;
 
   ChapterData({
     required this.nameController,
     required this.lessons,
-  });
+    required this.questionTitleController,
+    required this.questionMarksController,
+    this.selectedQuestionType = 'Mcq',
+  }){
+  
+  }
 
   void dispose() {
     nameController.dispose();
     for (var lesson in lessons) {
       lesson.dispose();
     }
+  questionTitleController.dispose();
+  questionMarksController.dispose();
   }
 }
 
