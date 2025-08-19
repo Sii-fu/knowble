@@ -5,6 +5,7 @@ import 'course_screen.dart';
 import 'create_course_screen.dart';
 
 import 'package:Knowble/features/instructor/chat/chat_list_page.dart';
+import '../../core/services/Instructor/teacher_dashboard.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
@@ -16,6 +17,27 @@ class TeacherHomePage extends StatefulWidget {
 class _TeacherHomePageState extends State<TeacherHomePage> {
   int _selectedIndex = 0;
   String _selectedRevenueYear = '2024';
+  final _dashboardService = TeacherDashboardService();
+  int _totalCourses = 0;
+  int _totalStudents = 0;
+  int _totalDays = 0;
+  List<Map<String, dynamic>> _recentCourses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboard();
+  }
+
+  Future<void> _loadDashboard() async {
+    final data = await _dashboardService.fetchInstructorOverview(recentLimit: 4);
+    setState(() {
+      _totalCourses = data['totalCourses'] as int? ?? 0;
+      _totalStudents = data['totalStudents'] as int? ?? 0;
+      _totalDays = data['totalDays'] as int? ?? 0;
+      _recentCourses = List<Map<String, dynamic>>.from(data['recentCourses'] as List? ?? []);
+    });
+  }
 
   void _onTabSelected(int index) {
     setState(() {
@@ -79,13 +101,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             ),
           ],
         ),
-        body: SingleChildScrollView(
+    body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Quick Actions
-              // _buildQuickActions(),
+      // Quick Actions (kept offstage to avoid UI change but reference the method)
+      Offstage(offstage: true, child: _buildQuickActions()),
               
               // const SizedBox(height: 24),
               
@@ -110,6 +132,14 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               const SizedBox(height: 100),
             ],
           ),
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onTabSelected,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Courses'),
+          ],
         ),
       ),
     );
@@ -277,8 +307,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: _buildStatCard(
                 icon: Icons.school_outlined,
                 title: 'Active Courses',
-                value: '12',
-                change: '+2 this week',
+                value: _totalCourses.toString(),
+                change: '',
                 isPositive: true,
                 color: AppThemeInstructor.primaryBlue,
               ),
@@ -288,8 +318,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: _buildStatCard(
                 icon: Icons.people_outline,
                 title: 'Total Students',
-                value: '1,847',
-                change: '+127 this month',
+                value: _totalStudents.toString(),
+                change: '',
                 isPositive: true,
                 color: AppThemeInstructor.successGreen,
               ),
@@ -302,9 +332,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             Expanded(
               child: _buildStatCard(
                 icon: Icons.access_time_outlined,
-                title: 'Hours Taught',
-                value: '156',
-                change: '+12 this week',
+                title: 'Days Taught',
+                value: _totalDays.toString(),
+                change: '',
                 isPositive: true,
                 color: Colors.orange,
               ),
@@ -432,31 +462,22 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         const SizedBox(height: 16),
         SizedBox(
           height: 160,
-          child: ListView(
+          child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            children: [
-              _buildCourseCard(
-                title: "Advanced Flutter Development",
-                subject: "Mobile Development",
-                progress: 0.75,
-                students: 234,
+            itemCount: _recentCourses.length,
+            itemBuilder: (context, index) {
+              final c = _recentCourses[index];
+              final title = c['title'] as String? ?? 'Untitled';
+              final students = c['students'] as int? ?? 0;
+              // Placeholder subject and progress — you can enhance if more data is available
+              return _buildCourseCard(
+                title: title,
+                subject: '',
+                progress: 0.0,
+                students: students,
                 color: AppThemeInstructor.primaryBlue,
-              ),
-              _buildCourseCard(
-                title: "Introduction to Data Science",
-                subject: "Data Science",
-                progress: 0.45,
-                students: 156,
-                color: AppThemeInstructor.successGreen,
-              ),
-              _buildCourseCard(
-                title: "UI/UX Design Fundamentals",
-                subject: "Design",
-                progress: 0.90,
-                students: 89,
-                color: Colors.orange,
-              ),
-            ],
+              );
+            },
           ),
         ),
       ],
