@@ -31,11 +31,16 @@ class CourseFetchService {
         .eq('course_id', courseId)
         .order('order');
 
+  // Defensive: convert to a Dart List and sort modules by their "order" field
   final moduleList = <Map<String, dynamic>>[];
+  final modulesData = List.from(modules as List? ?? []);
+  modulesData.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
 
-    for (final m in modules as List) {
+    for (final m in modulesData) {
       final secs = <Map<String, dynamic>>[];
-      final rawSecs = m['sections'] as List? ?? [];
+      // Defensive: sort sections by their "order" before processing
+      final rawSecs = List.from(m['sections'] as List? ?? []);
+      rawSecs.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
       for (final s in rawSecs) {
         secs.add({
           'id': s['id'],
@@ -46,18 +51,11 @@ class CourseFetchService {
                 'id': c['id'],
                 'type': c['type'],
                 'title': c['title'],
-                'url': c['url'],
+                'url': c['type'] == 'pdf' && c['storage_path'] != null
+                  ? getPublicPdfUrl(c['storage_path'])
+                  : c['url'],
                 'order': c['order'],
               }).toList(),
-        'contents': (s['contents'] as List? ?? []).map((c) => {
-            'id': c['id'],
-            'type': c['type'],
-            'title': c['title'],
-            'url': c['type'] == 'pdf' && c['storage_path'] != null
-              ? getPublicPdfUrl(c['storage_path'])
-              : c['url'],
-            'order': c['order'],
-        }).toList(),
         });
       }
       moduleList.add({
@@ -126,8 +124,14 @@ class CourseFetchService {
 
   final chaptersList = <Map<String, dynamic>>[];
 
-    for (final m in modules as List) {
-      final rawSecs = m['sections'] as List? ?? [];
+    // Defensive: convert to a Dart List and sort modules by their "order" field
+    final modulesData2 = List.from(modules as List? ?? []);
+    modulesData2.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
+
+    for (final m in modulesData2) {
+      final rawSecs = List.from(m['sections'] as List? ?? []);
+      // Defensive: sort sections by their "order" before processing
+      rawSecs.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
       final lessons = <Map<String, dynamic>>[];
       for (final s in rawSecs) {
         lessons.add({
@@ -139,18 +143,11 @@ class CourseFetchService {
                 'id': c['id'],
                 'type': c['type'],
                 'title': c['title'],
-                'url': c['url'],
+                'url': c['type'] == 'pdf' && c['storage_path'] != null
+                    ? getPublicPdfUrl(c['storage_path'])
+                    : c['url'],
                 'order': c['order'],
               }).toList(),
-        'contents': (s['contents'] as List? ?? []).map((c) => {
-            'id': c['id'],
-            'type': c['type'],
-            'title': c['title'],
-            'url': c['type'] == 'pdf' && c['storage_path'] != null
-              ? getPublicPdfUrl(c['storage_path'])
-              : c['url'],
-            'order': c['order'],
-        }).toList(),
         });
       }
       chaptersList.add({
