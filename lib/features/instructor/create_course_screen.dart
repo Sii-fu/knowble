@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:Knowble/core/services/Instructor/course_service.dart';
 import 'package:flutter/foundation.dart';
@@ -38,6 +39,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationDaysController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
+  final List<String> _tagSuggestions = [];
+  Timer? _tagDebounce;
 
   // Dynamic chapters and lessons structure
   final List<ChapterData> _chapters = [];
@@ -126,6 +129,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     super.initState();
     // Initialize with one chapter and one lesson
     _addNewChapter();
+  // Listen to tag input and fetch suggestions
+  _tagController.addListener(_onTagChanged);
   }
 
   @override
@@ -141,8 +146,27 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     for (var chapter in _chapters) {
       chapter.dispose();
     }
+    _tagDebounce?.cancel();
+    _tagController.removeListener(_onTagChanged);
     
     super.dispose();
+  }
+
+  void _onTagChanged() {
+    final value = _tagController.text.trim();
+    _tagDebounce?.cancel();
+    _tagDebounce = Timer(const Duration(milliseconds: 300), () async {
+      if (value.isEmpty) {
+        setState(() => _tagSuggestions.clear());
+        return;
+      }
+      final tags = await _courseService.fetchTagsByPrefix(value);
+      setState(() {
+        _tagSuggestions
+          ..clear()
+          ..addAll(tags);
+      });
+    });
   }
 
   // Dynamic chapter and lesson management
@@ -584,7 +608,24 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         hint: 'e.g., Mathematics, Science',
                         icon: Icons.tag_outlined,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      if (_tagSuggestions.isNotEmpty) ...[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _tagSuggestions.map((s) => GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _tagController.text = s;
+                                _tagSuggestions.clear();
+                              });
+                            },
+                            child: Chip(label: Text(s)),
+                          )).toList(),
+                        ),
+                        const SizedBox(height: 8),
+                      ] else
+                        const SizedBox(height: 8),
                       // Simple input field for course banner image upload
                       Row(
                         children: [
