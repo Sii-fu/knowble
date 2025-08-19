@@ -22,6 +22,12 @@ class ReminderNotificationSyncService {
 
       print('📝 Creating notification entry for reminder: $reminderId');
 
+      // Convert to GMT+6 (Bangladesh time) for database storage
+      final bangladeshTime = scheduledTime.add(const Duration(hours: 6));
+      print(
+        '🌍 Time conversion: ${scheduledTime.toString()} → ${bangladeshTime.toString()} (GMT+6)',
+      );
+
       final notificationData = {
         'user_id': user.id,
         'title': title,
@@ -29,7 +35,10 @@ class ReminderNotificationSyncService {
             ? description
             : 'Reminder for your task',
         'priority': priority.toLowerCase(),
-        'alert_time': scheduledTime.toIso8601String(),
+        'time': bangladeshTime
+            .toIso8601String(), // Using 'time' field as requested
+        'alert_time': bangladeshTime
+            .toIso8601String(), // Keep both for compatibility
         'navigate': reminderId, // Store reminder ID for navigation
         'created_at': DateTime.now().toUtc().toIso8601String(),
         'is_read': false,
@@ -46,7 +55,8 @@ class ReminderNotificationSyncService {
       print('   🔗 Linked to reminder: $reminderId');
     } catch (e) {
       print('❌ Error creating notification entry: $e');
-      // Don't throw error as this is not critical - the reminder should still be created
+      // Re-throw the error so calling code knows about the failure
+      rethrow;
     }
   }
 

@@ -103,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  // Handle notification tap to mark as read and navigate to reminder
+  // Handle notification tap to navigate first, then mark as read
   void _onNotificationTap(String notificationId) async {
     try {
       // Find the notification data to get the navigate field
@@ -112,42 +112,59 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         orElse: () => throw Exception('Notification not found'),
       );
 
-      // Mark as read first
-      setState(() {
-        if (_clickedNotifications.contains(notificationId)) {
-          _clickedNotifications.remove(notificationId);
-        } else {
-          _clickedNotifications.add(notificationId);
-        }
-      });
-
-      // Mark as read in database if it wasn't already read
-      if (_clickedNotifications.contains(notificationId)) {
-        final success = await NotificationDataService.markNotificationAsRead(
-          notificationId,
-        );
-        if (!success) {
-          // Revert the UI change if database update failed
-          setState(() {
-            _clickedNotifications.remove(notificationId);
-          });
-          _showErrorSnackBar('Failed to mark notification as read');
-          return;
-        }
-      }
-
-      // Navigate to reminder details if navigate field contains reminder ID
+      // PRIMARY ACTION: Navigate to reminder details if navigate field contains reminder ID
       if (notification.navigate != null && notification.navigate!.isNotEmpty) {
-        await _navigateToReminderDetails(notification.navigate!);
+        // Navigate to reminder details
+        final navigationSuccess = await _navigateToReminderDetails(
+          notification.navigate!,
+        );
+
+        // SECONDARY ACTION: Mark as read only if navigation was successful
+        if (navigationSuccess) {
+          await _markNotificationAsRead(notificationId);
+        }
+      } else {
+        // If no navigation target, just mark as read (fallback behavior)
+        await _markNotificationAsRead(notificationId);
+        _showErrorSnackBar('No details available for this notification');
       }
     } catch (e) {
       print('Error handling notification tap: $e');
-      _showErrorSnackBar('Failed to update notification status');
+      _showErrorSnackBar('Failed to open notification');
+    }
+  }
+
+  /// Mark a single notification as read
+  Future<void> _markNotificationAsRead(String notificationId) async {
+    try {
+      // Update UI immediately for responsive feel
+      setState(() {
+        _clickedNotifications.add(notificationId);
+      });
+
+      // Update in database
+      final success = await NotificationDataService.markNotificationAsRead(
+        notificationId,
+      );
+
+      if (!success) {
+        // Revert UI change if database update failed
+        setState(() {
+          _clickedNotifications.remove(notificationId);
+        });
+        _showErrorSnackBar('Failed to mark notification as read');
+      }
+    } catch (e) {
+      print('Error marking notification as read: $e');
+      // Revert UI change on error
+      setState(() {
+        _clickedNotifications.remove(notificationId);
+      });
     }
   }
 
   /// Navigate to reminder details page
-  Future<void> _navigateToReminderDetails(String reminderId) async {
+  Future<bool> _navigateToReminderDetails(String reminderId) async {
     try {
       print('📱 Attempting to navigate to reminder: $reminderId');
 
@@ -158,7 +175,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       if (reminderData == null) {
         _showErrorSnackBar('Reminder not found or no longer exists');
-        return;
+        return false;
       }
 
       // Show loading indicator
@@ -175,12 +192,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await _showReminderDetailsDialog(reminderData);
 
       // TODO: Uncomment and modify this when you have your reminder details screen ready
-      // Navigator.push(
+      // final result = await Navigator.push(
       //   context,
       //   MaterialPageRoute(
       //     builder: (context) => ReminderDetailsScreen(reminderId: reminderId),
       //   ),
       // );
+      // return result != null; // Return true if navigation was successful
+
+      return true; // Return true since dialog was shown successfully
     } catch (e) {
       // Close loading dialog if it's open
       if (Navigator.canPop(context)) {
@@ -188,6 +208,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
       print('❌ Error navigating to reminder details: $e');
       _showErrorSnackBar('Failed to open reminder details');
+      return false;
     }
   }
 
