@@ -81,11 +81,29 @@ class ReminderService {
       final String createdReminderId = response['id'];
 
       print('🔍 Reminder created with ID: $createdReminderId');
-      print(
-        '🔍 About to schedule notification for time: ${startTime.toString()}',
-      );
+      print('🔍 Now creating notification entry in notification table...');
 
-      // Schedule notification for the reminder (use original local time for notification scheduling)
+      // Create notification entry in notification table for the notifications page
+      // This contains the task title, description, and start time as requested
+      try {
+        await ReminderNotificationSyncService.createNotificationForReminder(
+          reminderId: createdReminderId,
+          title: title.trim(),
+          description: description.trim(),
+          scheduledTime:
+              startTime, // This will be converted to GMT+6 in the sync service
+          priority: priority,
+        );
+        print('✅ Notification entry created for reminder: $createdReminderId');
+      } catch (e) {
+        print('❌ Critical: Failed to create notification entry: $e');
+        // This is critical - we want to know if this fails
+        throw Exception('Failed to create notification entry: $e');
+      }
+
+      // OPTIONAL: Schedule push notification (separate from database notification)
+      // Comment out if you only want database notifications
+      /*
       final notificationId =
           await NotificationService.scheduleReminderNotification(
             reminderId: createdReminderId,
@@ -93,22 +111,11 @@ class ReminderService {
             description: description.trim().isNotEmpty
                 ? description.trim()
                 : 'Reminder for your task',
-            scheduledTime:
-                startTime, // Use original local time for notification scheduling
+            scheduledTime: startTime,
             priority: priority,
           );
-
-      print('🔍 Notification service returned ID: $notificationId');
-
-      // Also create notification entry in notification table for display in notifications page
-      // This ensures notifications appear even if push notifications fail due to timing issues
-      await ReminderNotificationSyncService.createNotificationForReminder(
-        reminderId: createdReminderId,
-        title: title.trim(),
-        description: description.trim(),
-        scheduledTime: startTime,
-        priority: priority,
-      );
+      print('🔍 Push notification scheduled with ID: $notificationId');
+      */
 
       // Log success for debugging purposes
       print('✅ Reminder created successfully: $title');
@@ -118,9 +125,7 @@ class ReminderService {
       );
       print('   🎯 Priority: $priority');
       print('   👤 Created by: $userRole');
-      if (notificationId != null) {
-        print('   📱 Notification scheduled with ID: $notificationId');
-      }
+      print('   � Notification entry created in database');
 
       return null; // Return null to indicate success (AuthManager pattern)
     } on PostgrestException catch (e) {
