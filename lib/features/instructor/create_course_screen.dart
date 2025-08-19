@@ -185,6 +185,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     return LessonData(
       titleController: TextEditingController(),
       descriptionController: TextEditingController(),
+  aiQuizCount: 3,
     );
   }
 
@@ -903,6 +904,182 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                     ),
                                   ],
                                 ),
+
+                                const SizedBox(height: 12),
+                                // Assessment Section (per-lesson)
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppThemeInstructor.surfaceWhite,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppThemeInstructor.borderSubtle),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Assessment',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppThemeInstructor.textPrimary,
+                                            ),
+                                          ),
+                                          // Toggle AI quiz generator (checkbox)
+                                          Row(
+                                            children: [
+                                              const Text('AI quiz generator', style: TextStyle(fontSize: 12)),
+                                              const SizedBox(width: 8),
+                                              Checkbox(
+                                                value: _chapters[chapterIndex].lessons[lessonIndex].aiAssessmentEnabled,
+                                                onChanged: (val) {
+                                                  setState(() {
+                                                    _chapters[chapterIndex].lessons[lessonIndex].aiAssessmentEnabled = val ?? false;
+                                                    // when enabling AI, clear manual questions
+                                                    if (_chapters[chapterIndex].lessons[lessonIndex].aiAssessmentEnabled) {
+                                                      _chapters[chapterIndex].lessons[lessonIndex].manualQuestions.clear();
+                                                    }
+                                                  });
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+
+                                      // If AI is enabled, show a short explanation and hide manual options
+                                      if (_chapters[chapterIndex].lessons[lessonIndex].aiAssessmentEnabled) ...[
+                                        Text(
+                                          'AI will generate a short quiz for this lesson.',
+                                          style: TextStyle(color: AppThemeInstructor.textSecondary, fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        // Quick-select options for number of quizzes (5, 10, 15)
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Number of quizzes:',
+                                              style: TextStyle(
+                                                color: AppThemeInstructor.textPrimary,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Wrap(
+                                              spacing: 8,
+                                              children: [5, 10, 15].map((count) {
+                                                final selected = _chapters[chapterIndex].lessons[lessonIndex].aiQuizCount == count;
+                                                return ChoiceChip(
+                                                  label: Text('$count'),
+                                                  selected: selected,
+                                                  onSelected: (sel) {
+                                                    if (sel) {
+                                                      setState(() {
+                                                        _chapters[chapterIndex].lessons[lessonIndex].aiQuizCount = count;
+                                                      });
+                                                    }
+                                                  },
+                                                  selectedColor: AppThemeInstructor.primaryBlue.withOpacity(0.8),
+                                                  backgroundColor: AppThemeInstructor.backgroundLight,
+                                                  labelStyle: TextStyle(color: selected ? AppThemeInstructor.surfaceWhite : AppThemeInstructor.textPrimary),
+                                                );
+                                              }).toList(),
+                                            ),
+                                          ],
+                                        ),
+                                      ] else ...[
+                                        // Manual questions area
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text('Add questions', style: TextStyle(color: AppThemeInstructor.textPrimary, fontWeight: FontWeight.w600)),
+                                                IconButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _chapters[chapterIndex].lessons[lessonIndex].manualQuestions.add(ManualQuestion());
+                                                    });
+                                                  },
+                                                  icon: const Icon(Icons.add, size: 20),
+                                                  tooltip: 'Add question',
+                                                ),
+                                              ],
+                                            ),
+
+                                            // List of manual questions
+                                            for (int qIndex = 0; qIndex < _chapters[chapterIndex].lessons[lessonIndex].manualQuestions.length; qIndex++) ...[
+                                              Container(
+                                                margin: const EdgeInsets.only(top: 8, bottom: 8),
+                                                padding: const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: AppThemeInstructor.backgroundLight,
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: AppThemeInstructor.borderSubtle),
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        // Question text on its own line to reduce congestion
+                                                        TextField(
+                                                          controller: _chapters[chapterIndex].lessons[lessonIndex].manualQuestions[qIndex].questionController,
+                                                          decoration: InputDecoration(
+                                                            hintText: 'Question text',
+                                                            hintStyle: TextStyle(color: AppThemeInstructor.textSecondary),
+                                                            border: InputBorder.none,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 8),
+                                                        // Marks input and delete button on a second row
+                                                        Row(
+                                                          children: [
+                                                            // Make marks field expand to fill space before the delete icon
+                                                            Expanded(
+                                                              child: TextField(
+                                                                controller: _chapters[chapterIndex].lessons[lessonIndex].manualQuestions[qIndex].marksController,
+                                                                keyboardType: TextInputType.number,
+                                                                decoration: InputDecoration(
+                                                                  hintText: 'Marks',
+                                                                  hintStyle: TextStyle(color: AppThemeInstructor.textSecondary),
+                                                                  border: InputBorder.none,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(width: 8),
+                                                            IconButton(
+                                                              onPressed: () {
+                                                                setState(() {
+                                                                  _chapters[chapterIndex].lessons[lessonIndex].manualQuestions[qIndex].dispose();
+                                                                  _chapters[chapterIndex].lessons[lessonIndex].manualQuestions.removeAt(qIndex);
+                                                                });
+                                                              },
+                                                              icon: Icon(Icons.delete_outline, color: Colors.red.shade400, size: 18),
+                                                              tooltip: 'Remove question',
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -949,98 +1126,99 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                         const SizedBox(height: 16),
 
                         // Per-chapter Assessment Section
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          margin: const EdgeInsets.only(top: 12),
-                          decoration: BoxDecoration(
-                            color: AppThemeInstructor.surfaceWhite,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppThemeInstructor.borderSubtle),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [Colors.orange.withOpacity(0.08), Colors.deepOrange.withOpacity(0.08)],
-                                      ),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      Icons.quiz_outlined,
-                                      color: Colors.orange,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Assessment (Chapter ${chapterIndex + 1})',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppThemeInstructor.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              _buildModernTextField(
-                                controller: _chapters[chapterIndex].questionTitleController,
-                                label: 'Question Title',
-                                hint: 'Enter question for this chapter',
-                                icon: Icons.help_outline,
-                              ),
-                              const SizedBox(height: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Question Type',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppThemeInstructor.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: AppThemeInstructor.backgroundLight,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: AppThemeInstructor.borderSubtle),
-                                    ),
-                                    child: DropdownButtonFormField<String>(
-                                      value: _chapters[chapterIndex].selectedQuestionType,
-                                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                                      items: const [
-                                        DropdownMenuItem(value: 'Mcq', child: Text('Multiple Choice')),
-                                        DropdownMenuItem(value: 'Code', child: Text('Code Challenge')),
-                                        DropdownMenuItem(value: 'Text', child: Text('Written Answer')),
-                                      ],
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _chapters[chapterIndex].selectedQuestionType = value ?? 'Mcq';
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              _buildModernTextField(
-                                controller: _chapters[chapterIndex].questionMarksController,
-                                label: 'Total Marks',
-                                hint: 'Points for this question',
-                                icon: Icons.star_outline,
-                                keyboardType: TextInputType.number,
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Container(
+                        //   padding: const EdgeInsets.all(20),
+                        //   margin: const EdgeInsets.only(top: 12),
+                        //   decoration: BoxDecoration(
+                        //     color: AppThemeInstructor.surfaceWhite,
+                        //     borderRadius: BorderRadius.circular(12),
+                        //     border: Border.all(color: AppThemeInstructor.borderSubtle),
+                        //   ),
+                        //   child: Column(
+                        //     crossAxisAlignment: CrossAxisAlignment.start,
+                        //     children: [
+                        //       Row(
+                        //         children: [
+                        //           Container(
+                        //             padding: const EdgeInsets.all(8),
+                        //             decoration: BoxDecoration(
+                        //               gradient: LinearGradient(
+                        //                 colors: [Colors.orange.withOpacity(0.08), Colors.deepOrange.withOpacity(0.08)],
+                        //               ),
+                        //               borderRadius: BorderRadius.circular(8),
+                        //             ),
+                        //             child: Icon(
+                        //               Icons.quiz_outlined,
+                        //               color: Colors.orange,
+                        //               size: 20,
+                        //             ),
+                        //           ),
+                        //           const SizedBox(width: 12),
+                        //           Text(
+                        //             'Assessment (Chapter ${chapterIndex + 1})',
+                        //             style: TextStyle(
+                        //               fontSize: 16,
+                        //               fontWeight: FontWeight.w600,
+                        //               color: AppThemeInstructor.textPrimary,
+                        //             ),
+                        //           ),
+                        //         ],
+                        //       ),
+                        //       const SizedBox(height: 12),
+                        //       _buildModernTextField(
+                        //         controller: _chapters[chapterIndex].questionTitleController,
+                        //         label: 'Question Title',
+                        //         hint: 'Enter question for this chapter',
+                        //         icon: Icons.help_outline,
+                        //       ),
+                        //       const SizedBox(height: 12),
+                        //       Column(
+                        //         crossAxisAlignment: CrossAxisAlignment.start,
+                        //         children: [
+                        //           Text(
+                        //             'Question Type',
+                        //             style: TextStyle(
+                        //               fontSize: 14,
+                        //               fontWeight: FontWeight.w600,
+                        //               color: AppThemeInstructor.textPrimary,
+                        //             ),
+                        //           ),
+                        //           const SizedBox(height: 8),
+                        //           Container(
+                        //             decoration: BoxDecoration(
+                        //               color: AppThemeInstructor.backgroundLight,
+                        //               borderRadius: BorderRadius.circular(12),
+                        //               border: Border.all(color: AppThemeInstructor.borderSubtle),
+                        //             ),
+                        //             child: DropdownButtonFormField<String>(
+                        //               value: _chapters[chapterIndex].selectedQuestionType,
+                        //               decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        //               items: const [
+                        //                 DropdownMenuItem(value: 'Mcq', child: Text('Multiple Choice')),
+                        //                 DropdownMenuItem(value: 'Code', child: Text('Code Challenge')),
+                        //                 DropdownMenuItem(value: 'Text', child: Text('Written Answer')),
+                        //               ],
+                        //               onChanged: (value) {
+                        //                 setState(() {
+                        //                   _chapters[chapterIndex].selectedQuestionType = value ?? 'Mcq';
+                        //                 });
+                        //               },
+                        //             ),
+                        //           ),
+                        //         ],
+                        //       ),
+                        //       const SizedBox(height: 12),
+                        //       _buildModernTextField(
+                        //         controller: _chapters[chapterIndex].questionMarksController,
+                        //         label: 'Total Marks',
+                        //         hint: 'Points for this question',
+                        //         icon: Icons.star_outline,
+                        //         keyboardType: TextInputType.number,
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ),
+                      
                       ],
                     ),
                   ),
@@ -1378,15 +1556,37 @@ class LessonData {
   Map<String, dynamic>? pdfFile;
   Map<String, dynamic>? videoFile;
 
+  // Assessment related
+  bool aiAssessmentEnabled;
+  List<ManualQuestion> manualQuestions;
+  // How many quizzes AI should generate for this lesson
+  int aiQuizCount;
+
   LessonData({
     required this.titleController,
     required this.descriptionController,
     this.pdfFile,
     this.videoFile,
-  });
+  this.aiAssessmentEnabled = false,
+  List<ManualQuestion>? manualQuestions,
+  this.aiQuizCount = 5,
+  }) : manualQuestions = manualQuestions ?? [];
 
   void dispose() {
     titleController.dispose();
     descriptionController.dispose();
+    for (var q in manualQuestions) {
+      q.dispose();
+    }
+  }
+}
+
+class ManualQuestion {
+  final TextEditingController questionController = TextEditingController();
+  final TextEditingController marksController = TextEditingController();
+
+  void dispose() {
+    questionController.dispose();
+    marksController.dispose();
   }
 }

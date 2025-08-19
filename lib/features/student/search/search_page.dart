@@ -219,6 +219,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _onCategorySelected(String categoryName) async {
+    print('SearchPage: Category selected: $categoryName');
     setState(() {
       _selectedCategory = categoryName;
       _currentState = SearchPageState.categoryResults;
@@ -243,6 +244,8 @@ class _SearchPageState extends State<SearchPage> {
   /// Perform search using the backend service
   Future<void> _performSearch({String? category}) async {
     try {
+      print('SearchPage: Performing search with query: "$_searchQuery", category: "$category", selectedCategory: "$_selectedCategory"');
+      
       final courses = await _searchService.searchCourses(
         query: _searchQuery.isNotEmpty ? _searchQuery : null,
         category: category ?? (_selectedCategory.isNotEmpty ? _selectedCategory : null),
@@ -263,6 +266,7 @@ class _SearchPageState extends State<SearchPage> {
         offset: 0,
       );
 
+      print('SearchPage: Search completed, found ${courses.length} courses');
       setState(() {
         _searchResults = courses;
         _isLoading = false;
