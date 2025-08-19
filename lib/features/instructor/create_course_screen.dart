@@ -1356,66 +1356,35 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     required IconData icon,
     required Color color,
   }) {
-    final bool hasFile = fileInfo != null;
-    
-    return Container(
-      decoration: BoxDecoration(
-        color: AppThemeInstructor.surfaceWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: hasFile ? color.withOpacity(0.5) : AppThemeInstructor.borderSubtle,
-          width: hasFile ? 2 : 1,
+    // Simpler, consistent card (matches edit_course_screen.dart)
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: hasFile ? color.withOpacity(0.1) : AppThemeInstructor.textSecondary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Icon(
-                      hasFile ? Icons.check_circle_outline : icon,
-                      color: hasFile ? color : AppThemeInstructor.textSecondary,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      hasFile ? '$fileType Added' : 'Add $fileType',
-                      style: TextStyle(
-                        color: hasFile ? color : AppThemeInstructor.textPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 6),
+            Text(
+              fileInfo != null
+                  ? '${fileInfo['name'] ?? 'Selected'}'
+                  : 'Upload $fileType',
+              style: TextStyle(
+                fontSize: 11,
+                color: color,
+                fontWeight: FontWeight.w600,
               ),
-              if (hasFile) ...[
-                const SizedBox(height: 4),
-                Text(
-                  fileInfo['name'] ?? 'Unknown file',
-                  style: TextStyle(
-                    color: AppThemeInstructor.textSecondary,
-                    fontSize: 10,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ],
-          ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
