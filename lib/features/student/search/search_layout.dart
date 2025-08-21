@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../config/theme.dart';
+import '../../../config/theme.dart';
 import 'search_state.dart';
 
 class SearchLayout extends StatelessWidget {
@@ -9,6 +9,7 @@ class SearchLayout extends StatelessWidget {
   final List<Map<String, dynamic>> searchResults;
   final Function(String) onCategorySelected;
   final Function(String) onRecentSearchSelected;
+  final Function()? onClearRecentSearches; // Add this callback
   final String selectedCategory;
   final String searchQuery;
 
@@ -20,22 +21,38 @@ class SearchLayout extends StatelessWidget {
     required this.searchResults,
     required this.onCategorySelected,
     required this.onRecentSearchSelected,
+    this.onClearRecentSearches, // Add this parameter
     required this.selectedCategory,
     required this.searchQuery,
   });
 
   @override
   Widget build(BuildContext context) {
+    Widget content = const SizedBox.shrink();
+
     switch (state) {
       case SearchPageState.categories:
-        return _buildCategoriesSection();
+        content = _buildCategoriesSection();
+        break;
       case SearchPageState.recentSearches:
-        return _buildRecentSearchesSection();
+        content = _buildRecentSearchesSection();
+        break;
       case SearchPageState.searchResults:
-        return _buildResultsSection('Search Results for "$searchQuery"');
+        content = _buildResultsSection('Search Results for "$searchQuery"');
+        break;
       case SearchPageState.categoryResults:
-        return _buildResultsSection('$selectedCategory Courses');
+        content = _buildResultsSection('$selectedCategory Courses');
+        break;
     }
+
+    // Ensure the inner contents start from the top-left and take full width
+    return Align(
+      alignment: Alignment.topLeft,
+      child: SizedBox(
+        width: double.infinity,
+        child: content,
+      ),
+    );
   }
 
   Widget _buildCategoriesSection() {
@@ -66,7 +83,8 @@ class SearchLayout extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.2,
+              // increase aspect ratio to make cards shorter (wider relative to height)
+              childAspectRatio: 1.8,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -97,40 +115,51 @@ class SearchLayout extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: AppTheme.accentLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   category['icon'],
-                  size: 32,
+                  size: 20,
                   color: AppTheme.primaryTeal,
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                category['name'],
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      category['name'],
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${category['count']} courses',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${category['count']} courses',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
+              // Icon(
+              //   Icons.chevron_right,
+              //   color: AppTheme.textSecondary,
+              // ),
             ],
           ),
         ),
@@ -156,9 +185,7 @@ class SearchLayout extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () {
-                  // Clear recent searches
-                },
+                onPressed: onClearRecentSearches,
                 child: Text(
                   'Clear All',
                   style: TextStyle(

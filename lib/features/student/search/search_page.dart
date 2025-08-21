@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../config/theme.dart';
+import '../../../config/theme.dart';
+import '../../../core/services/student/search_service.dart';
 import 'search_layout.dart';
 import 'filter_page.dart';
 import 'search_state.dart';
@@ -19,7 +20,25 @@ class _SearchPageState extends State<SearchPage> {
   String _searchQuery = '';
   Map<String, dynamic> _activeFilters = {};
 
-  // Mock data
+  // Backend service
+  final SearchService _searchService = SearchService();
+  
+  // Data from backend
+  List<String> _recentSearches = [];
+  List<Map<String, dynamic>> _categories = [];
+  List<Course> _searchResults = [];
+  bool _isLoading = false;
+  String? _currentUserId = 'test-user-123'; // TODO: Get this from your auth service/provider
+
+  // TODO: Add this method to get current user ID from your authentication system
+  // String? _getCurrentUserId() {
+  //   // Return current user ID from your auth service
+  //   // Example: return Supabase.instance.client.auth.currentUser?.id;
+  //   return null;
+  // }
+
+  // Mock data (commented out - now using backend)
+  /*
   final List<String> _recentSearches = [
     'Flutter development',
     'Data structures',
@@ -81,11 +100,13 @@ class _SearchPageState extends State<SearchPage> {
       'image': 'https://via.placeholder.com/150x100',
     },
   ];
+  */
 
   @override
   void initState() {
     super.initState();
     _searchFocusNode.addListener(_onSearchFocusChanged);
+    _loadInitialData();
   }
 
   @override
@@ -93,6 +114,76 @@ class _SearchPageState extends State<SearchPage> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  /// Load initial data from backend
+  Future<void> _loadInitialData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Load categories
+      final categories = await _searchService.getCategoriesWithCounts();
+      final categoriesWithIcons = categories.map((cat) {
+        return {
+          'name': cat['name'],
+          'count': cat['count'],
+          'icon': _getCategoryIcon(cat['name']), // Helper method to get icons
+        };
+      }).toList();
+
+      // Load recent searches if user is logged in
+      List<String> recentSearches = [];
+      if (_currentUserId != null) {
+        recentSearches = await _searchService.getRecentSearches(_currentUserId!);
+      }
+
+      setState(() {
+        _categories = categoriesWithIcons;
+        _recentSearches = recentSearches;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading initial data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Helper method to assign icons to categories
+  IconData _getCategoryIcon(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'programming':
+      case 'development':
+      case 'coding':
+        return Icons.code;
+      case 'design':
+      case 'graphics':
+        return Icons.palette;
+      case 'mathematics':
+      case 'math':
+        return Icons.calculate;
+      case 'science':
+      case 'physics':
+      case 'chemistry':
+        return Icons.science;
+      case 'business':
+      case 'marketing':
+        return Icons.business;
+      case 'language':
+      case 'languages':
+        return Icons.language;
+      case 'arts':
+      case 'art':
+        return Icons.brush;
+      case 'health':
+      case 'fitness':
+        return Icons.health_and_safety;
+      default:
+        return Icons.school;
+    }
   }
 
   void _onSearchFocusChanged() {
@@ -103,33 +194,124 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void _onSearchChanged(String query) {
+  void _onSearchChanged(String query) async {
     setState(() {
       _searchQuery = query;
       if (query.isNotEmpty) {
         _currentState = SearchPageState.searchResults;
+        _isLoading = true;
       } else if (_searchFocusNode.hasFocus) {
         _currentState = SearchPageState.recentSearches;
       } else {
         _currentState = SearchPageState.categories;
       }
     });
+
+    // Perform search if query is not empty
+    if (query.isNotEmpty) {
+      await _performSearch();
+      
+      // Save search query if user is logged in
+      if (_currentUserId != null) {
+        await _searchService.saveSearchQuery(_currentUserId!, query);
+      }
+    }
   }
 
-  void _onCategorySelected(String categoryName) {
+  void _onCategorySelected(String categoryName) async {
+    print('SearchPage: Category selected: $categoryName');
     setState(() {
       _selectedCategory = categoryName;
       _currentState = SearchPageState.categoryResults;
+      _isLoading = true;
     });
+
+    await _performSearch(category: categoryName);
   }
 
-  void _onRecentSearchSelected(String searchTerm) {
+  void _onRecentSearchSelected(String searchTerm) async {
     _searchController.text = searchTerm;
     _searchFocusNode.unfocus();
     setState(() {
       _searchQuery = searchTerm;
       _currentState = SearchPageState.searchResults;
+      _isLoading = true;
     });
+
+    await _performSearch();
+  }
+
+  /// Perform search using the backend service
+  Future<void> _performSearch({String? category}) async {
+    try {
+      print('SearchPage: Performing search with query: "$_searchQuery", category: "$category", selectedCategory: "$_selectedCategory"');
+      
+      final courses = await _searchService.searchCourses(
+        query: _searchQuery.isNotEmpty ? _searchQuery : null,
+        category: category ?? (_selectedCategory.isNotEmpty ? _selectedCategory : null),
+        freeOnly: _activeFilters['freeOnly'] == true ? true : null,
+        minPrice: _activeFilters['priceRange'] != null 
+            ? (_activeFilters['priceRange'] as RangeValues).start 
+            : null,
+        maxPrice: _activeFilters['priceRange'] != null 
+            ? (_activeFilters['priceRange'] as RangeValues).end 
+            : null,
+        minRating: _activeFilters['rating'] != null && _activeFilters['rating'] > 0
+            ? _activeFilters['rating'] as double
+            : null,
+        durationMin: _getDurationMin(_activeFilters['duration']),
+        durationMax: _getDurationMax(_activeFilters['duration']),
+        sortBy: 'relevance', // You can make this configurable
+        limit: 20,
+        offset: 0,
+      );
+
+      print('SearchPage: Search completed, found ${courses.length} courses');
+      setState(() {
+        _searchResults = courses;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error performing search: $e');
+      setState(() {
+        _searchResults = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Helper method to convert duration filter to minimum days
+  int? _getDurationMin(String? duration) {
+    if (duration == null) return null;
+    switch (duration) {
+      case '< 5 hours':
+        return null; // No minimum
+      case '5-10 hours':
+        return 1;
+      case '10-20 hours':
+        return 2;
+      case '20+ hours':
+        return 4;
+      default:
+        return null;
+    }
+  }
+
+  /// Helper method to convert duration filter to maximum days
+  int? _getDurationMax(String? duration) {
+    if (duration == null) return null;
+    switch (duration) {
+      case '< 5 hours':
+        return 1;
+      case '5-10 hours':
+        return 1;
+      case '10-20 hours':
+        return 3;
+      case '20+ hours':
+        return null; // No maximum
+      default:
+        return null;
+    }
   }
 
   void _onFilterPressed() async {
@@ -147,6 +329,9 @@ class _SearchPageState extends State<SearchPage> {
           _currentState = SearchPageState.searchResults;
         }
       });
+      
+      // Re-perform search with new filters
+      await _performSearch();
     }
   }
 
@@ -156,32 +341,43 @@ class _SearchPageState extends State<SearchPage> {
     setState(() {
       _searchQuery = '';
       _currentState = SearchPageState.categories;
+      _searchResults = [];
     });
   }
 
+  /// Convert Course objects to Map format for UI compatibility
   List<Map<String, dynamic>> _getFilteredResults() {
-    List<Map<String, dynamic>> results = List.from(_mockResults);
-    
-    if (_activeFilters['level'] != null && _activeFilters['level'].isNotEmpty) {
-      results = results.where((course) => 
-        course['level'] == _activeFilters['level']).toList();
+    return _searchResults.map((course) => {
+      'title': course.title,
+      'instructor': course.instructorName,
+      'rating': course.avgRating,
+      'students': course.studentsCount,
+      'price': course.isPaid ? '\$${course.price.toStringAsFixed(2)}' : 'Free',
+      'duration': '${course.durationDays} days',
+      'level': _getLevelFromTags(course.tags),
+      'image': 'https://via.placeholder.com/150x100', // Placeholder for now
+    }).toList();
+  }
+
+  /// Helper method to extract level from tags
+  String _getLevelFromTags(List<String> tags) {
+    final levelTags = ['Beginner', 'Intermediate', 'Advanced'];
+    for (String tag in tags) {
+      if (levelTags.contains(tag)) {
+        return tag;
+      }
     }
-    
-    if (_activeFilters['priceRange'] != null) {
-      final range = _activeFilters['priceRange'] as RangeValues;
-      results = results.where((course) {
-        final price = double.parse(course['price'].replaceAll('\$', ''));
-        return price >= range.start && price <= range.end;
-      }).toList();
+    return 'Beginner'; // Default level
+  }
+
+  /// Clear recent searches
+  Future<void> _clearRecentSearches() async {
+    if (_currentUserId != null) {
+      await _searchService.clearRecentSearches(_currentUserId!);
+      setState(() {
+        _recentSearches = [];
+      });
     }
-    
-    if (_activeFilters['rating'] != null) {
-      final minRating = _activeFilters['rating'] as double;
-      results = results.where((course) => 
-        course['rating'] >= minRating).toList();
-    }
-    
-    return results;
   }
 
   @override
@@ -277,35 +473,38 @@ class _SearchPageState extends State<SearchPage> {
                 ],
               ),
             ),
-            
+
             // Dynamic Content Body
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.0, 0.1),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.0, 0.1),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: SearchLayout(
+                      key: ValueKey(_currentState),
+                      state: _currentState,
+                      categories: _categories,
+                      recentSearches: _recentSearches,
+                      searchResults: _getFilteredResults(),
+                      onCategorySelected: _onCategorySelected,
+                      onRecentSearchSelected: _onRecentSearchSelected,
+                      onClearRecentSearches: _clearRecentSearches,
+                      selectedCategory: _selectedCategory,
+                      searchQuery: _searchQuery,
                     ),
-                  );
-                },
-                child: SearchLayout(
-                  key: ValueKey(_currentState),
-                  state: _currentState,
-                  categories: _categories,
-                  recentSearches: _recentSearches,
-                  searchResults: _getFilteredResults(),
-                  onCategorySelected: _onCategorySelected,
-                  onRecentSearchSelected: _onRecentSearchSelected,
-                  selectedCategory: _selectedCategory,
-                  searchQuery: _searchQuery,
-                ),
-              ),
+                  ),
             ),
           ],
         ),

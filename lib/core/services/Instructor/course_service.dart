@@ -249,6 +249,21 @@ class CourseService {
     }
     return courseId;
   }
+  
+  /// Fetch tag names that start with the provided prefix (case-insensitive)
+  Future<List<String>> fetchTagsByPrefix(String prefix, {int limit = 10}) async {
+    final q = prefix.trim();
+    if (q.isEmpty) return [];
+    final resp = await supabase
+        .from('tags')
+        .select('name')
+        .ilike('name', '$q%')
+        .order('name')
+        .limit(limit);
+    final list = List.from(resp as List? ?? []);
+    final names = list.map((e) => (e as Map)['name'] as String).toSet().toList();
+    return names;
+  }
 
 
   Future<String?> getInstructorId() async {

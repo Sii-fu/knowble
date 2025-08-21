@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _notificationsEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -32,13 +39,42 @@ class SettingsPage extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           children: [
             _buildSectionCard('Notifications', [
-              _buildSettingsTile(
-                context,
-                icon: Icons.notifications_outlined,
-                title: 'Notification Settings',
-                subtitle: 'Manage push notifications and alerts',
-                onTap: () =>
-                    Navigator.pushNamed(context, '/notification-settings'),
+              // Toggleable notifications row
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.notifications_outlined, color: AppTheme.primaryTeal, size: 20),
+                ),
+                title: Text(
+                  'Notifications',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  'Manage push notifications and alerts',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                trailing: Switch(
+                  value: _notificationsEnabled,
+                  onChanged: (val) {
+                    setState(() {
+                      _notificationsEnabled = val;
+                    });
+                    // TODO: persist this setting to user preferences
+                  },
+                  activeColor: AppTheme.primaryTeal,
+                ),
+                onTap: () => setState(() => _notificationsEnabled = !_notificationsEnabled),
               ),
             ], theme),
             const SizedBox(height: 16),
