@@ -26,9 +26,6 @@ import '../features/admin/admin_instructors_management.dart';
 import '../features/common/screens/splash_screen.dart';
 import '../features/common/screens/settings_page.dart';
 import '../features/common/screens/onboarding/onboarding_screens.dart';
-import '../features/common/screens/onboarding/onboarding_screen_1/onboarding_screen_1.dart';
-import '../features/common/screens/onboarding/onboarding_screen_2/onboarding_screen_2.dart';
-import '../features/common/screens/onboarding/onboarding_screen_3/onboarding_screen_3.dart';
 import '../features/common/screens/auth/login_screen.dart';
 import '../features/common/screens/auth/registration_screen.dart';
 import '../features/common/screens/auth/profile_completion/student_interest_selection_screen.dart';
@@ -70,9 +67,6 @@ class AppRoutes {
   static final Map<String, WidgetBuilder> routes = {
     '/': (context) => const SplashScreen(),
     '/onboarding': (context) => const OnboardingScreen(),
-    '/onboarding-screen-1': (context) => const OnboardingScreen1(),
-    '/onboarding-screen-2': (context) => const OnboardingScreen2(),
-    '/onboarding-screen-3': (context) => const OnboardingScreen3(),
     '/login': (context) => const LoginScreen(),
     '/registration': (context) => const RegistrationScreen(),
     '/student-interest': (context) => const StudentInterestSelectionScreen(),
