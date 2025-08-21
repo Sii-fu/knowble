@@ -1317,9 +1317,7 @@ class ChapterData {
     required this.questionTitleController,
     required this.questionMarksController,
     this.selectedQuestionType = 'Mcq',
-  }){
-  
-  }
+  });
 
   void dispose() {
     nameController.dispose();

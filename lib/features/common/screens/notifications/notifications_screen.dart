@@ -314,10 +314,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                   SizedBox(width: 1.w),
                   Text(
-                    '${reminderTime.hour.toString().padLeft(2, '0')}:${reminderTime.minute.toString().padLeft(2, '0')}' +
-                        (endTime != null
+                    '${reminderTime.hour.toString().padLeft(2, '0')}:${reminderTime.minute.toString().padLeft(2, '0')}${endTime != null
                             ? ' - ${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}'
-                            : ''),
+                            : ''}',
                     style: TextStyle(
                       color: AppTheme.textPrimary,
                       fontSize: 14.sp,
