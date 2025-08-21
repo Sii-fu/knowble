@@ -243,10 +243,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
                                 // Handle course tap
                               }
                             },
-                            onApprove: () => _approveCourse(course),
-                            onFlag: () => _flagCourse(course),
-                            onDelete: () => _deleteCourse(course),
-                            onPreview: () => _showCoursePreview(course),
+                            onDetails: () => _showCoursePreview(course),
                           );
                         },
                       ),
@@ -303,55 +300,6 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
               size: 24,
             ),
             label: 'Users',
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _approveCourse(Map<String, dynamic> course) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Course "${course['title']}" approved'),
-        backgroundColor: AppTheme.successGreen,
-      ),
-    );
-  }
-
-  void _flagCourse(Map<String, dynamic> course) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Course "${course['title']}" flagged for review'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-  }
-
-  void _deleteCourse(Map<String, dynamic> course) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Course'),
-        content: Text(
-          'Are you sure you want to delete "${course['title']}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Course "${course['title']}" deleted'),
-                  backgroundColor: AppTheme.errorRed,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
-            child: const Text('Delete'),
           ),
         ],
       ),

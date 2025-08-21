@@ -8,10 +8,7 @@ class CourseListItemCard extends StatelessWidget {
   final bool isSelectionMode;
   final bool isSelected;
   final VoidCallback onTap;
-  final VoidCallback? onApprove;
-  final VoidCallback? onFlag;
-  final VoidCallback? onDelete;
-  final VoidCallback? onPreview;
+  final VoidCallback? onDetails;
 
   const CourseListItemCard({
     super.key,
@@ -19,10 +16,7 @@ class CourseListItemCard extends StatelessWidget {
     required this.isSelectionMode,
     required this.isSelected,
     required this.onTap,
-    this.onApprove,
-    this.onFlag,
-    this.onDelete,
-    this.onPreview,
+    this.onDetails,
   });
 
   Color _getStatusColor(String status) {
@@ -54,10 +48,9 @@ class CourseListItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
-              border:
-                  isSelected
-                      ? Border.all(color: AppTheme.primaryTeal, width: 2)
-                      : null,
+              border: isSelected
+                  ? Border.all(color: AppTheme.primaryTeal, width: 2)
+                  : null,
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.shadowLight,
@@ -224,47 +217,16 @@ class CourseListItemCard extends StatelessWidget {
                   Divider(color: AppTheme.borderSubtle, height: 1),
                   Padding(
                     padding: EdgeInsets.all(3.w),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        if (status == 'pending') ...[
-                          Expanded(
-                            child: _buildActionButton(
-                              'Approve',
-                              AppTheme.successGreen,
-                              'check_circle',
-                              onApprove,
-                            ),
-                          ),
-                          SizedBox(width: 2.w),
-                          Expanded(
-                            child: _buildActionButton(
-                              'Reject',
-                              AppTheme.errorRed,
-                              'cancel',
-                              onFlag,
-                            ),
-                          ),
-                        ] else ...[
-                          Expanded(
-                            child: _buildActionButton(
-                              'Preview',
-                              AppTheme.primaryTeal,
-                              'visibility',
-                              onPreview,
-                            ),
-                          ),
-                          SizedBox(width: 2.w),
-                          Expanded(
-                            child: _buildActionButton(
-                              'Delete',
-                              AppTheme.errorRed,
-                              'delete',
-                              onDelete,
-                            ),
-                          ),
-                        ],
-                      ],
+                    child: Center(
+                      child: SizedBox(
+                        width: 40.w,
+                        child: _buildActionButton(
+                          'Details',
+                          AppTheme.primaryTeal,
+                          'visibility',
+                          onDetails,
+                        ),
+                      ),
                     ),
                   ),
                 ],
