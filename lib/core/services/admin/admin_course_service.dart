@@ -10,9 +10,7 @@ class AdminCourseService {
           .from('courses')
           .select('''
             *,
-            instructor:users!instructor_id(id, name, email),
-            enrollments(count),
-            course_reports(count)
+            instructor:users!instructor_id(id, name, email)
           ''')
           .order('created_at', ascending: false);
 
@@ -29,11 +27,19 @@ class AdminCourseService {
         final instructor = course['instructor'] as Map<String, dynamic>?;
         final instructorName = instructor?['name'] ?? 'Unknown Instructor';
 
-        // Get report count
-        final reportCount = await _getReportCount(course['id']);
-
         // Calculate course duration in hours from modules/sections
         final duration = await _calculateCourseDuration(course['id']);
+
+        // Determine status based on is_verified column
+        String status;
+        final isVerified = course['is_verified'];
+        if (isVerified == null) {
+          status = 'pending';
+        } else if (isVerified == true) {
+          status = 'approved';
+        } else {
+          status = 'rejected';
+        }
 
         courses.add({
           'id': course['id'],
@@ -43,15 +49,12 @@ class AdminCourseService {
           'instructorId': course['instructor_id'],
           'thumbnail': course['banner'] ?? '',
           'enrollmentCount': enrollmentCount,
-          'status':
-              course['status'] ?? 'pending', // Add status field if not exists
-          'category':
-              course['category'] ??
-              'General', // Add category field if not exists
+          'status': status,
+          'category': 'General', // Default category
           'createdAt': DateTime.parse(course['created_at']),
-          'reportCount': reportCount,
+          'reportCount': 0, // Simplified - can be added later if needed
           'duration': duration,
-          'rating': course['rating'] ?? 0.0, // Add rating field if not exists
+          'rating': 0.0, // Simplified - can be added later if needed
           'price': course['price'] ?? 0.0,
           'isPaid': course['is_paid'] ?? false,
           'durationDays': course['duration_days'] ?? 0,
@@ -76,21 +79,6 @@ class AdminCourseService {
       return (response as List).length;
     } catch (e) {
       print('Error fetching enrollment count: $e');
-      return 0;
-    }
-  }
-
-  // Get report count for a specific course
-  Future<int> _getReportCount(String courseId) async {
-    try {
-      final response = await _client
-          .from('course_reports')
-          .select('id')
-          .eq('course_id', courseId);
-
-      return (response as List).length;
-    } catch (e) {
-      print('Error fetching report count: $e');
       return 0;
     }
   }
@@ -289,24 +277,35 @@ class AdminCourseService {
     }
   }
 
-  // Update course status (approve, reject, flag)
+  // Update course status using is_verified column (approve, reject)
   Future<bool> updateCourseStatus(
     String courseId,
     String status, {
     String? reason,
   }) async {
     try {
+      // Convert status to is_verified boolean value
+      bool? isVerified;
+      switch (status.toLowerCase()) {
+        case 'approved':
+          isVerified = true;
+          break;
+        case 'rejected':
+          isVerified = false;
+          break;
+        case 'pending':
+          isVerified = null;
+          break;
+        default:
+          throw Exception('Invalid status: $status');
+      }
+
       await _client
           .from('courses')
           .update({
-            'status': status,
-            'reviewed_at': DateTime.now().toIso8601String(),
-            'review_reason': reason,
+            'is_verified': isVerified,
           })
           .eq('id', courseId);
-
-      // Log the admin action
-      await _logAdminAction(courseId, status, reason);
 
       return true;
     } catch (e) {
