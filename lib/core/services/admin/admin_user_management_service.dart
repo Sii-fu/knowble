@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/models/user.dart' as AppUser;
+import '../feedback_notification_service.dart';
 
 /// AdminUserManagementService handles all user management operations for admin
 /// Manages users data retrieval and feedback information for admin dashboard
@@ -433,6 +434,19 @@ class AdminUserManagementService {
         updateData['resolved_at'] = DateTime.now().toIso8601String();
       }
 
+      // Get feedback details before updating to get user_id
+      final feedbackResponse = await _supabase
+          .from('feedback_issues')
+          .select('user_id, type, category')
+          .eq('id', feedbackId)
+          .maybeSingle();
+
+      if (feedbackResponse == null) {
+        return 'Feedback not found.';
+      }
+
+      final feedbackUserId = feedbackResponse['user_id'] as String;
+
       await _supabase
           .from('feedback_issues')
           .update(updateData)
@@ -441,6 +455,22 @@ class AdminUserManagementService {
       print('✅ Feedback status updated successfully');
       print('   📝 Feedback ID: $feedbackId');
       print('   📊 New Status: $newStatus');
+
+      // Create notification for user if admin added notes or changed status
+      if (adminNotes != null && adminNotes.trim().isNotEmpty) {
+        try {
+          await FeedbackNotificationService.createNotificationForAdminResponse(
+            feedbackId: feedbackId,
+            userId: feedbackUserId,
+            adminNotes: adminNotes.trim(),
+            feedbackStatus: newStatus,
+          );
+          print('✅ User notification created for admin response');
+        } catch (e) {
+          print('⚠️ Failed to create user notification: $e');
+          // Don't fail the feedback update if notification fails
+        }
+      }
 
       return null; // Success
     } on PostgrestException catch (e) {

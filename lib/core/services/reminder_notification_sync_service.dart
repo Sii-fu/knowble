@@ -35,14 +35,8 @@ class ReminderNotificationSyncService {
             ? description
             : 'Reminder for your task',
         'priority': priority.toLowerCase(),
-        'time': bangladeshTime
-            .toIso8601String(), // Using 'time' field as requested
-        'alert_time': bangladeshTime
-            .toIso8601String(), // Keep both for compatibility
-        'navigate':
-            reminderId, // Store reminder ID for navigation (this is correct)
-        'navigate_type': 'reminder', // Add type for clarity
-        'navigate_title': title, // Add title for debugging
+        'alert_time': bangladeshTime.toIso8601String(),
+        'navigate': reminderId, // Store reminder ID for navigation
         'created_at': DateTime.now().toUtc().toIso8601String(),
         'is_read': false,
       };

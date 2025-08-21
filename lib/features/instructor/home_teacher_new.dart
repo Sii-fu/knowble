@@ -30,12 +30,16 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   }
 
   Future<void> _loadDashboard() async {
-    final data = await _dashboardService.fetchInstructorOverview(recentLimit: 4);
+    final data = await _dashboardService.fetchInstructorOverview(
+      recentLimit: 4,
+    );
     setState(() {
       _totalCourses = data['totalCourses'] as int? ?? 0;
       _totalStudents = data['totalStudents'] as int? ?? 0;
       _totalDays = data['totalDays'] as int? ?? 0;
-      _recentCourses = List<Map<String, dynamic>>.from(data['recentCourses'] as List? ?? []);
+      _recentCourses = List<Map<String, dynamic>>.from(
+        data['recentCourses'] as List? ?? [],
+      );
     });
   }
 
@@ -54,12 +58,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = AppThemeInstructor.lightTheme;
-    
+
     return Theme(
       data: theme,
       child: Scaffold(
         backgroundColor: AppThemeInstructor.backgroundLight,
-        
+
         appBar: AppBar(
           elevation: 0,
           backgroundColor: AppThemeInstructor.surfaceWhite,
@@ -95,40 +99,40 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   color: AppThemeInstructor.primaryBlue,
                 ),
                 onPressed: () {
-                  // Handle notifications
+                  Navigator.pushNamed(context, '/notifications');
                 },
               ),
             ),
           ],
         ),
-    body: SingleChildScrollView(
+        body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-      // Quick Actions (kept offstage to avoid UI change but reference the method)
-      Offstage(offstage: true, child: _buildQuickActions()),
-              
+              // Quick Actions (kept offstage to avoid UI change but reference the method)
+              Offstage(offstage: true, child: _buildQuickActions()),
+
               // const SizedBox(height: 24),
-              
+
               // Statistics Overview
               _buildStatisticsSection(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Course Progress
               _buildCourseProgressSection(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Revenue Chart
               _buildRevenueSection(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Recent Activity
               _buildRecentActivitySection(),
-              
+
               const SizedBox(height: 100),
             ],
           ),
@@ -138,7 +142,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           onTap: _onTabSelected,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Courses'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.menu_book),
+              label: 'Courses',
+            ),
           ],
         ),
       ),
@@ -171,10 +178,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         children: [
           Text(
             'Quick Actions',
-            style: AppThemeInstructor.lightTheme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppThemeInstructor.lightTheme.textTheme.titleMedium
+                ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Row(
@@ -271,10 +276,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Overview',
-              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppThemeInstructor.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                  ?.copyWith(
+                    color: AppThemeInstructor.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -285,7 +291,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: AppThemeInstructor.primaryBlue),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: AppThemeInstructor.primaryBlue,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'This Month',
@@ -394,7 +404,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               const Spacer(),
               Icon(
                 isPositive ? Icons.trending_up : Icons.trending_down,
-                color: isPositive ? AppThemeInstructor.successGreen : AppThemeInstructor.errorRed,
+                color: isPositive
+                    ? AppThemeInstructor.successGreen
+                    : AppThemeInstructor.errorRed,
                 size: 16,
               ),
             ],
@@ -402,10 +414,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: AppThemeInstructor.lightTheme.textTheme.headlineSmall?.copyWith(
-              color: AppThemeInstructor.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppThemeInstructor.lightTheme.textTheme.headlineSmall
+                ?.copyWith(
+                  color: AppThemeInstructor.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -418,7 +431,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           Text(
             change,
             style: TextStyle(
-              color: isPositive ? AppThemeInstructor.successGreen : AppThemeInstructor.errorRed,
+              color: isPositive
+                  ? AppThemeInstructor.successGreen
+                  : AppThemeInstructor.errorRed,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -437,10 +452,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Course Progress',
-              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppThemeInstructor.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                  ?.copyWith(
+                    color: AppThemeInstructor.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             TextButton(
               onPressed: () {
@@ -534,17 +550,22 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           const SizedBox(height: 12),
           Text(
             title,
-            style: AppThemeInstructor.lightTheme.textTheme.titleMedium?.copyWith(
-              color: AppThemeInstructor.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppThemeInstructor.lightTheme.textTheme.titleMedium
+                ?.copyWith(
+                  color: AppThemeInstructor.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const Spacer(),
           Row(
             children: [
-              Icon(Icons.people_outline, size: 16, color: AppThemeInstructor.textSecondary),
+              Icon(
+                Icons.people_outline,
+                size: 16,
+                color: AppThemeInstructor.textSecondary,
+              ),
               const SizedBox(width: 4),
               Text(
                 '$students students',
@@ -616,13 +637,17 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             children: [
               Text(
                 'Revenue Overview',
-                style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                  color: AppThemeInstructor.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                    ?.copyWith(
+                      color: AppThemeInstructor.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 0,
+                ),
                 decoration: BoxDecoration(
                   color: AppThemeInstructor.accentLight,
                   borderRadius: BorderRadius.circular(20),
@@ -630,19 +655,25 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedRevenueYear,
-                    icon: Icon(Icons.keyboard_arrow_down, size: 18, color: AppThemeInstructor.primaryBlue),
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: AppThemeInstructor.primaryBlue,
+                    ),
                     items: ['2022', '2023', '2024', '2025']
-                        .map((y) => DropdownMenuItem<String>(
-                              value: y,
-                              child: Text(
-                                y,
-                                style: TextStyle(
-                                  color: AppThemeInstructor.primaryBlue,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                        .map(
+                          (y) => DropdownMenuItem<String>(
+                            value: y,
+                            child: Text(
+                              y,
+                              style: TextStyle(
+                                color: AppThemeInstructor.primaryBlue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
-                            ))
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) {
                       if (val == null) return;
@@ -664,15 +695,23 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 children: [
                   Text(
                     '\$24,850',
-                    style: AppThemeInstructor.lightTheme.textTheme.headlineMedium?.copyWith(
-                      color: AppThemeInstructor.textPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppThemeInstructor
+                        .lightTheme
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(
+                          color: AppThemeInstructor.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.trending_up, size: 16, color: AppThemeInstructor.successGreen),
+                      Icon(
+                        Icons.trending_up,
+                        size: 16,
+                        color: AppThemeInstructor.successGreen,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '+12.5% from last month',
@@ -735,10 +774,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Recent Activity',
-              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppThemeInstructor.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                  ?.copyWith(
+                    color: AppThemeInstructor.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             TextButton(
               onPressed: () {
@@ -826,17 +866,17 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               children: [
                 Text(
                   title,
-                  style: AppThemeInstructor.lightTheme.textTheme.bodyMedium?.copyWith(
-                    color: AppThemeInstructor.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppThemeInstructor.lightTheme.textTheme.bodyMedium
+                      ?.copyWith(
+                        color: AppThemeInstructor.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: AppThemeInstructor.lightTheme.textTheme.bodySmall?.copyWith(
-                    color: AppThemeInstructor.textSecondary,
-                  ),
+                  style: AppThemeInstructor.lightTheme.textTheme.bodySmall
+                      ?.copyWith(color: AppThemeInstructor.textSecondary),
                 ),
               ],
             ),

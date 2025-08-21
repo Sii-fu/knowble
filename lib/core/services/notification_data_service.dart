@@ -272,15 +272,42 @@ class NotificationData {
       id: id,
       title: title,
       description: description,
-      icon: _getIconForPriority(priority),
-      iconColor: _getColorForPriority(priority),
+      icon: _getIconForNotification(),
+      iconColor: _getColorForNotification(),
       timestamp: _formatTimestamp(createdAt),
-      type: _getTypeForPriority(priority),
+      type: _getTypeForNotification(),
       isRead: isRead,
     );
   }
 
-  String _getIconForPriority(String priority) {
+  String _getIconForNotification() {
+    // Check if it's a feedback notification based on navigate field
+    if (navigate == '/admin/users') {
+      return 'feedback';
+    }
+
+    // Check if it's a feedback response notification
+    if (navigate == '/feedback-history') {
+      return 'feedback';
+    }
+
+    // Check if it's a feedback response notification (contains feedback ID)
+    if (navigate != null &&
+        navigate!.isNotEmpty &&
+        navigate != '/admin/users' &&
+        !navigate!.startsWith('/')) {
+      // If navigate is not a route and not admin/users, it could be a feedback ID
+      return 'feedback';
+    }
+
+    // Check if it's a reminder notification (contains reminder ID that's not a route)
+    if (navigate != null &&
+        navigate!.isNotEmpty &&
+        !navigate!.startsWith('/')) {
+      return 'schedule';
+    }
+
+    // Fallback to priority-based icons
     switch (priority.toLowerCase()) {
       case 'high':
         return 'priority_high';
@@ -293,7 +320,32 @@ class NotificationData {
     }
   }
 
-  Color _getColorForPriority(String priority) {
+  Color _getColorForNotification() {
+    // Check if it's a feedback notification based on navigate field
+    if (navigate == '/admin/users') {
+      return const Color(
+        0xFFFF9800,
+      ); // Orange for new feedback (admin notifications)
+    }
+
+    // Check if it's a feedback response notification
+    if (navigate == '/feedback-history') {
+      return const Color(0xFF4CAF50); // Green for feedback response
+    }
+
+    // Check if it's a feedback response notification (contains feedback ID)
+    if (navigate != null &&
+        navigate!.isNotEmpty &&
+        navigate != '/admin/users' &&
+        !navigate!.startsWith('/')) {
+      // Check title to determine if it's a feedback response
+      if (title.toLowerCase().contains('feedback')) {
+        return const Color(0xFF4CAF50); // Green for feedback response
+      }
+      return const Color(0xFF2196F3); // Blue for reminders
+    }
+
+    // Fallback to priority-based colors
     switch (priority.toLowerCase()) {
       case 'high':
         return const Color(0xFFE74C3C); // Red
@@ -306,7 +358,25 @@ class NotificationData {
     }
   }
 
-  NotificationType _getTypeForPriority(String priority) {
+  NotificationType _getTypeForNotification() {
+    // Check if it's a feedback notification based on navigate field
+    if (navigate == '/admin/users') {
+      return NotificationType.system;
+    }
+
+    // Check if it's a feedback response notification (contains feedback ID)
+    if (navigate != null &&
+        navigate!.isNotEmpty &&
+        navigate != '/admin/users' &&
+        !navigate!.startsWith('/')) {
+      // Check title to determine if it's a feedback response
+      if (title.toLowerCase().contains('feedback')) {
+        return NotificationType.system;
+      }
+      return NotificationType.course; // For reminders
+    }
+
+    // Fallback to priority-based types
     switch (priority.toLowerCase()) {
       case 'high':
         return NotificationType.system;

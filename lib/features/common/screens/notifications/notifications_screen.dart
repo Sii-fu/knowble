@@ -113,12 +113,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         orElse: () => throw Exception('Notification not found'),
       );
 
-      // PRIMARY ACTION: Navigate to reminder details if navigate field contains reminder ID
+      bool navigationSuccess = false;
+
+      // Check navigation type and handle accordingly
       if (notification.navigate != null && notification.navigate!.isNotEmpty) {
-        // Navigate to reminder details
-        final navigationSuccess = await _navigateToReminderDetails(
-          notification.navigate!,
-        );
+        // Check if it's a feedback notification by looking at navigate_type or navigate content
+        if (notification.navigate == '/admin/users') {
+          // Admin feedback notification - navigate to admin users page
+          navigationSuccess = await _navigateToAdminUsers();
+        } else if (notification.navigate!.startsWith('/')) {
+          // Route-based navigation
+          navigationSuccess = await _navigateToRoute(notification.navigate!);
+        } else {
+          // Reminder notification - navigate to reminder details
+          navigationSuccess = await _navigateToReminderDetails(
+            notification.navigate!,
+          );
+        }
 
         // SECONDARY ACTION: Mark as read only if navigation was successful
         if (navigationSuccess) {
@@ -161,6 +172,68 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         _clickedNotifications.remove(notificationId);
       });
+    }
+  }
+
+  /// Navigate to admin users page
+  Future<bool> _navigateToAdminUsers() async {
+    try {
+      print('📱 Attempting to navigate to admin users page');
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Navigate to admin users page
+      final result = await Navigator.pushNamed(context, '/admin/users');
+
+      // Return true if navigation was successful
+      return result != null || true;
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      print('❌ Error navigating to admin users: $e');
+      _showErrorSnackBar('Failed to open admin users page');
+      return false;
+    }
+  }
+
+  /// Navigate to a specific route
+  Future<bool> _navigateToRoute(String route) async {
+    try {
+      print('📱 Attempting to navigate to route: $route');
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Navigate to the specified route
+      final result = await Navigator.pushNamed(context, route);
+
+      // Return true if navigation was successful
+      return result != null || true;
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      print('❌ Error navigating to route $route: $e');
+      _showErrorSnackBar('Failed to open page');
+      return false;
     }
   }
 
