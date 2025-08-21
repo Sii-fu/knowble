@@ -7,12 +7,14 @@ class TeacherDashboardService {
   /// Returns a map with keys: totalCourses (int), totalStudents (int), totalDays (int), recentCourses (List<Map>)
   Future<Map<String, dynamic>> fetchInstructorOverview({int recentLimit = 4}) async {
     final user = supabase.auth.currentUser;
-    if (user == null) return {
+    if (user == null) {
+      return {
       'totalCourses': 0,
       'totalStudents': 0,
       'totalDays': 0,
       'recentCourses': <Map<String, dynamic>>[],
     };
+    }
 
     // Fetch courses for this instructor with required fields
     final coursesResp = await supabase

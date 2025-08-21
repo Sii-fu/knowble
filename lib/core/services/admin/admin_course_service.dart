@@ -91,22 +91,20 @@ class AdminCourseService {
           .select('id')
           .eq('course_id', courseId);
 
-      int totalMinutes = 0;
+      int totalSections = 0;
       for (var module in modules) {
         final sections = await _client
             .from('sections')
-            .select('id, estimated_duration')
+            .select('id')
             .eq('module_id', module['id']);
 
-        for (var section in sections) {
-          totalMinutes +=
-              (section['estimated_duration'] as int? ??
-              30); // Default 30 minutes per section
-        }
+        totalSections += sections.length;
       }
 
+      // Estimate 30 minutes per section
+      final totalMinutes = totalSections * 30;
       final hours = (totalMinutes / 60).round();
-      return hours > 0 ? '$hours hours' : '${totalMinutes} minutes';
+      return hours > 0 ? '$hours hours' : '$totalMinutes minutes';
     } catch (e) {
       print('Error calculating course duration: $e');
       return '0 hours';
@@ -204,7 +202,7 @@ class AdminCourseService {
             'id': section['id'],
             'title': section['title'],
             'order': section['order'],
-            'estimatedDuration': section['estimated_duration'] ?? 30,
+            'estimatedDuration': 30, // Default 30 minutes per section
             'contents': contents
                 .map(
                   (content) => {
@@ -302,38 +300,13 @@ class AdminCourseService {
 
       await _client
           .from('courses')
-          .update({
-            'is_verified': isVerified,
-          })
+          .update({'is_verified': isVerified})
           .eq('id', courseId);
 
       return true;
     } catch (e) {
       print('Error updating course status: $e');
       return false;
-    }
-  }
-
-  // Log admin actions for audit trail
-  Future<void> _logAdminAction(
-    String courseId,
-    String action,
-    String? reason,
-  ) async {
-    try {
-      final adminId = _client.auth.currentUser?.id;
-      if (adminId != null) {
-        await _client.from('admin_actions').insert({
-          'id': DateTime.now().millisecondsSinceEpoch.toString(),
-          'admin_id': adminId,
-          'course_id': courseId,
-          'action': action,
-          'reason': reason,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-      }
-    } catch (e) {
-      print('Error logging admin action: $e');
     }
   }
 
@@ -373,9 +346,6 @@ class AdminCourseService {
 
       // 6. Finally delete the course
       await _client.from('courses').delete().eq('id', courseId);
-
-      // Log the deletion
-      await _logAdminAction(courseId, 'delete', 'Course deleted by admin');
 
       return true;
     } catch (e) {

@@ -104,8 +104,8 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
         case 'approve':
           status = 'approved';
           break;
-        case 'flag':
-          status = 'flagged';
+        case 'reject':
+          status = 'rejected';
           break;
         default:
           return;
@@ -122,7 +122,9 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
             content: Text(
               '$action applied to ${_selectedCourses.length} courses',
             ),
-            backgroundColor: AppTheme.successGreen,
+            backgroundColor: action == 'approve'
+                ? AppTheme.successGreen
+                : AppTheme.errorRed,
           ),
         );
 
@@ -205,8 +207,8 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
               ),
             ),
             TextButton(
-              onPressed: () => _performBulkAction('Flag'),
-              child: Text('Flag', style: TextStyle(color: AppTheme.errorRed)),
+              onPressed: () => _performBulkAction('Reject'),
+              child: Text('Reject', style: TextStyle(color: AppTheme.errorRed)),
             ),
           ] else ...[
             IconButton(
@@ -412,9 +414,6 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
         case 'reject':
           status = 'rejected';
           break;
-        case 'flag':
-          status = 'flagged';
-          break;
         default:
           return;
       }
@@ -437,10 +436,6 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
           case 'reject':
             message = 'Course "${course['title']}" has been rejected';
             backgroundColor = AppTheme.errorRed;
-            break;
-          case 'flag':
-            message = 'Course "${course['title']}" has been flagged for review';
-            backgroundColor = Colors.orange;
             break;
           default:
             return;
