@@ -133,7 +133,14 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             ],
           ),
         ),
-        
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onTabSelected,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Courses'),
+          ],
+        ),
       ),
     );
   }
@@ -844,5 +851,4 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       ),
     );
   }
-
 }
