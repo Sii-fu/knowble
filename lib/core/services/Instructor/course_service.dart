@@ -32,7 +32,7 @@ class CourseService {
   /// Batch create a course with multiple chapters (modules), lessons (sections), and PDFs (contents)
   /// [courseData] contains: title, description, price, durationDays, tag
   /// [chapters] is a list of maps: { 'title': chapterName, 'lessons': [ { 'title': ..., 'description': ..., 'pdf': { 'fileName': ..., 'filePath' or 'bytes': ... } } ] }
-  Future<String?> createFullCourse({
+  Future<Map<String, dynamic>?> createFullCourse({
     required Map<String, dynamic> courseData,
     required List<Map<String, dynamic>> chapters,
   }) async {
@@ -82,6 +82,8 @@ class CourseService {
       });
     }
 
+    // Track section ids per chapter so the caller can map them back to in-memory models
+    final List<List<String>> sectionIdsByChapter = [];
     // Insert chapters (modules)
     for (int c = 0; c < chapters.length; c++) {
       final chapter = chapters[c];
@@ -96,6 +98,7 @@ class CourseService {
 
       // Insert lessons (sections)
       final lessons = chapter['lessons'] as List<Map<String, dynamic>>;
+      final List<String> sectionIdsForThisChapter = [];
       for (int l = 0; l < lessons.length; l++) {
         final lesson = lessons[l];
   final sectionId = uuid.v4();
@@ -106,6 +109,7 @@ class CourseService {
           'description': lesson['description'],
           'order': l + 1,
   }).select('id').single();
+        sectionIdsForThisChapter.add(sectionId);
         // Remove null check: always continue to insert PDF content
 
         // Insert PDF content if provided
@@ -143,8 +147,12 @@ class CourseService {
           }
         }
       }
+      sectionIdsByChapter.add(sectionIdsForThisChapter);
     }
-    return courseId;
+    return {
+      'course_id': courseId,
+      'section_ids': sectionIdsByChapter,
+    };
   }
   final supabase = Supabase.instance.client;
   final uuid = const Uuid();
