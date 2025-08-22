@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/models/feedback.dart';
+import '../feedback_notification_service.dart';
 
 /// TeacherFeedbackService handles all feedback-related operations with Supabase for instructors
 /// Manages feedback submissions and retrieval for instructors
@@ -92,6 +93,23 @@ class TeacherFeedbackService {
       print('✅ Feedback submitted successfully');
       print('   📝 Feedback ID: ${response['id']}');
       print('   ⏰ Submitted at: ${response['submitted_at']}');
+
+      // Create notification for admins about new feedback
+      try {
+        await FeedbackNotificationService.createNotificationForNewFeedback(
+          feedbackId: response['id'].toString(),
+          feedbackType: type,
+          feedbackCategory: category,
+          submitterName: userName,
+          submitterRole: userRole,
+          submitterId: user.id,
+        );
+        print('✅ Admin notification created for new feedback');
+      } catch (e) {
+        print('⚠️ Failed to create admin notification: $e');
+        // Don't fail the feedback submission if notification fails
+      }
+
       return null; // Success
     } on PostgrestException catch (e) {
       print('❌ Database error while submitting feedback: ${e.message}');

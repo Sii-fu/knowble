@@ -125,8 +125,10 @@ class AuthManager {
         Navigator.pushReplacementNamed(context, '/login');
       }
     } else {
-      print('🔐 No user logged in - redirecting to login');
-      Navigator.pushReplacementNamed(context, '/login');
+      print('🔐 No user logged in - redirecting to onboarding');
+      Navigator.pushReplacementNamed(context, '/onboarding');
+      // print('🔐 No user logged in - redirecting to login');
+      // Navigator.pushReplacementNamed(context, '/login');
     }
   }
 

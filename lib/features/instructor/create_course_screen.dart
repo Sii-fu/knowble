@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
+import 'package:Knowble/core/services/Instructor/questionai_service.dart';
 import 'package:Knowble/core/services/Instructor/course_service.dart';
 import 'package:flutter/foundation.dart';
 import '../../config/theme_instructor.dart';
@@ -49,6 +50,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   // Course service and other services
   final CourseService _courseService = CourseService();
+  String? _currentCourseId;
   
 
   void _showLoadingDialog() {
@@ -117,7 +119,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       ),
     );
   }
-
+  final QuestionAIService _questionAI = QuestionAIService();
   void _hideLoadingDialog() {
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
@@ -185,7 +187,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     return LessonData(
       titleController: TextEditingController(),
       descriptionController: TextEditingController(),
-  aiQuizCount: 3,
+  aiQuizCount: 5,
     );
   }
 
@@ -358,6 +360,53 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     );
   }
 
+  Future<void> _generateQuizForLesson(int chapterIndex, int lessonIndex) async {
+    final lesson = _chapters[chapterIndex].lessons[lessonIndex];
+    if (_currentCourseId == null) {
+      _showSuccessDialog('Please create and save the course first before generating AI quizzes.');
+      return;
+    }
+    // Require a real DB section id. We don't have section ids in the in-memory model
+    // right after creating the course. Prevent calling the backend with the placeholder.
+    if (lesson.sectionId == null || lesson.sectionId!.isEmpty) {
+      _showSuccessDialog('Section ID is not available yet. Please reopen the saved course or generate quizzes from the course editor where section IDs are persisted.');
+      return;
+    }
+    // Validate UUID format to avoid sending malformed ids to the backend
+    final uuidRegExp = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+    if (!uuidRegExp.hasMatch(lesson.sectionId!)) {
+      _showSuccessDialog('Section ID looks malformed. Please reopen the saved course or edit the course so section IDs can be refreshed before generating an AI quiz.');
+      return;
+    }
+    setState(() {
+      lesson.aiStatus = 'Generating questions from PDF...';
+    });
+    try {
+      final res = await _questionAI.generateAndStoreMCQs(
+        courseId: _currentCourseId!,
+        sectionId: lesson.sectionId!,
+        assessmentTitle: '${lesson.titleController.text} Quiz',
+        type: 'quiz',
+        totalMarks: lesson.aiQuizCount,
+        onStatus: (status) {
+          setState(() {
+            lesson.aiStatus = status;
+          });
+        },
+      );
+      setState(() {
+        lesson.generatedAssessmentId = res['assessment_id'] as String?;
+        lesson.aiStatus = 'Quiz successfully generated.';
+      });
+      _showSuccessDialog('Quiz generated with ${res['questions_inserted']} questions.');
+    } catch (e) {
+      setState(() {
+        lesson.aiStatus = 'Failed to generate quiz: ${e.toString()}';
+      });
+      _showSuccessDialog('AI generation failed: ${e.toString()}');
+    }
+  }
+
 
 
   Future<void> _handleFinalUpload() async {
@@ -431,21 +480,41 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   if (_courseBannerInfo != null) 'banner': _courseBannerInfo,
       };
       
-      final courseId = await _courseService.createFullCourse(
+      final created = await _courseService.createFullCourse(
         courseData: courseData,
         chapters: allChapters,
       );
+      // created is a map: { course_id: <id>, section_ids: [ [sec1, sec2], [sec3] ] }
+      if (created == null || created['course_id'] == null) {
+        _hideLoadingDialog();
+        setState(() {
+          _isUploading = false;
+        });
+        _showSuccessDialog('Failed to create course.');
+        return;
+      }
+      final courseId = created['course_id'] as String;
+      _currentCourseId = courseId;
+      // Map returned section ids back into local _chapters/lessons
+      try {
+        final sectionIds = created['section_ids'] as List<dynamic>? ?? [];
+        for (int c = 0; c < sectionIds.length && c < _chapters.length; c++) {
+          final chapterSectionList = List<String>.from(sectionIds[c] as List<dynamic>);
+          final lessons = _chapters[c].lessons;
+          for (int l = 0; l < chapterSectionList.length && l < lessons.length; l++) {
+            lessons[l].sectionId = chapterSectionList[l];
+          }
+        }
+      } catch (_) {
+        // ignore mapping errors; section ids are optional for offline use
+      }
       
       _hideLoadingDialog();
       setState(() {
         _isUploading = false;
       });
       
-      if (courseId == null) {
-        _showSuccessDialog('Failed to create course.');
-        return;
-      }
-      _showSuccessDialog('Course created and uploaded successfully!');
+  _showSuccessDialog('Course created and uploaded successfully!');
     } catch (e) {
       _hideLoadingDialog();
       setState(() {
@@ -990,8 +1059,25 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                                 );
                                               }).toList(),
                                             ),
+                                            const SizedBox(width: 12),
+                                            ElevatedButton(
+                                              onPressed: () async {
+                                                // Trigger AI generation for this lesson
+                                                await _generateQuizForLesson(chapterIndex, lessonIndex);
+                                              },
+                                              child: const Text('Generate Quiz'),
+                                            ),
                                           ],
                                         ),
+                                        const SizedBox(height: 8),
+                                        // Status output
+                                        if (_chapters[chapterIndex].lessons[lessonIndex].aiStatus != null) ...[
+                                          Text(
+                                            _chapters[chapterIndex].lessons[lessonIndex].aiStatus!,
+                                            style: TextStyle(color: AppThemeInstructor.primaryBlue),
+                                          ),
+                                          const SizedBox(height: 6),
+                                        ],
                                       ] else ...[
                                         // Manual questions area
                                         Column(
@@ -1505,9 +1591,7 @@ class ChapterData {
     required this.questionTitleController,
     required this.questionMarksController,
     this.selectedQuestionType = 'Mcq',
-  }){
-  
-  }
+  });
 
   void dispose() {
     nameController.dispose();
@@ -1525,11 +1609,17 @@ class LessonData {
   Map<String, dynamic>? pdfFile;
   Map<String, dynamic>? videoFile;
 
+  // DB section id (nullable) — populated when course/sections are persisted and IDs are known
+  String? sectionId;
+
   // Assessment related
   bool aiAssessmentEnabled;
   List<ManualQuestion> manualQuestions;
   // How many quizzes AI should generate for this lesson
   int aiQuizCount;
+  // AI generation status and result
+  String? aiStatus;
+  String? generatedAssessmentId;
 
   LessonData({
     required this.titleController,

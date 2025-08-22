@@ -35,10 +35,7 @@ class ReminderNotificationSyncService {
             ? description
             : 'Reminder for your task',
         'priority': priority.toLowerCase(),
-        'time': bangladeshTime
-            .toIso8601String(), // Using 'time' field as requested
-        'alert_time': bangladeshTime
-            .toIso8601String(), // Keep both for compatibility
+        'alert_time': bangladeshTime.toIso8601String(),
         'navigate': reminderId, // Store reminder ID for navigation
         'created_at': DateTime.now().toUtc().toIso8601String(),
         'is_read': false,

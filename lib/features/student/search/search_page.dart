@@ -29,7 +29,7 @@ class _SearchPageState extends State<SearchPage> {
   List<Map<String, dynamic>> _categories = [];
   List<Course> _searchResults = [];
   bool _isLoading = false;
-  String? _currentUserId = 'test-user-123'; // TODO: Get this from your auth service/provider
+  final String? _currentUserId = 'test-user-123'; // TODO: Get this from your auth service/provider
 
   // TODO: Add this method to get current user ID from your authentication system
   // String? _getCurrentUserId() {

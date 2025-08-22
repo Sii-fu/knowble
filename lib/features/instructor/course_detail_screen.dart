@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'edit_course_screen.dart';
 import '../../config/theme_instructor.dart';
 import '../../core/services/Instructor/course_fetch.dart';
-
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:universal_html/html.dart' as html;
 
 
 class CourseDetailScreen extends StatefulWidget {
   final String id;
   final String title;
-  final String subject; 
+  final String subject;
   final dynamic students;
   final dynamic duration;
 
@@ -27,12 +30,12 @@ class CourseDetailScreen extends StatefulWidget {
   State<CourseDetailScreen> createState() => _CourseDetailScreenState();
 }
 
-
 class _CourseDetailScreenState extends State<CourseDetailScreen> {
   final CourseFetchService _fetchService = CourseFetchService();
   bool _isLoading = true;
   List<Map<String, dynamic>> _modules = [];
   String? _courseBanner;
+  String _courseDescription = '';
 
   @override
   void initState() {
@@ -42,19 +45,17 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
   Future<void> _fetchCourseDetails() async {
     setState(() => _isLoading = true);
-    
+
     try {
-      // Fetch course detail once (includes chapters/modules with sections & contents)
       final courseDetails = await _fetch_service_safeFetchDetail(widget.id);
 
-      // ensure this state is still mounted before updating
       if (!mounted) return;
 
       setState(() {
         final chapters = courseDetails?['chapters'] as List? ?? [];
-        // Normalize chapters into List<Map<String, dynamic>>
         _modules = chapters.map<Map<String, dynamic>>((c) => Map<String, dynamic>.from(c as Map)).toList();
-        _courseBanner = courseDetails?['banner'] ?? courseDetails?['banner_url'] ?? courseDetails?['image_url'] ?? courseDetails?['thumbnail'];
+        _courseBanner = courseDetails?['banner'] ?? '';
+        _courseDescription = courseDetails?['description'] ?? '';
         _isLoading = false;
       });
     } catch (e) {
@@ -66,15 +67,14 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     }
   }
 
-    // small wrapper to avoid direct long-running calls inside try/await which helps readability
-    Future<Map<String, dynamic>?> _fetch_service_safeFetchDetail(String courseId) async {
-      try {
-        return await _fetchService.fetchCourseDetail(courseId);
-      } catch (e) {
-        debugPrint('fetch detail error: $e');
-        return null;
-      }
+  Future<Map<String, dynamic>?> _fetch_service_safeFetchDetail(String courseId) async {
+    try {
+      return await _fetchService.fetchCourseDetail(courseId);
+    } catch (e) {
+      debugPrint('fetch detail error: $e');
+      return null;
     }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +84,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
         backgroundColor: AppThemeInstructor.backgroundLight,
         body: CustomScrollView(
           slivers: [
-            // Modern App Bar with gradient
             SliverAppBar(
               expandedHeight: 280,
               floating: false,
@@ -129,7 +128,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   ),
                   child: Stack(
                     children: [
-                      // Course Banner Image
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
@@ -142,13 +140,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                                     },
                                   )
                                 : const DecorationImage(
-                                    image: AssetImage('assets/images/bg.jpg'), // Fallback image
+                                    image: AssetImage('assets/images/bg.jpg'),
                                     fit: BoxFit.cover,
                                   ),
                           ),
                         ),
                       ),
-                      // Overlay gradient for better text readability
                       Positioned.fill(
                         child: Container(
                           decoration: BoxDecoration(
@@ -163,7 +160,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           ),
                         ),
                       ),
-                      // Course info at bottom
                       Positioned(
                         bottom: 20,
                         left: 20,
@@ -179,8 +175,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               ),
                               child: Text(
                                 (widget.subject.toString().trim().isNotEmpty)
-                                  ? widget.subject.toString().toUpperCase()
-                                  : 'GENERAL',
+                                    ? widget.subject.toString().toUpperCase()
+                                    : 'GENERAL',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -208,7 +204,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 ),
               ),
             ),
-            // Content
             SliverToBoxAdapter(
               child: _isLoading
                   ? SizedBox(
@@ -219,7 +214,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     )
                   : Column(
                       children: [
-                        // Stats Cards
                         Container(
                           margin: const EdgeInsets.all(20),
                           child: Row(
@@ -247,7 +241,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                             ],
                           ),
                         ),
-                        // Description Section
+                        // Updated Description Section
                         Container(
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                           padding: const EdgeInsets.all(20),
@@ -286,7 +280,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'This comprehensive course on ${widget.title} (${widget.subject}) is designed for ${widget.students} students and spans ${widget.duration} days. Dive into structured chapters and interactive lessons tailored for your learning journey.',
+                                _courseDescription.isNotEmpty
+                                    ? _courseDescription
+                                    : 'No description available.',
                                 style: TextStyle(
                                   fontSize: 15,
                                   color: AppThemeInstructor.textSecondary,
@@ -297,7 +293,6 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        // Course Structure
                         Container(
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                           child: Column(
@@ -340,7 +335,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 100), // Space for FAB
+                        const SizedBox(height: 100),
                       ],
                     ),
             ),
@@ -427,20 +422,18 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 }
 
+// -------------------- Modern Widgets --------------------
+
 class ModernModuleWidget extends StatelessWidget {
   final Map<String, dynamic> module;
   final int index;
 
-  const ModernModuleWidget({
-    super.key,
-    required this.module,
-    required this.index,
-  });
+  const ModernModuleWidget({super.key, required this.module, required this.index});
 
   @override
   Widget build(BuildContext context) {
     final List sections = module['sections'] ?? module['lessons'] ?? [];
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -525,16 +518,12 @@ class ModernSectionWidget extends StatelessWidget {
   final Map<String, dynamic> section;
   final int index;
 
-  const ModernSectionWidget({
-    super.key,
-    required this.section,
-    required this.index,
-  });
+  const ModernSectionWidget({super.key, required this.section, required this.index});
 
   @override
   Widget build(BuildContext context) {
     final List contents = section['contents'] ?? [];
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -618,17 +607,57 @@ class ModernSectionWidget extends StatelessWidget {
     );
   }
 }
-
+Future<void> downloadPdf(String url, String title) async {
+  if (kIsWeb) {
+    // Web download
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', '$title.pdf')
+      ..click();
+  } else {
+    // Mobile download
+    try {
+      final dio = Dio();
+      Directory directory = await getApplicationDocumentsDirectory();
+      final savePath = '${directory.path}/$title.pdf';
+      await dio.download(url, savePath);
+      print('Downloaded to $savePath');
+    } catch (e) {
+      print('Download failed: $e');
+    }
+  }
+}
 class ModernContentWidget extends StatelessWidget {
   final Map<String, dynamic> content;
 
   const ModernContentWidget({super.key, required this.content});
 
+  Future<void> _downloadPdf(BuildContext context, String url, String title) async {
+    try {
+      final dio = Dio();
+
+      // Get app's documents directory
+      Directory directory = await getApplicationDocumentsDirectory();
+      final savePath = '${directory.path}/$title.pdf';
+
+      // Download the PDF from the direct public URL
+      await dio.download(url, savePath);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Downloaded to $savePath')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String type = content['type'] ?? 'pdf';
     final String url = content['url'] ?? '';
-    
+    final String title = content['title'] ?? 'Content';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -643,14 +672,14 @@ class ModernContentWidget extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: type == 'pdf' 
+              color: type == 'pdf'
                   ? AppThemeInstructor.errorRed.withOpacity(0.1)
                   : AppThemeInstructor.primaryBlue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               type == 'pdf' ? Icons.picture_as_pdf : Icons.link,
-              color: type == 'pdf' 
+              color: type == 'pdf'
                   ? AppThemeInstructor.errorRed
                   : AppThemeInstructor.primaryBlue,
               size: 18,
@@ -659,7 +688,7 @@ class ModernContentWidget extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              content['title'] ?? 'Content',
+              title,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -667,32 +696,21 @@ class ModernContentWidget extends StatelessWidget {
               ),
             ),
           ),
-          if (url.isNotEmpty)
-            Container(
-              decoration: BoxDecoration(
-                color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.open_in_new,
-                  size: 18,
-                  color: AppThemeInstructor.primaryBlue,
-                ),
-                onPressed: () async {
-                  if (url.isNotEmpty) {
-                    final uri = Uri.parse(url);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Could not open PDF in browser')),
-                      );
-                    }
-                  }
-                },
-              ),
-            ),
+          if (type == 'pdf' && url.isNotEmpty)
+  Container(
+    decoration: BoxDecoration(
+      color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: IconButton(
+      icon: Icon(
+        Icons.download,
+        size: 18,
+        color: AppThemeInstructor.primaryBlue,
+      ),
+      onPressed: () => downloadPdf(url, title),
+    ),
+  ),
         ],
       ),
     );

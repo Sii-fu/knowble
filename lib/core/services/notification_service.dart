@@ -3,6 +3,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'reminder_service.dart';
 
 /// NotificationService handles local device notifications and Supabase notifications table
@@ -115,12 +116,23 @@ class NotificationService {
 
   /// Request notification permissions
   static Future<bool> _requestPermissions() async {
+    // Skip permission requests on web platform
+    if (kIsWeb) {
+      print('🌐 Running on web - skipping native permission requests');
+      return true;
+    }
+
     // Request notification permission
     final notificationStatus = await Permission.notification.request();
 
     // For Android 13+, request additional permission
-    if (await Permission.scheduleExactAlarm.isDenied) {
-      await Permission.scheduleExactAlarm.request();
+    try {
+      if (await Permission.scheduleExactAlarm.isDenied) {
+        await Permission.scheduleExactAlarm.request();
+      }
+    } catch (e) {
+      print('⚠️ Could not request scheduleExactAlarm permission: $e');
+      // Continue anyway as this permission is not critical
     }
 
     return notificationStatus.isGranted;
@@ -400,8 +412,18 @@ class NotificationService {
 
   /// Check if notifications are enabled
   static Future<bool> areNotificationsEnabled() async {
-    final status = await Permission.notification.status;
-    return status.isGranted;
+    // Always return true for web platform
+    if (kIsWeb) {
+      return true;
+    }
+
+    try {
+      final status = await Permission.notification.status;
+      return status.isGranted;
+    } catch (e) {
+      print('⚠️ Could not check notification permission: $e');
+      return true; // Assume enabled to avoid blocking functionality
+    }
   }
 
   /// Show immediate notification (for testing)
