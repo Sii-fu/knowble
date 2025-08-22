@@ -16,7 +16,8 @@ class _SearchPageState extends State<SearchPage> {
   SearchPageState _currentState = SearchPageState.categories;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  String _selectedCategory = '';
+  String _selectedCategoryId = '';
+  String _selectedCategoryName = '';
   String _searchQuery = '';
   Map<String, dynamic> _activeFilters = {};
 
@@ -127,6 +128,7 @@ class _SearchPageState extends State<SearchPage> {
       final categories = await _searchService.getCategoriesWithCounts();
       final categoriesWithIcons = categories.map((cat) {
         return {
+          'id': cat['id'], // Include tag ID
           'name': cat['name'],
           'count': cat['count'],
           'icon': _getCategoryIcon(cat['name']), // Helper method to get icons
@@ -218,15 +220,16 @@ class _SearchPageState extends State<SearchPage> {
     }
   }
 
-  void _onCategorySelected(String categoryName) async {
-    print('SearchPage: Category selected: $categoryName');
+  void _onCategorySelected(String categoryId, String categoryName) async {
+    print('SearchPage: Category selected: $categoryName (ID: $categoryId)');
     setState(() {
-      _selectedCategory = categoryName;
+      _selectedCategoryId = categoryId;
+      _selectedCategoryName = categoryName;
       _currentState = SearchPageState.categoryResults;
       _isLoading = true;
     });
 
-    await _performSearch(category: categoryName);
+    await _performSearch(tagId: categoryId);
   }
 
   void _onRecentSearchSelected(String searchTerm) async {
@@ -242,29 +245,33 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   /// Perform search using the backend service
-  Future<void> _performSearch({String? category}) async {
+  Future<void> _performSearch({String? tagId}) async {
     try {
-      print('SearchPage: Performing search with query: "$_searchQuery", category: "$category", selectedCategory: "$_selectedCategory"');
+      print('SearchPage: Performing search with query: "$_searchQuery", tagId: "$tagId"');
       
       final courses = await _searchService.searchCourses(
         query: _searchQuery.isNotEmpty ? _searchQuery : null,
-        category: category ?? (_selectedCategory.isNotEmpty ? _selectedCategory : null),
+        tagId: tagId ?? (_selectedCategoryId.isNotEmpty ? _selectedCategoryId : null),
         freeOnly: _activeFilters['freeOnly'] == true ? true : null,
-        minPrice: _activeFilters['priceRange'] != null 
-            ? (_activeFilters['priceRange'] as RangeValues).start 
+        minPrice: (_activeFilters['priceRange'] is RangeValues && (_activeFilters['priceRange'] as RangeValues).start > 0)
+            ? (_activeFilters['priceRange'] as RangeValues).start
             : null,
-        maxPrice: _activeFilters['priceRange'] != null 
-            ? (_activeFilters['priceRange'] as RangeValues).end 
-            : null,
-        minRating: _activeFilters['rating'] != null && _activeFilters['rating'] > 0
+        maxPrice: (_activeFilters['priceRange'] is RangeValues && (_activeFilters['priceRange'] as RangeValues).end > 0)
+            ? (_activeFilters['priceRange'] as RangeValues).end
+            : null,minRating: (_activeFilters['rating'] is double && _activeFilters['rating'] > 0)
             ? _activeFilters['rating'] as double
             : null,
-        durationMin: _getDurationMin(_activeFilters['duration']),
-        durationMax: _getDurationMax(_activeFilters['duration']),
-        sortBy: 'relevance', // You can make this configurable
-        limit: 20,
-        offset: 0,
+        durationMin: (_activeFilters['duration'] is String && (_activeFilters['duration'] as String).isNotEmpty)
+            ? _getDurationMin(_activeFilters['duration'] as String)
+            : null,
+        durationMax: (_activeFilters['duration'] is String && (_activeFilters['duration'] as String).isNotEmpty)
+            ? _getDurationMax(_activeFilters['duration'] as String)
+            : null,
+        sortBy: _activeFilters['sortBy'] ?? 'relevance',
+        offset: _activeFilters['offset'] ?? 0,
+        limit: _activeFilters['limit'] ?? 100,
       );
+
 
       print('SearchPage: Search completed, found ${courses.length} courses');
       setState(() {
@@ -340,6 +347,8 @@ class _SearchPageState extends State<SearchPage> {
     _searchFocusNode.unfocus();
     setState(() {
       _searchQuery = '';
+      _selectedCategoryId = '';
+      _selectedCategoryName = '';
       _currentState = SearchPageState.categories;
       _searchResults = [];
     });
@@ -498,10 +507,19 @@ class _SearchPageState extends State<SearchPage> {
                       categories: _categories,
                       recentSearches: _recentSearches,
                       searchResults: _getFilteredResults(),
-                      onCategorySelected: _onCategorySelected,
+                      onCategorySelected: (categoryName) {
+                        // Find the category by name and get its ID
+                        final category = _categories.firstWhere(
+                          (cat) => cat['name'] == categoryName,
+                          orElse: () => {'id': '', 'name': ''},
+                        );
+                        if (category['id'] != null && category['id'].isNotEmpty) {
+                          _onCategorySelected(category['id'], categoryName);
+                        }
+                      },
                       onRecentSearchSelected: _onRecentSearchSelected,
                       onClearRecentSearches: _clearRecentSearches,
-                      selectedCategory: _selectedCategory,
+                      selectedCategory: _selectedCategoryName,
                       searchQuery: _searchQuery,
                     ),
                   ),

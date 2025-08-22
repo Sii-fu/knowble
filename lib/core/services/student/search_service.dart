@@ -1,77 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// # Search Service for Knowble Flutter App
-/// 
-/// This service provides comprehensive course search functionality with Supabase integration.
-/// 
-/// ## Required Database Tables:
-/// 
-/// ### courses
-/// - id (uuid, primary key)
-/// - instructor_id (uuid, foreign key to users.id)
-/// - title (text)
-/// - description (text)
-/// - price (numeric)
-/// - is_paid (boolean)
-/// - duration_days (integer)
-/// - created_at (timestamp)
-/// 
-/// ### users
-/// - id (uuid, primary key)
-/// - name (text)
-/// - role (text)
-/// 
-/// ### course_reviews
-/// - id (uuid, primary key)
-/// - course_id (uuid, foreign key to courses.id)
-/// - student_id (uuid, foreign key to users.id)
-/// - rating (numeric, 1-5)
-/// 
-/// ### tags
-/// - id (uuid, primary key)
-/// - name (text)
-/// 
-/// ### course_tags
-/// - course_id (uuid, foreign key to courses.id)
-/// - tag_id (uuid, foreign key to tags.id)
-/// 
-/// ### recent_searches (optional)
-/// - id (uuid, primary key)
-/// - user_id (uuid, foreign key to users.id)
-/// - query (text)
-/// - created_at (timestamp)
-/// 
-/// ## RPC Functions (optional, for better performance):
-/// 
-/// ### get_popular_search_terms
-/// ```sql
-/// CREATE OR REPLACE FUNCTION get_popular_search_terms(result_limit integer DEFAULT 10)
-/// RETURNS TABLE(query text, search_count bigint) AS $$
-/// BEGIN
-///   RETURN QUERY
-///   SELECT rs.query, COUNT(*) as search_count
-///   FROM recent_searches rs
-///   WHERE rs.created_at > NOW() - INTERVAL '30 days'
-///   GROUP BY rs.query
-///   ORDER BY search_count DESC, rs.query
-///   LIMIT result_limit;
-/// END;
-/// $$ LANGUAGE plpgsql;
-/// ```
-
-/// Course model for search results
-/// 
-/// Example usage:
-/// ```dart
-/// final searchService = SearchService();
-/// final courses = await searchService.searchCourses(
-///   query: 'flutter',
-///   category: 'Programming',
-///   freeOnly: true,
-///   minRating: 4.0,
-///   limit: 10,
-/// );
-/// ```
 class Course {
   final String id;
   final String title;
@@ -137,21 +65,9 @@ class SearchService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   /// Search courses with comprehensive filtering and sorting
-  /// 
-  /// [query] - Free text search across title, description, and tags
-  /// [category] - Filter by category (matched against tags)
-  /// [minPrice] - Minimum price filter
-  /// [maxPrice] - Maximum price filter
-  /// [freeOnly] - Show only free courses
-  /// [minRating] - Minimum average rating
-  /// [durationMin] - Minimum duration in days
-  /// [durationMax] - Maximum duration in days
-  /// [limit] - Number of results to return (default: 20)
-  /// [offset] - Offset for pagination (default: 0)
-  /// [sortBy] - Sort method: "relevance", "newest", "popular", "rating" (default: "relevance")
   Future<List<Course>> searchCourses({
     String? query,
-    String? category,
+    String? tagId, // ✅ use tagId instead of category string
     double? minPrice,
     double? maxPrice,
     bool? freeOnly,
@@ -163,181 +79,56 @@ class SearchService {
     String sortBy = "relevance",
   }) async {
     try {
-      print('SearchService: Starting course search with query: $query, category: $category');
-      
-      // Build the base query with simplified joins
-      var queryBuilder = _supabase
-          .from('courses')
-          .select('''
-            *,
-            users!instructor_id(name),
-            course_reviews(rating)
-          ''');
+      print('SearchService: Calling DB function search_courses with params: query=$query, tagId=$tagId, freeOnly=$freeOnly, minPrice=$minPrice, maxPrice=$maxPrice, durationMin=$durationMin, durationMax=$durationMax, sortBy=$sortBy, offset=$offset, limit=$limit');
 
-      // Apply text search filter
-      if (query != null && query.isNotEmpty) {
-        queryBuilder = queryBuilder.or(
-          'title.ilike.%$query%,description.ilike.%$query%'
-        );
+      final rpcResponse = await _supabase.rpc('search_courses', params: {
+        'p_query': query,
+        'p_tag_id': tagId,
+        'p_free_only': freeOnly,
+        'p_min_price': minPrice,
+        'p_max_price': maxPrice,
+        'p_duration_min': durationMin,
+        'p_duration_max': durationMax,
+        'p_sort_by': sortBy,
+        'p_offset': offset,
+        'p_limit': limit,
+      });
+
+      if (rpcResponse == null) {
+        print('SearchService: RPC returned null');
+        return [];
       }
 
-      // Apply price filters
-      if (freeOnly == true) {
-        queryBuilder = queryBuilder.eq('is_paid', false);
-      } else {
-        if (minPrice != null) {
-          queryBuilder = queryBuilder.gte('price', minPrice);
-        }
-        if (maxPrice != null) {
-          queryBuilder = queryBuilder.lte('price', maxPrice);
-        }
+      // rpcResponse may be a List of course records (maps)
+      List<dynamic> rows = [];
+      if (rpcResponse is List) {
+        rows = rpcResponse;
+      } else if (rpcResponse is Map && rpcResponse.containsKey('data')) {
+        rows = rpcResponse['data'] as List<dynamic>;
       }
 
-      // Apply duration filters
-      if (durationMin != null) {
-        queryBuilder = queryBuilder.gte('duration_days', durationMin);
-      }
-      if (durationMax != null) {
-        queryBuilder = queryBuilder.lte('duration_days', durationMax);
-      }
+      if (rows.isEmpty) return [];
 
-      // Apply sorting and pagination
-      String orderColumn = 'created_at';
-      bool ascending = false;
-      
-      switch (sortBy.toLowerCase()) {
-        case "newest":
-          orderColumn = 'created_at';
-          ascending = false;
-          break;
-        case "popular":
-          orderColumn = 'created_at';
-          ascending = false;
-          break;
-        case "rating":
-          orderColumn = 'created_at';
-          ascending = false;
-          break;
-        case "relevance":
-        default:
-          orderColumn = 'created_at';
-          ascending = false;
-          break;
-      }
+      // For each returned course row, fetch full course details using getCourseById
+      final courseFutures = rows.map((r) {
+        final courseId = r['id']?.toString();
+        if (courseId == null || courseId.isEmpty) return Future<Course?>.value(null);
+        return getCourseById(courseId);
+      }).toList();
 
-      print('SearchService: Executing Supabase query...');
-      final response = await queryBuilder
-          .order(orderColumn, ascending: ascending)
-          .range(offset, offset + limit - 1);
-      
-      print('SearchService: Raw response length: ${response.length}');
+      final fetched = await Future.wait(courseFutures);
+      final courses = fetched.whereType<Course>().toList();
 
-      // Get course IDs for tag filtering
-      List<String> courseIds = response.map((course) => course['id'].toString()).toList();
-      
-      // Fetch tags for all courses
-      Map<String, List<String>> courseTags = {};
-      if (courseIds.isNotEmpty) {
-        final tagsResponse = await _supabase
-            .from('course_tags')
-            .select('course_id, tags(name)')
-            .inFilter('course_id', courseIds);
-        
-        for (var tagData in tagsResponse) {
-          final courseId = tagData['course_id']?.toString();
-          final tagName = tagData['tags']?['name'];
-          if (courseId != null && tagName != null) {
-            courseTags[courseId] ??= [];
-            courseTags[courseId]!.add(tagName);
-          }
-        }
-      }
-
-      // Process the results
-      List<Course> courses = [];
-      
-      for (var courseData in response) {
-        try {
-          // Get course ID
-          final courseId = courseData['id']?.toString() ?? '';
-          
-          // Get tags for this course
-          List<String> tags = courseTags[courseId] ?? [];
-          
-          // Apply category filter if specified
-          if (category != null && category.isNotEmpty) {
-            bool hasCategory = tags.any((tag) => 
-              tag.toLowerCase() == category.toLowerCase());
-            if (!hasCategory) {
-              continue; // Skip this course if it doesn't match the category
-            }
-          }
-
-          // Extract instructor name
-          String instructorName = 'Unknown Instructor';
-          if (courseData['users'] != null && courseData['users']['name'] != null) {
-            instructorName = courseData['users']['name'];
-          }
-
-          // Calculate average rating
-          double avgRating = 0.0;
-          int reviewCount = 0;
-          if (courseData['course_reviews'] != null) {
-            final reviews = courseData['course_reviews'] as List;
-            if (reviews.isNotEmpty) {
-              double totalRating = 0.0;
-              for (var review in reviews) {
-                if (review['rating'] != null) {
-                  totalRating += (review['rating'] as num).toDouble();
-                  reviewCount++;
-                }
-              }
-              if (reviewCount > 0) {
-                avgRating = totalRating / reviewCount;
-              }
-            }
-          }
-
-          // Apply rating filter after computation
-          if (minRating != null && avgRating < minRating) {
-            continue;
-          }
-
-          // Get students count (simplified - could be from enrollments table)
-          int studentsCount = reviewCount; // Using review count as proxy
-
-          // Create course object
-          final course = Course(
-            id: courseData['id'] ?? '',
-            title: courseData['title'] ?? '',
-            description: courseData['description'] ?? '',
-            instructorName: instructorName,
-            price: (courseData['price'] ?? 0.0).toDouble(),
-            isPaid: courseData['is_paid'] ?? false,
-            durationDays: courseData['duration_days'] ?? 0,
-            avgRating: avgRating,
-            studentsCount: studentsCount,
-            tags: tags,
-            createdAt: DateTime.tryParse(courseData['created_at'] ?? '') ?? DateTime.now(),
-          );
-
-          courses.add(course);
-        } catch (e) {
-          print('SearchService: Error processing course data: $e');
-          continue;
-        }
-      }
-
-      // Apply post-processing sorting for rating-based sort
-      if (sortBy.toLowerCase() == "rating") {
+      // Apply client-side rating sort if requested (DB already handles many sorts)
+      if (sortBy.toLowerCase() == 'rating') {
         courses.sort((a, b) => b.avgRating.compareTo(a.avgRating));
       }
 
-      print('SearchService: Successfully processed ${courses.length} courses');
+      print('SearchService: search_courses returned ${courses.length} courses');
       return courses;
-
     } catch (e) {
-      print('SearchService: Error in searchCourses: $e');
+      print('SearchService: Error in searchCourses RPC path: $e');
+      // Fallback: return empty list (or optionally implement previous manual query fallback)
       return [];
     }
   }
@@ -357,7 +148,7 @@ class SearchService {
           .order('created_at', ascending: false)
           .limit(limit);
 
-      List<String> searches = [];
+      List<String> searches = []; 
       for (var search in response) {
         if (search['query'] != null && search['query'].toString().isNotEmpty) {
           searches.add(search['query'].toString());
@@ -494,7 +285,7 @@ class SearchService {
 
   /// Get course categories with course counts
   /// 
-  /// Returns a list of maps with 'name' and 'count' keys
+  /// Returns a list of maps with 'id', 'name' and 'count' keys
   Future<List<Map<String, dynamic>>> getCategoriesWithCounts() async {
     try {
       print('SearchService: Fetching categories with course counts');
@@ -502,6 +293,7 @@ class SearchService {
       final response = await _supabase
           .from('tags')
           .select('''
+            id,
             name,
             course_tags(count)
           ''');
@@ -511,6 +303,7 @@ class SearchService {
         if (tag['name'] != null) {
           final courseCount = (tag['course_tags'] as List?)?.length ?? 0;
           categories.add({
+            'id': tag['id'],
             'name': tag['name'],
             'count': courseCount,
           });
