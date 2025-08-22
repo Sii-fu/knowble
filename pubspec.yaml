@@ -30,6 +30,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # Networking & file download
+  dio: ^5.9.0
+
+  # Access device directories
+  path_provider: ^2.0.14
+  universal_html: ^2.0.11
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

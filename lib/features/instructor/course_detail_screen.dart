@@ -3,6 +3,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'edit_course_screen.dart';
 import '../../config/theme_instructor.dart';
 import '../../core/services/Instructor/course_fetch.dart';
+import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:universal_html/html.dart' as html;
+
 
 class CourseDetailScreen extends StatefulWidget {
   final String id;
@@ -601,16 +607,56 @@ class ModernSectionWidget extends StatelessWidget {
     );
   }
 }
-
+Future<void> downloadPdf(String url, String title) async {
+  if (kIsWeb) {
+    // Web download
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', '$title.pdf')
+      ..click();
+  } else {
+    // Mobile download
+    try {
+      final dio = Dio();
+      Directory directory = await getApplicationDocumentsDirectory();
+      final savePath = '${directory.path}/$title.pdf';
+      await dio.download(url, savePath);
+      print('Downloaded to $savePath');
+    } catch (e) {
+      print('Download failed: $e');
+    }
+  }
+}
 class ModernContentWidget extends StatelessWidget {
   final Map<String, dynamic> content;
 
   const ModernContentWidget({super.key, required this.content});
 
+  Future<void> _downloadPdf(BuildContext context, String url, String title) async {
+    try {
+      final dio = Dio();
+
+      // Get app's documents directory
+      Directory directory = await getApplicationDocumentsDirectory();
+      final savePath = '${directory.path}/$title.pdf';
+
+      // Download the PDF from the direct public URL
+      await dio.download(url, savePath);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Downloaded to $savePath')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String type = content['type'] ?? 'pdf';
     final String url = content['url'] ?? '';
+    final String title = content['title'] ?? 'Content';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -642,7 +688,7 @@ class ModernContentWidget extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              content['title'] ?? 'Content',
+              title,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -650,30 +696,21 @@ class ModernContentWidget extends StatelessWidget {
               ),
             ),
           ),
-          if (url.isNotEmpty)
-            Container(
-              decoration: BoxDecoration(
-                color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.open_in_new,
-                  size: 18,
-                  color: AppThemeInstructor.primaryBlue,
-                ),
-                onPressed: () async {
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Could not open URL')),
-                    );
-                  }
-                },
-              ),
-            ),
+          if (type == 'pdf' && url.isNotEmpty)
+  Container(
+    decoration: BoxDecoration(
+      color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: IconButton(
+      icon: Icon(
+        Icons.download,
+        size: 18,
+        color: AppThemeInstructor.primaryBlue,
+      ),
+      onPressed: () => downloadPdf(url, title),
+    ),
+  ),
         ],
       ),
     );
