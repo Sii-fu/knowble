@@ -138,7 +138,7 @@ class _SearchPageState extends State<SearchPage> {
       // Load recent searches if user is logged in
       List<String> recentSearches = [];
       if (_currentUserId != null) {
-        recentSearches = await _searchService.getRecentSearches(_currentUserId!);
+        recentSearches = await _searchService.getRecentSearches(_currentUserId);
       }
 
       setState(() {
@@ -215,7 +215,7 @@ class _SearchPageState extends State<SearchPage> {
       
       // Save search query if user is logged in
       if (_currentUserId != null) {
-        await _searchService.saveSearchQuery(_currentUserId!, query);
+        await _searchService.saveSearchQuery(_currentUserId, query);
       }
     }
   }
@@ -382,7 +382,7 @@ class _SearchPageState extends State<SearchPage> {
   /// Clear recent searches
   Future<void> _clearRecentSearches() async {
     if (_currentUserId != null) {
-      await _searchService.clearRecentSearches(_currentUserId!);
+      await _searchService.clearRecentSearches(_currentUserId);
       setState(() {
         _recentSearches = [];
       });

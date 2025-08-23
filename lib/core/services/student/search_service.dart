@@ -67,7 +67,7 @@ class SearchService {
   /// Search courses with comprehensive filtering and sorting
   Future<List<Course>> searchCourses({
     String? query,
-    String? tagId, // ✅ use tagId instead of category string
+    String? tagId,
     double? minPrice,
     double? maxPrice,
     bool? freeOnly,
@@ -79,9 +79,7 @@ class SearchService {
     String sortBy = "relevance",
   }) async {
     try {
-      print('SearchService: Calling DB function search_courses with params: query=$query, tagId=$tagId, freeOnly=$freeOnly, minPrice=$minPrice, maxPrice=$maxPrice, durationMin=$durationMin, durationMax=$durationMax, sortBy=$sortBy, offset=$offset, limit=$limit');
-
-      final rpcResponse = await _supabase.rpc('search_courses', params: {
+      final params = {
         'p_query': query,
         'p_tag_id': tagId,
         'p_free_only': freeOnly,
@@ -92,23 +90,39 @@ class SearchService {
         'p_sort_by': sortBy,
         'p_offset': offset,
         'p_limit': limit,
-      });
+      };
+      
+      print('SearchService: Calling with params: $params');
+      
+      final rpcResponse = await _supabase.rpc('search_courses', params: params);
+      
+      print('SearchService: Raw RPC response type: ${rpcResponse.runtimeType}');
+      print('SearchService: Raw RPC response: $rpcResponse');
 
       if (rpcResponse == null) {
         print('SearchService: RPC returned null');
         return [];
       }
 
-      // rpcResponse may be a List of course records (maps)
       List<dynamic> rows = [];
       if (rpcResponse is List) {
         rows = rpcResponse;
+        print('SearchService: Response is List with ${rows.length} items');
       } else if (rpcResponse is Map && rpcResponse.containsKey('data')) {
         rows = rpcResponse['data'] as List<dynamic>;
+        print('SearchService: Response is Map with data containing ${rows.length} items');
+      } else {
+        print('SearchService: Unexpected response format: ${rpcResponse.runtimeType}');
+        return [];
       }
 
-      if (rows.isEmpty) return [];
+      if (rows.isEmpty) {
+        print('SearchService: No rows returned from RPC');
+        return [];
+      }
 
+      print('SearchService: Processing ${rows.length} course rows');
+      
       // For each returned course row, fetch full course details using getCourseById
       final courseFutures = rows.map((r) {
         final courseId = r['id']?.toString();

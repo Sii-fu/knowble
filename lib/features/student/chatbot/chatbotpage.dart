@@ -3,19 +3,61 @@ import 'package:markdown_widget/markdown_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:math' as math;
 import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../config/theme.dart';
 import '../../../core/services/gemini/chatbot.dart';
+import '../../../core/services/student/ai_chat_history.dart';
 
+/// AI Chatbot Page with Persistent Chat History
+/// 
+/// This page provides an AI-powered study assistant with lesson-specific chat history.
+/// 
+/// **Features:**
+/// - Lesson-specific chat history (each lesson has its own conversation bucket)
+/// - Automatic saving of Q&A pairs to PostgreSQL database
+/// - Loading previous conversations when returning to a lesson
+/// - Context-aware responses using course materials and PDF content
+/// 
+/// **Usage:**
+/// ```dart
+/// Navigator.push(
+///   context,
+///   MaterialPageRoute(
+///     builder: (context) => ChatBotPage(
+///       courseTitle: 'Mathematics 101',
+///       courseDescription: 'Introduction to Algebra',
+///       courseId: 'course-uuid-here',      // Required for lesson-specific chat
+///       contentId: 'lesson-uuid-here',     // Required for lesson-specific chat
+///       pdfContents: [                     // Optional course materials
+///         {
+///           'title': 'Chapter 1: Basic Algebra',
+///           'textContent': '...'
+///         }
+///       ],
+///     ),
+///   ),
+/// );
+/// ```
+/// 
+/// **Chat History Logic:**
+/// - If `courseId` and `contentId` are provided: Loads previous chat for that specific lesson
+/// - If either is missing: Shows general welcome message without persistence
+/// - Each lesson maintains its own separate conversation history
+/// - Users can clear lesson-specific chat history via the options menu
 class ChatBotPage extends StatefulWidget {
   final String? courseTitle;
   final String? courseDescription;
   final List<Map<String, dynamic>>? pdfContents;
+  final String? courseId; // Add course ID for chat history
+  final String? contentId; // Add content/lesson ID for chat history
   
   const ChatBotPage({
     super.key,
     this.courseTitle,
     this.courseDescription,
     this.pdfContents,
+    this.courseId,
+    this.contentId,
   });
 
   @override
@@ -30,9 +72,11 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
   String? _selectedOption;
+  bool _isLoadingHistory = true; // Track loading state
   
-  // Initialize Gemini service
+  // Initialize services
   late final GeminiService _geminiService;
+  late final AIChatHistoryService _chatHistoryService;
   
   // Animation controllers for Gemini-style effects
   late AnimationController _backgroundAnimationController;
@@ -51,6 +95,8 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
     print('🤖 CHATBOT RECEIVED PARAMETERS:');
     print('courseTitle parameter: "${widget.courseTitle ?? "null"}"');
     print('courseDescription parameter: "${widget.courseDescription ?? "null"}"');
+    print('courseId parameter: "${widget.courseId ?? "null"}"');
+    print('contentId parameter: "${widget.contentId ?? "null"}"');
     if (widget.pdfContents != null && widget.pdfContents!.isNotEmpty) {
       for (int i = 0; i < widget.pdfContents!.length; i++) {
         final pdf = widget.pdfContents![i];
@@ -67,8 +113,9 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
     }
     print('════════════════════════════════════════');
     
-    // Initialize Gemini service
+    // Initialize services
     _geminiService = GeminiService();
+    _chatHistoryService = AIChatHistoryService();
     
     // Initialize animation controllers
     _backgroundAnimationController = AnimationController(
@@ -108,8 +155,8 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
       curve: Curves.easeInOut,
     ));
 
-    // Add welcome message
-    _addWelcomeMessage();
+    // Load chat history or add welcome message
+    _initializeChat();
   }
 
   @override
@@ -122,6 +169,84 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
     _messageAnimationController.dispose();
     _thinkingAnimationController.dispose();
     super.dispose();
+  }
+
+  /// Initialize chat by loading previous history or showing welcome message
+  Future<void> _initializeChat() async {
+    setState(() {
+      _isLoadingHistory = true;
+    });
+
+    try {
+      // Get current user ID
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        print('❌ User not authenticated, showing welcome message only');
+        _addWelcomeMessage();
+        setState(() {
+          _isLoadingHistory = false;
+        });
+        return;
+      }
+
+      // Load chat history if we have courseId and contentId
+      if (widget.courseId != null && widget.contentId != null) {
+        print('📜 Loading chat history for course: ${widget.courseId}, content: ${widget.contentId}');
+        
+        final chatHistory = await _chatHistoryService.loadChatHistory(
+          studentId: user.id,
+          contentId: widget.contentId!,
+          limit: 50, // Load last 50 messages
+        );
+
+        if (chatHistory.isNotEmpty) {
+          print('✅ Loaded ${chatHistory.length} previous messages');
+          
+          // Convert database records to ChatMessage objects
+          for (var record in chatHistory) {
+            // Add user question
+            _messages.add(
+              ChatMessage(
+                message: record['question'],
+                isUser: true,
+                timestamp: DateTime.parse(record['timestamp']),
+                id: '${record['id']}_question',
+              ),
+            );
+            
+            // Add AI answer
+            _messages.add(
+              ChatMessage(
+                message: record['answer'],
+                isUser: false,
+                timestamp: DateTime.parse(record['timestamp']).add(const Duration(seconds: 1)),
+                id: '${record['id']}_answer',
+                hasCompletedTyping: true, // Skip typewriter effect for loaded messages
+              ),
+            );
+          }
+        } else {
+          print('📭 No previous chat history found, showing welcome message');
+          _addWelcomeMessage();
+        }
+      } else {
+        print('⚠️ No courseId or contentId provided, showing welcome message only');
+        _addWelcomeMessage();
+      }
+
+    } catch (e) {
+      print('❌ Error loading chat history: $e');
+      _addWelcomeMessage(); // Fallback to welcome message
+    } finally {
+      setState(() {
+        _isLoadingHistory = false;
+      });
+      
+      // Scroll to bottom after loading
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
+    }
   }
 
   void _addWelcomeMessage() {
@@ -147,6 +272,8 @@ class _ChatBotPageState extends State<ChatBotPage> with TickerProviderStateMixin
 ## 📚 Course: ${widget.courseTitle}
 
 ${widget.courseDescription != null ? '**About this course:**\n${widget.courseDescription}\n' : ''}$pdfInfo
+
+${widget.courseId != null && widget.contentId != null ? '💬 **Chat History:** Your conversations for this lesson are automatically saved and will be here when you return!\n' : ''}
 
 ## What I Can Help With:
 - 🧮 **Mathematics** - Algebra, geometry, calculus  
@@ -264,6 +391,9 @@ Just ask me anything about your studies! 📖✨""";
         });
         
         _scrollToBottom();
+
+        // Save chat message to database (async, don't block UI)
+        _saveChatToDatabase(userMessage, aiResponse);
       }
     } catch (e) {
       // Stop thinking animation on error
@@ -285,6 +415,48 @@ Just ask me anything about your studies! 📖✨""";
       });
 
       _scrollToBottom();
+    }
+  }
+
+  /// Save chat message to database (runs in background)
+  Future<void> _saveChatToDatabase(String question, String answer) async {
+    try {
+      // Get current user
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        print('⚠️ User not authenticated, cannot save chat message');
+        return;
+      }
+
+      // Only save if we have courseId and contentId (lesson-specific chat)
+      if (widget.courseId == null || widget.contentId == null) {
+        print('⚠️ No courseId or contentId, not saving chat message');
+        return;
+      }
+
+      print('💾 Saving chat message to database...');
+      print('   Student ID: ${user.id}');
+      print('   Course ID: ${widget.courseId}');
+      print('   Content ID: ${widget.contentId}');
+      print('   Question: "${question.length > 100 ? "${question.substring(0, 100)}..." : question}"');
+      print('   Answer: "${answer.length > 100 ? "${answer.substring(0, 100)}..." : answer}"');
+
+      final result = await _chatHistoryService.saveChatMessage(
+        studentId: user.id,
+        contentId: widget.contentId!,
+        question: question,
+        answer: answer,
+      );
+
+      if (result != null) {
+        print('✅ Chat message saved successfully with ID: ${result['id']}');
+      } else {
+        print('❌ Failed to save chat message');
+      }
+
+    } catch (e) {
+      print('❌ Error saving chat message: $e');
+      // Don't show error to user, this should not interrupt the chat experience
     }
   }
 
@@ -459,9 +631,11 @@ Just ask me anything about your studies! 📖✨""";
                                 const Color(0xFF9C27B0),
                               ],
                             ).createShader(bounds),
-                            child: const Text(
-                              'AI Study Assistant',
-                              style: TextStyle(
+                            child: Text(
+                              widget.courseId != null && widget.contentId != null
+                                  ? 'AI Study Assistant • Lesson Chat'
+                                  : 'AI Study Assistant',
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.surfaceWhite,
@@ -469,7 +643,13 @@ Just ask me anything about your studies! 📖✨""";
                             ),
                           ),
                           Text(
-                            _isTyping ? 'Thinking...' : 'Ready to help',
+                            _isLoadingHistory 
+                                ? 'Loading chat history...'
+                                : _isTyping 
+                                    ? 'Thinking...' 
+                                    : widget.courseId != null && widget.contentId != null
+                                        ? 'Your lesson conversation continues here'
+                                        : 'Ready to help',
                             style: TextStyle(
                               fontSize: 13,
                               color: AppTheme.textSecondary.withOpacity(0.8),
@@ -629,21 +809,90 @@ Just ask me anything about your studies! 📖✨""";
             children: [
               _buildGradientAppBar(),
               Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _messages.length + (_isTyping ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _messages.length && _isTyping) {
-                      return const GeminiThinkingIndicator();
-                    }
-                    return ChatBubble(message: _messages[index]);
-                  },
-                ),
+                child: _isLoadingHistory
+                    ? _buildLoadingIndicator()
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length + (_isTyping ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == _messages.length && _isTyping) {
+                            return const GeminiThinkingIndicator();
+                          }
+                          return ChatBubble(message: _messages[index]);
+                        },
+                      ),
               ),
-              _buildSuggestionButtons(),
-              _buildGradientMessageInput(),
+              if (!_isLoadingHistory) ...[
+                _buildSuggestionButtons(),
+                _buildGradientMessageInput(),
+              ],
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Loading indicator for chat history
+  Widget _buildLoadingIndicator() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryTeal,
+                  const Color(0xFF9C27B0).withOpacity(0.8),
+                ],
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryTeal.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: AppTheme.surfaceWhite,
+                strokeWidth: 3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                AppTheme.primaryTeal,
+                const Color(0xFF9C27B0).withOpacity(0.8),
+              ],
+            ).createShader(bounds),
+            child: const Text(
+              'Loading your chat history...',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.surfaceWhite,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.courseTitle != null 
+                ? 'Retrieving conversations for ${widget.courseTitle}'
+                : 'Setting up your AI assistant',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary.withOpacity(0.8),
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -896,7 +1145,33 @@ Just ask me anything about your studies! 📖✨""";
     );
   }
 
-  void _clearChat() {
+  void _clearChat() async {
+    // Show confirmation dialog first
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        title: const Text('Clear Chat History', style: TextStyle(color: AppTheme.textPrimary)),
+        content: const Text(
+          'This will clear all chat messages for this lesson. This action cannot be undone.\n\nAre you sure you want to continue?',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear', style: TextStyle(color: AppTheme.primaryTeal)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldClear != true) return;
+
+    // Clear UI messages immediately
     setState(() {
       _messages.clear();
       _messages.add(
@@ -917,6 +1192,47 @@ Just ask me anything about your studies! 📖✨""",
         ),
       );
     });
+
+    // Clear database history in background
+    _clearDatabaseHistory();
+  }
+
+  /// Clear chat history from database (runs in background)
+  Future<void> _clearDatabaseHistory() async {
+    try {
+      // Get current user
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        print('⚠️ User not authenticated, cannot clear database history');
+        return;
+      }
+
+      // Only clear if we have courseId and contentId (lesson-specific chat)
+      if (widget.courseId == null || widget.contentId == null) {
+        print('⚠️ No courseId or contentId, not clearing database history');
+        return;
+      }
+
+      print('🗑️ Clearing chat history from database...');
+      print('   Student ID: ${user.id}');
+      print('   Course ID: ${widget.courseId}');
+      print('   Content ID: ${widget.contentId}');
+
+      final success = await _chatHistoryService.deleteChatHistory(
+        studentId: user.id,
+        contentId: widget.contentId!,
+      );
+
+      if (success) {
+        print('✅ Database chat history cleared successfully');
+      } else {
+        print('❌ Failed to clear database chat history');
+      }
+
+    } catch (e) {
+      print('❌ Error clearing database chat history: $e');
+      // Don't show error to user, this should not interrupt the chat experience
+    }
   }
 
   void _showHelpDialog() {
