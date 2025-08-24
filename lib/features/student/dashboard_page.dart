@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../core/services/student/course_services.dart';
+import '../../core/services/reminder_service.dart';
 import '../../data/models/course.dart';
-import '../../data/models/module.dart'; 
+import '../../data/models/module.dart';
+import '../../data/models/reminder.dart';
 import 'Course_Details.dart';
 import 'search/search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,20 +17,21 @@ class StudentDashboardPage extends StatefulWidget {
   State<StudentDashboardPage> createState() => _StudentDashboardPageState();
 }
 
-
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   final CourseServices _courseServices = CourseServices();
   List<Course> _recommendedCourses = [];
   List<Course> _recentLearningCourses = [];
+  List<Reminder> _todaysTasks = [];
   bool _isLoading = true;
+  bool _isLoadingTasks = true;
   String? _userName;
-
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
     _loadRecommendedCourses();
+    _loadTodaysTasks();
   }
 
   Future<void> _loadUserName() async {
@@ -73,6 +76,35 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     }
   }
 
+  Future<void> _loadTodaysTasks() async {
+    try {
+      setState(() {
+        _isLoadingTasks = true;
+      });
+
+      // Get today's date
+      final today = DateTime.now();
+
+      // Fetch reminders for today using ReminderService
+      final todaysReminders = await ReminderService.getRemindersForDate(today);
+
+      if (mounted) {
+        setState(() {
+          _todaysTasks = todaysReminders;
+          _isLoadingTasks = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading today\'s tasks: $e');
+      if (mounted) {
+        setState(() {
+          _todaysTasks = [];
+          _isLoadingTasks = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.lightTheme;
@@ -104,19 +136,9 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                   const SizedBox(height: 24),
                   const _SectionTitle(title: "Today's Task"),
                   const SizedBox(height: 12),
-                  const _TaskCard(
-                    time: '7AM - 8PM',
-                    title: 'Go to office',
-                    subtitle: 'meeting with client singapure',
-                    location: 'Plaza Indonesia',
-                  ),
-                  const SizedBox(height: 12),
-                  const _TaskCard(
-                    time: '7AM - 8PM',
-                    title: 'Project app baparekraf',
-                    subtitle: 'talk to environment',
-                    location: 'Pondok indah mall',
-                  ),
+                  _isLoadingTasks
+                      ? const Center(child: CircularProgressIndicator())
+                      : _TodaysTasksList(tasks: _todaysTasks),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -169,7 +191,6 @@ class _RecommendedCoursesList extends StatelessWidget {
     );
   }
 }
-
 
 class _Header extends StatelessWidget {
   final String? userName;
@@ -249,9 +270,7 @@ class _SearchBar extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      Expanded(
-                        child: const SearchPage(),
-                      ),
+                      Expanded(child: const SearchPage()),
                     ],
                   ),
                 ),
@@ -272,11 +291,11 @@ class _SearchBar extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-              'Search',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
+                'Search',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
               ),
-            ),
             ),
           ],
         ),
@@ -403,7 +422,9 @@ class _RecentLearning extends StatelessWidget {
                                   child: Container(
                                     height: 8,
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                   ),
@@ -414,7 +435,8 @@ class _RecentLearning extends StatelessWidget {
                           const SizedBox(width: 6),
                           Text(
                             '$completedModules/$totalModules',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
@@ -532,77 +554,226 @@ class _RecommendedCard extends StatelessWidget {
   }
 }
 
+class _TodaysTasksList extends StatelessWidget {
+  final List<Reminder> tasks;
+  const _TodaysTasksList({required this.tasks});
+
+  @override
+  Widget build(BuildContext context) {
+    if (tasks.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 48,
+              color: AppTheme.textSecondary,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No tasks for today',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'You\'re all caught up! 🎉',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: tasks.map((task) {
+        // Format the time range
+        final startTime = task.time;
+        final endTime = task.endTime;
+        final timeRange = endTime != null
+            ? '${_formatTime(startTime)} - ${_formatTime(endTime)}'
+            : _formatTime(startTime);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _TaskCard(
+            time: timeRange,
+            title: task.title,
+            subtitle: task.description?.isNotEmpty == true
+                ? task.description!
+                : 'No description',
+            location: _getPriorityBadge(task.priority),
+            priority: task.priority,
+            reminderId: task.id,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour;
+    final minute = dateTime.minute;
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+    return '${displayHour}:${minute.toString().padLeft(2, '0')} $period';
+  }
+
+  String _getPriorityBadge(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return '🔴 High Priority';
+      case 'medium':
+        return '🟡 Medium Priority';
+      case 'low':
+        return '🟢 Low Priority';
+      default:
+        return '📋 Task';
+    }
+  }
+}
+
 class _TaskCard extends StatelessWidget {
   final String time;
   final String title;
   final String subtitle;
   final String location;
+  final String? priority;
+  final String? reminderId;
 
   const _TaskCard({
     required this.time,
     required this.title,
     required this.subtitle,
     required this.location,
+    this.priority,
+    this.reminderId,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          time,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.accentLight,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
+
+    // Get priority color
+    Color priorityColor = _getPriorityColor(priority);
+
+    return GestureDetector(
+      onTap: reminderId != null
+          ? () {
+              // Navigate to task detail page - you can implement this later
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Task: $title'),
+                  duration: const Duration(seconds: 2),
                 ),
+              );
+            }
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            time,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: priorityColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: priorityColor.withValues(alpha: 0.3),
+                width: 1,
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 14,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    location,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textPrimary,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: priorityColor,
+                        ),
+                      ),
                     ),
+                    if (priority != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: priorityColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          priority!.toUpperCase(),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textPrimary,
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: priorityColor),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        location,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+  }
+
+  Color _getPriorityColor(String? priority) {
+    switch (priority?.toLowerCase()) {
+      case 'high':
+        return Colors.red;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.green;
+      default:
+        return AppTheme.primaryTeal;
+    }
   }
 }
