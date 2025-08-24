@@ -10,6 +10,7 @@ import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
 import 'chat/chat_detail_page.dart';
 import 'courses_lessons.dart';
+import 'transaction_page.dart';
 
 
 
@@ -325,59 +326,35 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                 }),
 
                 if (!_enrolled) ...[
-                  const SizedBox(height: 20),
-                  Center(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryTeal,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 14),
-                      ),
-                      onPressed: () async {
-                        if (!_enrolled) {
-                          final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
-                          await _service.enrollCourse(userId, widget.courseId);
-                          setState(() {
-                            _enrolled = true;
-                          });
-                          // Show success dialog
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) => AlertDialog(
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              title: const Text('Successfully Enrolled!', style: TextStyle(fontWeight: FontWeight.bold)),
-                              content: const Text('You have been enrolled in this course.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => CourseLessonsPage(courseId: widget.courseId),
-                                      ),
-                                    );
-                                  },
-                                  child: const Text('Continue'),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                      },
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Start Course', style: TextStyle(fontSize: 16)),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                ],
+  const SizedBox(height: 20),
+  Center(
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppTheme.primaryTeal,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 14),
+      ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TransactionPage(courseId: widget.courseId),
+          ),
+        );
+      },
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Start Course', style: TextStyle(fontSize: 16)),
+          SizedBox(width: 8),
+          Icon(Icons.arrow_forward),
+        ],
+      ),
+    ),
+  ),
+  const SizedBox(height: 20),
+],
+
               ],
             ),
           ),
