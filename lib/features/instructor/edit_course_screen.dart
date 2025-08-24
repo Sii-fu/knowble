@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import '../../config/theme_instructor.dart';
+import '../../core/services/Instructor/edit_course_service.dart';
 
 class EditCourseScreen extends StatefulWidget {
+  final String courseId;
   final String courseTitle;
   final String subject;
 
   const EditCourseScreen({
     super.key,
+    required this.courseId,
     required this.courseTitle,
     required this.subject,
   });
@@ -20,6 +23,9 @@ class EditCourseScreen extends StatefulWidget {
 
 class _EditCourseScreenState extends State<EditCourseScreen> {
   Map<String, dynamic>? _courseBannerInfo;
+  final EditCourseService _service = EditCourseService();
+  Map<String, dynamic>? _originalCourse;
+  bool _isSaving = false;
   
   // Course basic info controllers
   final TextEditingController _courseNameController = TextEditingController();
@@ -58,6 +64,179 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
     }
     
     _tagController.addListener(_onTagChanged);
+
+    // Load real course data from backend and populate fields
+    _loadCourseDetails();
+  }
+
+  Future<void> _loadCourseDetails() async {
+    try {
+      final data = await _service.fetchCourseDetail(widget.courseId);
+      if (data == null) return;
+
+  // keep original snapshot for change detection
+  _originalCourse = Map<String, dynamic>.from(data);
+
+      setState(() {
+        _courseNameController.text = data['title'] ?? widget.courseTitle;
+        _courseDescriptionController.text = data['description'] ?? '';
+        _priceController.text = (data['price'] ?? '').toString();
+        _durationDaysController.text = (data['duration_days'] ?? '').toString();
+        // tags/subject: keep existing widget.subject if backend doesn't provide
+        _tagController.text = widget.subject;
+
+  // Populate chapters and lessons
+        _chapters.clear();
+        final chapters = List.from(data['chapters'] as List? ?? []);
+        for (final ch in chapters) {
+          final chapter = ChapterData();
+          chapter.nameController.text = ch['title'] ?? '';
+          // store remote IDs if present
+          if (ch['id'] != null) chapter.remoteId = ch['id'] as String;
+          chapter.lessons.clear();
+          final lessons = List.from(ch['lessons'] as List? ?? []);
+          for (final ls in lessons) {
+            final lesson = LessonData();
+            lesson.titleController.text = ls['title'] ?? '';
+            lesson.descriptionController.text = ls['description'] ?? '';
+            if (ls['id'] != null) lesson.remoteId = ls['id'] as String;
+
+            // map first PDF/content if present
+            final contents = List.from(ls['contents'] as List? ?? []);
+            if (contents.isNotEmpty) {
+              final first = contents.first as Map<String, dynamic>;
+              lesson.pdfFile = {
+                'name': first['title'] ?? '',
+                'url': first['url'] ?? '',
+                'remoteId': first['id'] ?? null,
+              };
+            }
+
+            chapter.lessons.add(lesson);
+          }
+          _chapters.add(chapter);
+        }
+      });
+    } catch (e) {
+      debugPrint('Failed to load course details: $e');
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+
+    // show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              CircularProgressIndicator(),
+              SizedBox(width: 12),
+              Text('Course is updating...'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final orig = _originalCourse ?? {};
+      // course-level updates
+      final title = _courseNameController.text.trim();
+      final desc = _courseDescriptionController.text.trim();
+      final price = double.tryParse(_priceController.text.trim());
+      final duration = int.tryParse(_durationDaysController.text.trim());
+
+      final bool needCourseUpdate = title != (orig['title'] ?? '') || desc != (orig['description'] ?? '') ||
+          (price != null && price != (orig['price'] ?? 0)) || (duration != null && duration != (orig['duration_days'] ?? 0));
+
+      if (needCourseUpdate) {
+        await _service.updateCourseBasic(
+          courseId: widget.courseId,
+          title: title,
+          description: desc,
+          price: price,
+          durationDays: duration,
+        );
+      }
+
+      // modules / sections / contents updates: only existing (with remoteId)
+      final origChapters = List.from(orig['chapters'] as List? ?? []);
+      for (int i = 0; i < _chapters.length; i++) {
+        final ch = _chapters[i];
+        final chTitle = ch.nameController.text.trim();
+        if (ch.remoteId != null) {
+          final origCh = origChapters.firstWhere((c) => c['id'] == ch.remoteId, orElse: () => null);
+          if (origCh != null && chTitle != (origCh['title'] ?? '')) {
+            await _service.updateModule(moduleId: ch.remoteId!, title: chTitle);
+          }
+        } else {
+          // create new module
+          final newId = await _service.createModule(courseId: widget.courseId, title: chTitle, order: i);
+          if (newId != null) ch.remoteId = newId;
+        }
+
+        final origLessons = ch.remoteId != null
+            ? List.from((origChapters.firstWhere((c) => c['id'] == ch.remoteId, orElse: () => {})['lessons'] as List? ?? []))
+            : <dynamic>[];
+
+        for (int j = 0; j < ch.lessons.length; j++) {
+          final ls = ch.lessons[j];
+          final lsTitle = ls.titleController.text.trim();
+          final lsDesc = ls.descriptionController.text.trim();
+          if (ls.remoteId != null) {
+            final origLs = origLessons.firstWhere((l) => l['id'] == ls.remoteId, orElse: () => null);
+            if (origLs != null && (lsTitle != (origLs['title'] ?? '') || lsDesc != (origLs['description'] ?? ''))) {
+              await _service.updateSection(sectionId: ls.remoteId!, title: lsTitle, description: lsDesc);
+            }
+          } else {
+            // create new section under module
+            final moduleId = ch.remoteId;
+            if (moduleId != null) {
+              final newSectionId = await _service.createSection(moduleId: moduleId, title: lsTitle, description: lsDesc, order: j);
+              if (newSectionId != null) ls.remoteId = newSectionId;
+            }
+          }
+
+          // contents (only handle pdfFile for now)
+          if (ls.pdfFile != null) {
+            final contentRemote = ls.pdfFile!['remoteId'];
+            final contentTitle = ls.pdfFile!['name'] ?? '';
+            final contentUrl = ls.pdfFile!['url'] ?? '';
+            if (contentRemote != null) {
+              final origContent = origLessons.firstWhere((l) => l['id'] == ls.remoteId, orElse: () => null);
+              // try to find original content entry
+              final origContents = origLessons.firstWhere((l) => l['id'] == ls.remoteId, orElse: () => null)?['contents'] as List? ?? [];
+              final found = origContents.firstWhere((c) => c['id'] == contentRemote, orElse: () => null);
+              if (found != null && (contentTitle != (found['title'] ?? '') || contentUrl != (found['url'] ?? ''))) {
+                await _service.updateContent(contentId: contentRemote, title: contentTitle, url: contentUrl);
+              }
+            } else {
+              // create content (we need section id)
+              if (ls.remoteId != null) {
+                final newContentId = await _service.createContent(sectionId: ls.remoteId!, type: 'pdf', url: contentUrl, order: 0, title: contentTitle);
+                if (newContentId != null) ls.pdfFile!['remoteId'] = newContentId;
+              }
+            }
+          }
+        }
+      }
+
+      // close loading
+      if (mounted) Navigator.of(context).pop();
+      setState(() => _isSaving = false);
+      _showSuccessDialog('Course updated successfully');
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop();
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+    }
   }
 
   @override
@@ -1033,7 +1212,7 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: _showSuccessDialog,
+                    onPressed: _isSaving ? null : _saveChanges,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       elevation: 0,
@@ -1045,16 +1224,17 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(
+                      children: [
+                        if (_isSaving) const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                        if (!_isSaving) const Icon(
                           Icons.save_rounded,
                           color: Colors.white,
                           size: 20,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Text(
-                          'Save Changes',
-                          style: TextStyle(
+                          _isSaving ? 'Saving...' : 'Save Changes',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -1203,7 +1383,7 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
 
 }
 
-// Data model classes for comprehensive course editing
+  // Data model classes for comprehensive course editing
 class ManualQuestion {
   late TextEditingController questionController;
   late TextEditingController marksController;
@@ -1224,6 +1404,7 @@ class LessonData {
   late TextEditingController descriptionController;
   Map<String, dynamic>? pdfFile;
   Map<String, dynamic>? videoFile;
+  String? remoteId;
   bool aiAssessmentEnabled;
   int aiQuizCount;
   List<ManualQuestion> manualQuestions;
@@ -1248,6 +1429,7 @@ class LessonData {
 class ChapterData {
   late TextEditingController nameController;
   List<LessonData> lessons;
+  String? remoteId;
 
   ChapterData() : lessons = [] {
     nameController = TextEditingController();

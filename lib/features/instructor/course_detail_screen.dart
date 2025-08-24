@@ -341,12 +341,13 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
+            floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => EditCourseScreen(
+                  courseId: widget.id,
                   courseTitle: widget.title,
                   subject: widget.subject,
                 ),
