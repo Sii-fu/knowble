@@ -26,9 +26,6 @@ import '../features/admin/admin_instructors_management.dart';
 import '../features/common/screens/splash_screen.dart';
 import '../features/common/screens/settings_page.dart';
 import '../features/common/screens/onboarding/onboarding_screens.dart';
-import '../features/common/screens/onboarding/onboarding_screen_1/onboarding_screen_1.dart';
-import '../features/common/screens/onboarding/onboarding_screen_2/onboarding_screen_2.dart';
-import '../features/common/screens/onboarding/onboarding_screen_3/onboarding_screen_3.dart';
 import '../features/common/screens/auth/login_screen.dart';
 import '../features/common/screens/auth/registration_screen.dart';
 import '../features/common/screens/auth/profile_completion/student_interest_selection_screen.dart';
@@ -54,13 +51,13 @@ import '../features/student/scheduler/task_edit_modal.dart';
 import '../features/student/scheduler/task_detail_view.dart';
 import '../features/student/scheduler/full_month_calendar_view.dart';
 import '../features/student/chatbot/chatbotpage.dart';
-import '../features/student/notification_settings_page.dart';
 import '../features/student/invite_friends_page.dart';
 import '../features/student/terms_conditions_page.dart';
-
+// import '../features/student/category_page.dart';
 // Feedback screens
 import '../features/student/feedback pages/feedback_form_screen.dart';
 import '../features/student/feedback pages/feedback_history_screen.dart';
+import '../features/instructor/feedback pages/instructor_feedback_history_screen.dart';
 
 // AppRoutes holds all route names and their corresponding widget builders.
 class AppRoutes {
@@ -70,9 +67,6 @@ class AppRoutes {
   static final Map<String, WidgetBuilder> routes = {
     '/': (context) => const SplashScreen(),
     '/onboarding': (context) => const OnboardingScreen(),
-    '/onboarding-screen-1': (context) => const OnboardingScreen1(),
-    '/onboarding-screen-2': (context) => const OnboardingScreen2(),
-    '/onboarding-screen-3': (context) => const OnboardingScreen3(),
     '/login': (context) => const LoginScreen(),
     '/registration': (context) => const RegistrationScreen(),
     '/student-interest': (context) => const StudentInterestSelectionScreen(),
@@ -88,6 +82,7 @@ class AppRoutes {
     '/student_dashboard': (context) => const StudentDashboardPage(),
     '/course_screen': (context) => const CourseScreen(),
 
+    // '/category_page': (context) => const CategoryPage(),
     '/student': (context) => const StudentLayout(),
     '/instructor': (context) => const InstructorLayout(),
     '/manage_students': (context) => const ManageStudentsPage(),
@@ -124,12 +119,13 @@ class AppRoutes {
     '/notifications': (context) => const NotificationsScreen(),
 
     // New settings pages
-    '/notification-settings': (context) => const NotificationSettingsPage(),
     '/invite-friends': (context) => const InviteFriendsPage(),
     '/terms-conditions': (context) => const TermsAndConditionsPage(),
 
     // Feedback pages
     '/feedback-form': (context) => const FeedbackFormScreen(),
     '/feedback-history': (context) => const FeedbackHistoryScreen(),
+    '/instructor-feedback-history': (context) =>
+        const InstructorFeedbackHistoryScreen(),
   };
 }

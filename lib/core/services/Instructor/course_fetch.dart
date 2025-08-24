@@ -1,48 +1,68 @@
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+// ...existing code...
+// Helper to get public URL for a file in Supabase Storage
+String getPublicPdfUrl(String storagePath) {
+  final supabase = Supabase.instance.client;
+  // Use the correct bucket name 'content-pdf'
+  return supabase.storage.from('content-pdf').getPublicUrl(storagePath);
+}
 
 class CourseFetchService {
   final supabase = Supabase.instance.client;
 
   // Fetch all modules (chapters), sections (lessons), and contents for a course by courseId
   Future<List<Map<String, dynamic>>> fetchCourseModulesWithSectionsAndContents(String courseId) async {
-    // Fetch modules (chapters)
+    // Use a nested select to fetch modules with their sections and contents in one round-trip
     final modules = await supabase
         .from('modules')
-        .select('id, title, "order"')
+        .select('''
+          id,
+          title,
+          "order",
+          sections (
+            id,
+            title,
+            description,
+            "order",
+            contents (id, type, title, url, "order")
+          )
+        ''')
         .eq('course_id', courseId)
         .order('order');
- 
-    List<Map<String, dynamic>> moduleList = [];
-    for (final module in modules) {
-      // Fetch sections (lessons)
-      final sections = await supabase
-          .from('sections')
-          .select('id, title, description, "order"')
-          .eq('module_id', module['id'])
-          .order('order');
 
-      List<Map<String, dynamic>> sectionList = [];
-      for (final section in sections) {
-        // Fetch contents (PDFs, etc)
-        final contents = await supabase
-            .from('contents')
-            .select('id, type, title, url, "order"')
-            .eq('section_id', section['id'])
-            .order('order');
+  // Defensive: convert to a Dart List and sort modules by their "order" field
+  final moduleList = <Map<String, dynamic>>[];
+  final modulesData = List.from(modules as List? ?? []);
+  modulesData.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
 
-        sectionList.add({
-          'id': section['id'],
-          'title': section['title'],
-          'description': section['description'],
-          'order': section['order'],
-          'contents': contents,
+    for (final m in modulesData) {
+      final secs = <Map<String, dynamic>>[];
+      // Defensive: sort sections by their "order" before processing
+      final rawSecs = List.from(m['sections'] as List? ?? []);
+      rawSecs.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
+      for (final s in rawSecs) {
+        secs.add({
+          'id': s['id'],
+          'title': s['title'],
+          'description': s['description'],
+          'order': s['order'],
+          'contents': (s['contents'] as List? ?? []).map((c) => {
+                'id': c['id'],
+                'type': c['type'],
+                'title': c['title'],
+                'url': c['type'] == 'pdf' && c['storage_path'] != null
+                  ? getPublicPdfUrl(c['storage_path'])
+                  : c['url'],
+                'order': c['order'],
+              }).toList(),
         });
       }
       moduleList.add({
-        'id': module['id'],
-        'title': module['title'],
-        'order': module['order'],
-        'sections': sectionList,
+        'id': m['id'],
+        'title': m['title'],
+        'order': m['order'],
+        'sections': secs,
       });
     }
     return moduleList;
@@ -84,54 +104,67 @@ class CourseFetchService {
         .eq('id', courseId)
         .maybeSingle();
     if (course == null) return null;
-
-    // Fetch modules (chapters)
+    // Use nested select to fetch modules -> sections -> contents in a single request
     final modules = await supabase
         .from('modules')
-        .select('id, title, "order"')
+        .select('''
+          id,
+          title,
+          "order",
+          sections (
+            id,
+            title,
+            description,
+            "order",
+            contents (id, type, title, url, "order")
+          )
+        ''')
         .eq('course_id', courseId)
         .order('order');
 
-    List<Map<String, dynamic>> chapters = [];
-    for (final module in modules) {
-      // Fetch sections (lessons)
-      final sections = await supabase
-          .from('sections')
-          .select('id, title, description, "order"')
-          .eq('module_id', module['id'])
-          .order('order');
+  final chaptersList = <Map<String, dynamic>>[];
 
-      List<Map<String, dynamic>> lessons = [];
-      for (final section in sections) {
-        // Fetch contents (PDFs, etc)
-        final contents = await supabase
-            .from('contents')
-            .select('id, type, title, url, "order"')
-            .eq('section_id', section['id'])
-            .order('order');
+    // Defensive: convert to a Dart List and sort modules by their "order" field
+    final modulesData2 = List.from(modules as List? ?? []);
+    modulesData2.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
 
+    for (final m in modulesData2) {
+      final rawSecs = List.from(m['sections'] as List? ?? []);
+      // Defensive: sort sections by their "order" before processing
+      rawSecs.sort((a, b) => ((a['order'] ?? 0) as int).compareTo(((b['order'] ?? 0) as int)));
+      final lessons = <Map<String, dynamic>>[];
+      for (final s in rawSecs) {
         lessons.add({
-          'id': section['id'],
-          'title': section['title'],
-          'description': section['description'],
-          'order': section['order'],
-          'contents': contents,
+          'id': s['id'],
+          'title': s['title'],
+          'description': s['description'],
+          'order': s['order'],
+          'contents': (s['contents'] as List? ?? []).map((c) => {
+                'id': c['id'],
+                'type': c['type'],
+                'title': c['title'],
+                'url': c['type'] == 'pdf' && c['storage_path'] != null
+                    ? getPublicPdfUrl(c['storage_path'])
+                    : c['url'],
+                'order': c['order'],
+              }).toList(),
         });
       }
-      chapters.add({
-        'id': module['id'],
-        'title': module['title'],
-        'order': module['order'],
+      chaptersList.add({
+        'id': m['id'],
+        'title': m['title'],
+        'order': m['order'],
         'lessons': lessons,
       });
     }
+
     return {
       'id': course['id'],
       'title': course['title'],
       'description': course['description'],
       'duration_days': course['duration_days'],
       'banner': course['banner'],
-      'chapters': chapters,
+      'chapters': chaptersList,
     };
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:knowble_app/core/services/auth_manager.dart';
+import 'package:Knowble/core/services/auth_manager.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
-  String? _selectedUserType;
 
   @override
   void dispose() {

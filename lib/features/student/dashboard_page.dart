@@ -4,7 +4,7 @@ import '../../core/services/student/course_services.dart';
 import '../../data/models/course.dart';
 import '../../data/models/module.dart'; 
 import 'Course_Details.dart';
-import 'unified_search_page.dart';
+import 'search/search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'courses_lessons.dart';
 
@@ -222,10 +222,41 @@ class _SearchBar extends StatelessWidget {
     final theme = Theme.of(context);
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const UnifiedSearchPage(),
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.95,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollCtrl) {
+              return Material(
+                color: theme.colorScheme.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppTheme.borderSubtle,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      Expanded(
+                        child: const SearchPage(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         );
       },

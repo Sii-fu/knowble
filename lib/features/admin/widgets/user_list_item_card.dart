@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
 class UserListItemCard extends StatelessWidget {

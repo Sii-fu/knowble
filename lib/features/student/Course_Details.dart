@@ -177,6 +177,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                         List<Map<String, dynamic>> pdfContents = _contents
                             .where((content) => content.type == 'pdf')
                             .map((content) => {
+                              'id': content.id,
                               'title': content.title,
                               'url': content.url,
                               // Note: Text content will be extracted on-demand in the chatbot
@@ -242,8 +243,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                   final moduleIndex = moduleEntry.key;
                   final module = moduleEntry.value;
                   final isFirstChapter = moduleIndex == 0;
-                  final isLocked = !_enrolled && moduleIndex > 0;
-                  final isBlurred = !_enrolled && moduleIndex > 0;
+                  // access control: locked chapters when not enrolled
                   // If not enrolled and not first chapter, show blurred, non-expandable tile
                   if (!_enrolled && moduleIndex > 0) {
                     return Opacity(
@@ -305,6 +305,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                                             builder: (_) => PDFViewerPage(
                                               pdfUrl: content.url,
                                               title: content.title,
+                                              contentId: content.id,
+                                              courseId: widget.courseId,
                                             ),
                                           ),
                                         );

@@ -1,5 +1,7 @@
 //not a valid page. dummy placement page for first version
 import 'package:flutter/material.dart';
+import 'core/services/notification_service.dart';
+import 'features/student/search/search_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,8 +13,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _pages = <Widget>[
-    Center(child: Text('Browse Page', style: TextStyle(fontSize: 24))),
+  static final List<Widget> _pages = <Widget>[
+    const SearchPage(), // Modern search page implementation
     Center(child: Text('Dashboard Page', style: TextStyle(fontSize: 24))),
     Center(child: Text('Profile Page', style: TextStyle(fontSize: 24))),
     Center(child: Text('Chat Page', style: TextStyle(fontSize: 24))),
@@ -77,6 +79,37 @@ class _HomePageState extends State<HomePage> {
             label: 'Chat',
           ),
         ],
+      ),
+      // Temporary test button for notifications - REMOVE after testing
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Test immediate notification
+          await NotificationService.showImmediateNotification(
+            title: 'Test Notification',
+            description: 'This is a test notification!',
+            priority: 'high',
+          );
+
+          // Test scheduled notification (10 seconds from now)
+          await NotificationService.testNotification();
+
+          // Test database insertion directly
+          await NotificationService.testDatabaseInsertion();
+
+          // Show snackbar confirmation
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  '🧪 Tests triggered! Check console & notification table.',
+                ),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        },
+        tooltip: 'Test Notifications',
+        child: const Icon(Icons.notifications_active),
       ),
     );
   }

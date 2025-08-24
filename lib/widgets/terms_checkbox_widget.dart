@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 
 
 class TermsCheckboxWidget extends StatelessWidget {

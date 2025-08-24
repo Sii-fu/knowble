@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 
-import 'package:knowble_app/features/instructor/widgets/instructor_navbar.dart';
-import 'package:knowble_app/features/instructor/home_teacher_new.dart';
-import 'package:knowble_app/features/instructor/course_screen.dart';
-import 'package:knowble_app/features/instructor/instructor_profile_page.dart';
-import 'package:knowble_app/features/instructor/chat/chat_list_page.dart';
+import 'package:Knowble/features/instructor/widgets/instructor_navbar.dart';
+import 'package:Knowble/features/instructor/home_teacher_new.dart';
+import 'package:Knowble/features/instructor/course_screen.dart';
+import 'package:Knowble/features/instructor/instructor_profile_page.dart';
+import 'package:Knowble/features/instructor/chat/chat_list_page.dart';
 
 /// InstructorLayout is a root wrapper for all instructor-facing pages with a persistent bottom navbar.
 class InstructorLayout extends StatefulWidget {

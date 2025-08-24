@@ -11,7 +11,9 @@ import 'chatbot/chatbotpage.dart';
 class PDFViewerPage extends StatefulWidget {
   final String pdfUrl;
   final String title;
-  const PDFViewerPage({required this.pdfUrl, required this.title, super.key});
+  final String contentId;
+  final String? courseId; // optional: parent course id to forward to ChatBot
+  const PDFViewerPage({required this.pdfUrl, required this.title, required this.contentId, this.courseId, super.key});
 
   @override
   State<PDFViewerPage> createState() => _PDFViewerPageState();
@@ -194,16 +196,19 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
               print('════════════════════════════════════════');
               
               Navigator.push(
-                context, 
+                context,
                 MaterialPageRoute(
                   builder: (_) => ChatBotPage(
                     courseTitle: 'PDF Document',
                     courseDescription: 'Currently viewing: ${widget.title} - Page ${(currentPage ?? 0) + 1}',
+                    courseId: widget.courseId ?? 'pdf-document',
+                    contentId: widget.contentId,
                     pdfContents: [
                       {
+                        'id': widget.contentId,
                         'title': '${widget.title} - Page ${(currentPage ?? 0) + 1}',
                         'url': widget.pdfUrl,
-                        'textContent': currentPageText, // Include only current page text
+                        'textContent': currentPageText,
                       }
                     ],
                   ),

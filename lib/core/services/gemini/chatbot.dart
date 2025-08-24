@@ -1,18 +1,20 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:knowble_app/core/config/api_config.dart';
+import 'package:Knowble/core/config/api_config.dart';
 
 class GeminiService {
   final String apiKey = ApiConfig.geminiApiKey;
-  static const String baseURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-  static const String fallbackURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  static const String baseURL =
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  static const String fallbackURL =
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
   GeminiService();
 
   Future<String> _generateResponse(String userPrompt, String option) async {
-
-    final formattedPrompt = await _promptFactory(userPrompt, option);
-    final systemPrompt = '''You are StudyBuddy-G, a smart, chill, no-nonsense study assistant who helps the user with learning anything — from breaking down tough concepts to summarizing dense textbooks. You speak in a friendly, engaging tone with a mix of clarity. You always aim to:
+  final formattedPrompt = await _promptFactory(userPrompt, option);
+    final systemPrompt =
+        '''You are StudyBuddy-G, a smart, chill, no-nonsense study assistant who helps the user with learning anything — from breaking down tough concepts to summarizing dense textbooks. You speak in a friendly, engaging tone with a mix of clarity. You always aim to:
 - simplify complex stuff without dumbing it down,
 - explain using analogies, visuals (if asked), or examples,
 - suggest better ways to remember/study a topic,
@@ -20,7 +22,9 @@ class GeminiService {
 You’re not just a tutor — you’re the user’s academic ride-or-die.
 ''';
 
-    final fullPrompt = '$systemPrompt\n\nUser says: $formattedPrompt';
+  // Keep the option-based instruction separate from the user's text.
+  // First include the chosen instruction, then add the user's prompt on its own line.
+  final fullPrompt = '$systemPrompt\n\n$formattedPrompt\n\nUser says: $userPrompt';
 
     return await generateContent(fullPrompt);
   }
@@ -28,120 +32,119 @@ You’re not just a tutor — you’re the user’s academic ride-or-die.
   Future<String> _promptFactory(String userPrompt, String option) async {
     switch (option) {
       case 'Solve':
-        return 'Solve this problem step-by-step with reasoning: $userPrompt';
+        return 'Provide a clear, step-by-step solution to the problem. Show all intermediate steps, explain each manipulation or assumption, highlight common pitfalls, and finish with a concise final answer. Use numbered steps and simple notation.';
       case 'Concept':
-        return 'Explain the core concept of "$userPrompt" with simple analogies and real-world examples. Avoid jargon.';
+        return 'Define the core concept clearly, list its main properties, show 2 short real-world examples, provide a simple analogy to aid intuition, and note one common misconception to avoid. Keep language plain and concise.';
       case 'Examples':
-        return 'Give 3 clear and diverse examples that illustrate: $userPrompt';
+        return 'Give 3 diverse, worked examples that demonstrate the idea. For each example, state the problem, show the solution step-by-step, and provide a one-sentence takeaway about what the example illustrates.';
       case 'Steps':
-        return 'Break down how to do "$userPrompt" into clear, ordered steps. Include tips if helpful.';
+        return 'Break the task into a clear, ordered checklist of actionable steps. For each step include how long it should take, any prerequisites, and a short tip to avoid mistakes.';
       case 'Trick':
-        return 'Share a clever trick or shortcut to understand or solve: $userPrompt';
+        return 'Provide a concise trick or shortcut that simplifies solving or understanding the problem, explain why it works, show a short example of it in use, and warn when it should not be applied.';
       case 'Explain':
       case 'Break it down':
       case 'ELI5':
-        return 'Explain "$userPrompt" like I\'m 5 years old, but don’t be condescending. Use analogies.';
+        return 'Explain the idea in very simple terms, using a friendly analogy and plain language suitable for a beginner. Avoid jargon and keep sentences short.';
       case 'Process':
-        return 'Describe the entire process of "$userPrompt" from start to finish, like a tutorial.';
+        return 'Provide a start-to-finish tutorial: prerequisites, sequence of steps, expected outcomes at each stage, common errors, and a short checklist to verify success.';
       case 'Compare':
-        return 'Compare and contrast: $userPrompt. Focus on differences, pros and cons, and use a table if needed.';
+        return 'Compare the two or more items clearly: list similarities, list differences, pros and cons for each, and give a recommendation for which to choose in specific scenarios. Use a short table if it helps clarity.';
       case 'Why?':
-        return 'Explain why "$userPrompt" happens or exists. Dive into cause-effect.';
+        return 'Explain the underlying causes or reasoning behind the phenomenon. Describe cause-and-effect relationships, include any supporting evidence or intuition, and summarize in one sentence.';
       case 'Timeline':
-        return 'Create a timeline showing major events or milestones related to: $userPrompt';
+        return 'Create a chronological timeline of the major events or milestones, include dates (if known), short descriptions (1–2 sentences) for each event, and a brief note about the significance of the sequence.';
       case 'Event':
-        return 'What happened in "$userPrompt"? Describe the background, key moments, and its impact.';
+        return 'Summarize the event: give concise background, list the key moments in order, and explain the immediate and long-term impacts. Keep the summary focused and factual.';
       case 'Figure':
-        return 'Who is "$userPrompt"? Summarize their contributions and why they matter.';
+        return 'Provide a short bio: key accomplishments, why they matter, one notable quote or contribution, and suggested further reading if available.';
       case 'Impact':
-        return 'What impact did "$userPrompt" have on society, technology, or history? Include long-term effects.';
+        return 'Analyze the impact on society, technology, or the field: immediate effects, long-term consequences, and who benefited or was disadvantaged. Conclude with a short summary.';
       case 'Analyze':
-        return 'Analyze "$userPrompt" like a lit teacher with a magnifying glass. Go deep—language, intent, message, impact.';
+        return 'Perform a close analysis: identify key themes or components, interpret intent or meaning, examine structure or technique used, and conclude with the main takeaway and evidence supporting it.';
       case 'Theme':
-        return 'What is the underlying theme or message behind "$userPrompt"? Give a thoughtful explanation.';
+        return 'Identify and explain the central theme or message. Provide 2–3 supporting points or examples that demonstrate the theme, and suggest one question for further thought.';
       case 'Essay Help':
-        return 'Help me structure and write an essay about: "$userPrompt". Include outline + thesis suggestion.';
+        return 'Provide an essay plan: a concise thesis statement, a 3–5 paragraph outline with topic sentences for each paragraph, key evidence points, and a suggested intro and conclusion paragraph.';
       case 'Grammar':
       case 'Improve Writing':
-        return 'Correct grammar, fix clarity, and improve the tone of this writing: "$userPrompt"';
+        return 'Edit the provided text for grammar, clarity, and tone. Return the improved version and a brief list of the main changes and why they help.';
       case 'Figurative':
-        return 'Find and explain the figurative language and hidden meanings in: "$userPrompt"';
+        return 'Identify figurative language (metaphor, simile, personification, etc.), explain the likely meaning or effect of each, and say how they contribute to the overall message or mood.';
       case 'Debug':
-        return 'Find and fix the error in this code or logic: "$userPrompt". Explain why it was wrong.';
+        return 'Locate the bug or logical error, explain why it occurs, provide a corrected version of the code or algorithm, and give a brief test or example showing the fix works.';
       case 'How to':
-        return 'Teach me how to: $userPrompt. Make it clear, practical, and beginner-friendly.';
+        return 'Give a concise, practical how-to guide with prerequisites, step-by-step instructions, expected pitfalls, and a short checklist to confirm success.';
       case 'Plan':
-        return 'Create a detailed plan for: "$userPrompt" including steps, timeline, and resources needed.';
+        return 'Create a detailed plan: list goals, break tasks into phases with estimated durations, assign simple resource suggestions, and include 2 milestone checkpoints with success criteria.';
       case 'Simplify':
-        return 'Simplify "$userPrompt" into basic terms for someone just starting out.';
+        return 'Rewrite the idea in the simplest possible language for a beginner, define any minimal technical terms, and give one quick example to demonstrate.';
       case 'Summarize':
-        return 'Give a short, sharp summary of: "$userPrompt". Keep it under 100 words if possible.';
+        return 'Provide a concise summary (about 2–4 sentences) that captures the main points and significance. Keep it short and focused.';
       case 'Write':
-        return 'Write something creative based on "$userPrompt" — story, poem, or scene.';
+        return 'Produce a short creative piece (story, scene, or poem) matching the requested tone and length. Keep it engaging and coherent, and include one vivid detail to ground the scene.';
       case 'Ask Anything':
-        return 'Answer this thoughtfully and helpfully: "$userPrompt"';
+        return 'Provide a clear, helpful answer that addresses the user’s question, include concise supporting points or examples, and end with one actionable next step the user can take.';
       case 'Translate':
-        return 'Translate the following text into English or another language: "$userPrompt"';
+        return 'Translate the provided text into idiomatic English while preserving tone and meaning. If a different target language is specified by the user, translate into that language and note any ambiguous phrases.';
       case 'Tips':
-        return 'Give actionable tips and advice about: "$userPrompt"';
+        return 'List 5 actionable tips or best practices, each with a one-sentence explanation and one quick example of application.';
       case 'Pros & Cons':
-        return 'List the pros and cons of "$userPrompt" with explanations for each.';
+        return 'List key pros and cons in bullet form, give one-sentence explanations for each point, and provide a brief recommendation for specific scenarios.';
       case 'Use Cases':
-        return 'What are some real-world use cases of "$userPrompt"? Include industries or scenarios.';
+        return 'List relevant real-world use cases across industries or settings. For each use case, give a one-line description of why it fits and one expected benefit.';
       case 'Study Help':
-        return 'Help me study and understand this topic: "$userPrompt". Use summaries, questions, and mnemonics if useful.';
+        return 'Provide a study guide: a short summary, 5 practice questions (with brief answers), and a mnemonic or tip for remembering the key idea.';
       default:
-        return userPrompt;
+        return 'Respond directly to the user request.';
     }
   }
-
 
   /// Generate content using Gemini API with retry mechanism
   Future<String> generateContent(String prompt, {int maxRetries = 3}) async {
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         final url = Uri.parse('$baseURL?key=$apiKey');
-        
+
         final requestBody = {
           'contents': [
             {
               'parts': [
-                {'text': prompt}
-              ]
-            }
+                {'text': prompt},
+              ],
+            },
           ],
           'generationConfig': {
             'temperature': 0.9,
             'topK': 10,
             'topP': 0.8,
             'maxOutputTokens': 1500,
-            'stopSequences': []
-          }
+            'stopSequences': [],
+          },
         };
 
         final response = await http.post(
           url,
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: {'Content-Type': 'application/json'},
           body: json.encode(requestBody),
         );
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
-          
-          if (data['candidates'] != null && 
+
+          if (data['candidates'] != null &&
               data['candidates'].isNotEmpty &&
               data['candidates'][0]['content'] != null &&
               data['candidates'][0]['content']['parts'] != null &&
               data['candidates'][0]['content']['parts'].isNotEmpty) {
-            
-            return data['candidates'][0]['content']['parts'][0]['text'] ?? 'No response generated';
+            return data['candidates'][0]['content']['parts'][0]['text'] ??
+                'No response generated';
           } else {
             return 'Sorry, I couldn\'t generate a response. Please try again.';
           }
         } else if (response.statusCode == 503) {
-          print('Gemini API Overloaded (Attempt $attempt/$maxRetries): ${response.body}');
+          print(
+            'Gemini API Overloaded (Attempt $attempt/$maxRetries): ${response.body}',
+          );
           if (attempt < maxRetries) {
             // Wait with exponential backoff: 1s, 2s, 4s
             final delay = Duration(seconds: attempt * attempt);
@@ -165,13 +168,15 @@ You’re not just a tutor — you’re the user’s academic ride-or-die.
         }
       }
     }
-    
+
     return 'Sorry, I\'m unable to respond right now. Please try again later.';
   }
 
-
   /// Try with fallback model if primary model fails
-  Future<String> generateContentWithFallback(String prompt, String option) async {
+  Future<String> generateContentWithFallback(
+    String prompt,
+    String option,
+  ) async {
     // First try the primary model
     String response = await _generateResponse(prompt, option);
     return response;
@@ -182,5 +187,4 @@ You’re not just a tutor — you’re the user’s academic ride-or-die.
   // }
 
   /// Generate educational content with context
-  
 }

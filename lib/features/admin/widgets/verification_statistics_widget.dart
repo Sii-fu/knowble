@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import '../../../config/theme.dart';
-import '../../../core/services/admin_instructor_verification_service.dart';
+import '../../../core/services/admin/admin_instructor_verification_service.dart';
 import '../../../widgets/custom_icon_widget.dart';
 
 class VerificationStatisticsWidget extends StatefulWidget {

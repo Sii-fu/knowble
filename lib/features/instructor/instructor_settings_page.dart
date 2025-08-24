@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 import 'course_screen.dart';
-import 'instructor_notification_settings_page.dart';
 import 'instructor_account_privacy_page.dart';
 import 'instructor_terms_conditions_page.dart';
 import 'instructor_privacy_policy_page.dart';
 import 'instructor_help_support_page.dart';
-import 'instructor_send_feedback_page.dart';
+import 'feedback pages/instructor_feedback_form_screen.dart';
 import 'instructor_teaching_analytics_page.dart';
 
-class InstructorSettingsPage extends StatelessWidget {
+class InstructorSettingsPage extends StatefulWidget {
   const InstructorSettingsPage({super.key});
+
+  @override
+  State<InstructorSettingsPage> createState() => _InstructorSettingsPageState();
+}
+
+class _InstructorSettingsPageState extends State<InstructorSettingsPage> {
+  bool _notificationsEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -77,19 +83,49 @@ class InstructorSettingsPage extends StatelessWidget {
             _buildSectionCard(
               'Notifications',
               [
-                _buildSettingsTile(
-                  context,
-                  icon: Icons.notifications_outlined,
-                  title: 'Notification Settings',
-                  subtitle: 'Manage push notifications and alerts',
+                // Replace the navigation tile with a toggle switch
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentLight,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.notifications_outlined,
+                      color: AppTheme.primaryTeal,
+                      size: 22,
+                    ),
+                  ),
+                  title: Text(
+                    'Notifications',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Manage push notifications and alerts',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  trailing: Switch(
+                    value: _notificationsEnabled,
+                    onChanged: (val) {
+                      setState(() {
+                        _notificationsEnabled = val;
+                      });
+                      // TODO: persist this setting to user preferences
+                    },
+                    activeColor: AppTheme.primaryTeal,
+                  ),
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const InstructorNotificationSettingsPage(),
-                      ),
-                    );
+                    setState(() => _notificationsEnabled = !_notificationsEnabled);
+                    // TODO: optionally open a detailed notifications settings page
                   },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 ),
               ],
               theme,
@@ -177,7 +213,7 @@ class InstructorSettingsPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const InstructorSendFeedbackPage(),
+                        builder: (context) => const InstructorFeedbackFormScreen(),
                       ),
                     );
                   },

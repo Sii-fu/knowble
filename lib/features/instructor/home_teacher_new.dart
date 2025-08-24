@@ -4,7 +4,8 @@ import '../../config/theme_instructor.dart';
 import 'course_screen.dart';
 import 'create_course_screen.dart';
 
-import 'package:knowble_app/features/instructor/chat/chat_list_page.dart';
+import 'package:Knowble/features/instructor/chat/chat_list_page.dart';
+import '../../core/services/Instructor/teacher_dashboard.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
@@ -15,6 +16,32 @@ class TeacherHomePage extends StatefulWidget {
 
 class _TeacherHomePageState extends State<TeacherHomePage> {
   int _selectedIndex = 0;
+  String _selectedRevenueYear = '2024';
+  final _dashboardService = TeacherDashboardService();
+  int _totalCourses = 0;
+  int _totalStudents = 0;
+  int _totalDays = 0;
+  List<Map<String, dynamic>> _recentCourses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboard();
+  }
+
+  Future<void> _loadDashboard() async {
+    final data = await _dashboardService.fetchInstructorOverview(
+      recentLimit: 4,
+    );
+    setState(() {
+      _totalCourses = data['totalCourses'] as int? ?? 0;
+      _totalStudents = data['totalStudents'] as int? ?? 0;
+      _totalDays = data['totalDays'] as int? ?? 0;
+      _recentCourses = List<Map<String, dynamic>>.from(
+        data['recentCourses'] as List? ?? [],
+      );
+    });
+  }
 
   void _onTabSelected(int index) {
     setState(() {
@@ -31,11 +58,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = AppThemeInstructor.lightTheme;
-    
+
     return Theme(
       data: theme,
       child: Scaffold(
         backgroundColor: AppThemeInstructor.backgroundLight,
+
         appBar: AppBar(
           elevation: 0,
           backgroundColor: AppThemeInstructor.surfaceWhite,
@@ -71,7 +99,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   color: AppThemeInstructor.primaryBlue,
                 ),
                 onPressed: () {
-                  // Handle notifications
+                  Navigator.pushNamed(context, '/notifications');
                 },
               ),
             ),
@@ -82,32 +110,43 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Quick Actions
-              _buildQuickActions(),
-              
-              const SizedBox(height: 24),
-              
+              // Quick Actions (kept offstage to avoid UI change but reference the method)
+              Offstage(offstage: true, child: _buildQuickActions()),
+
+              // const SizedBox(height: 24),
+
               // Statistics Overview
               _buildStatisticsSection(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Course Progress
               _buildCourseProgressSection(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Revenue Chart
               _buildRevenueSection(),
-              
+
               const SizedBox(height: 24),
-              
+
               // Recent Activity
               _buildRecentActivitySection(),
-              
+
               const SizedBox(height: 100),
             ],
           ),
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onTabSelected,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.menu_book),
+              label: 'Courses',
+            ),
+          ],
         ),
       ),
     );
@@ -139,10 +178,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         children: [
           Text(
             'Quick Actions',
-            style: AppThemeInstructor.lightTheme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppThemeInstructor.lightTheme.textTheme.titleMedium
+                ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Row(
@@ -198,28 +235,33 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     required String label,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -234,10 +276,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Overview',
-              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppThemeInstructor.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                  ?.copyWith(
+                    color: AppThemeInstructor.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -248,7 +291,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: AppThemeInstructor.primaryBlue),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: AppThemeInstructor.primaryBlue,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'This Month',
@@ -270,8 +317,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: _buildStatCard(
                 icon: Icons.school_outlined,
                 title: 'Active Courses',
-                value: '12',
-                change: '+2 this week',
+                value: _totalCourses.toString(),
+                change: '',
                 isPositive: true,
                 color: AppThemeInstructor.primaryBlue,
               ),
@@ -281,8 +328,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               child: _buildStatCard(
                 icon: Icons.people_outline,
                 title: 'Total Students',
-                value: '1,847',
-                change: '+127 this month',
+                value: _totalStudents.toString(),
+                change: '',
                 isPositive: true,
                 color: AppThemeInstructor.successGreen,
               ),
@@ -295,9 +342,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             Expanded(
               child: _buildStatCard(
                 icon: Icons.access_time_outlined,
-                title: 'Hours Taught',
-                value: '156',
-                change: '+12 this week',
+                title: 'Days Taught',
+                value: _totalDays.toString(),
+                change: '',
                 isPositive: true,
                 color: Colors.orange,
               ),
@@ -357,7 +404,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               const Spacer(),
               Icon(
                 isPositive ? Icons.trending_up : Icons.trending_down,
-                color: isPositive ? AppThemeInstructor.successGreen : AppThemeInstructor.errorRed,
+                color: isPositive
+                    ? AppThemeInstructor.successGreen
+                    : AppThemeInstructor.errorRed,
                 size: 16,
               ),
             ],
@@ -365,10 +414,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: AppThemeInstructor.lightTheme.textTheme.headlineSmall?.copyWith(
-              color: AppThemeInstructor.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppThemeInstructor.lightTheme.textTheme.headlineSmall
+                ?.copyWith(
+                  color: AppThemeInstructor.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -381,7 +431,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           Text(
             change,
             style: TextStyle(
-              color: isPositive ? AppThemeInstructor.successGreen : AppThemeInstructor.errorRed,
+              color: isPositive
+                  ? AppThemeInstructor.successGreen
+                  : AppThemeInstructor.errorRed,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -400,10 +452,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Course Progress',
-              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppThemeInstructor.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                  ?.copyWith(
+                    color: AppThemeInstructor.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             TextButton(
               onPressed: () {
@@ -425,31 +478,22 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         const SizedBox(height: 16),
         SizedBox(
           height: 160,
-          child: ListView(
+          child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            children: [
-              _buildCourseCard(
-                title: "Advanced Flutter Development",
-                subject: "Mobile Development",
-                progress: 0.75,
-                students: 234,
+            itemCount: _recentCourses.length,
+            itemBuilder: (context, index) {
+              final c = _recentCourses[index];
+              final title = c['title'] as String? ?? 'Untitled';
+              final students = c['students'] as int? ?? 0;
+              // Placeholder subject and progress — you can enhance if more data is available
+              return _buildCourseCard(
+                title: title,
+                subject: '',
+                progress: 0.0,
+                students: students,
                 color: AppThemeInstructor.primaryBlue,
-              ),
-              _buildCourseCard(
-                title: "Introduction to Data Science",
-                subject: "Data Science",
-                progress: 0.45,
-                students: 156,
-                color: AppThemeInstructor.successGreen,
-              ),
-              _buildCourseCard(
-                title: "UI/UX Design Fundamentals",
-                subject: "Design",
-                progress: 0.90,
-                students: 89,
-                color: Colors.orange,
-              ),
-            ],
+              );
+            },
           ),
         ),
       ],
@@ -506,17 +550,22 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           const SizedBox(height: 12),
           Text(
             title,
-            style: AppThemeInstructor.lightTheme.textTheme.titleMedium?.copyWith(
-              color: AppThemeInstructor.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppThemeInstructor.lightTheme.textTheme.titleMedium
+                ?.copyWith(
+                  color: AppThemeInstructor.textPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           const Spacer(),
           Row(
             children: [
-              Icon(Icons.people_outline, size: 16, color: AppThemeInstructor.textSecondary),
+              Icon(
+                Icons.people_outline,
+                size: 16,
+                color: AppThemeInstructor.textSecondary,
+              ),
               const SizedBox(width: 4),
               Text(
                 '$students students',
@@ -588,31 +637,52 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             children: [
               Text(
                 'Revenue Overview',
-                style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                  color: AppThemeInstructor.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                    ?.copyWith(
+                      color: AppThemeInstructor.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 0,
+                ),
                 decoration: BoxDecoration(
                   color: AppThemeInstructor.accentLight,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '2024',
-                      style: TextStyle(
-                        color: AppThemeInstructor.primaryBlue,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedRevenueYear,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: AppThemeInstructor.primaryBlue,
                     ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.keyboard_arrow_down, size: 16, color: AppThemeInstructor.primaryBlue),
-                  ],
+                    items: ['2022', '2023', '2024', '2025']
+                        .map(
+                          (y) => DropdownMenuItem<String>(
+                            value: y,
+                            child: Text(
+                              y,
+                              style: TextStyle(
+                                color: AppThemeInstructor.primaryBlue,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (val) {
+                      if (val == null) return;
+                      setState(() {
+                        _selectedRevenueYear = val;
+                        // TODO: update chart/data based on selected year
+                      });
+                    },
+                  ),
                 ),
               ),
             ],
@@ -625,15 +695,23 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 children: [
                   Text(
                     '\$24,850',
-                    style: AppThemeInstructor.lightTheme.textTheme.headlineMedium?.copyWith(
-                      color: AppThemeInstructor.textPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppThemeInstructor
+                        .lightTheme
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(
+                          color: AppThemeInstructor.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.trending_up, size: 16, color: AppThemeInstructor.successGreen),
+                      Icon(
+                        Icons.trending_up,
+                        size: 16,
+                        color: AppThemeInstructor.successGreen,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '+12.5% from last month',
@@ -696,10 +774,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           children: [
             Text(
               'Recent Activity',
-              style: AppThemeInstructor.lightTheme.textTheme.titleLarge?.copyWith(
-                color: AppThemeInstructor.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                  ?.copyWith(
+                    color: AppThemeInstructor.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             TextButton(
               onPressed: () {
@@ -787,17 +866,17 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               children: [
                 Text(
                   title,
-                  style: AppThemeInstructor.lightTheme.textTheme.bodyMedium?.copyWith(
-                    color: AppThemeInstructor.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppThemeInstructor.lightTheme.textTheme.bodyMedium
+                      ?.copyWith(
+                        color: AppThemeInstructor.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: AppThemeInstructor.lightTheme.textTheme.bodySmall?.copyWith(
-                    color: AppThemeInstructor.textSecondary,
-                  ),
+                  style: AppThemeInstructor.lightTheme.textTheme.bodySmall
+                      ?.copyWith(color: AppThemeInstructor.textSecondary),
                 ),
               ],
             ),

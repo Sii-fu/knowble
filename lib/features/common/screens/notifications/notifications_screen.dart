@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
-import 'package:knowble_app/widgets/custom_icon_widget.dart';
+import 'package:Knowble/config/theme.dart';
+import 'package:Knowble/widgets/custom_icon_widget.dart';
 import '../../widgets/notifications/notification_list_widget.dart';
+import '../../../../core/services/notification_data_service.dart';
+import '../../../../data/models/reminder.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -12,103 +14,328 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  bool _isLoading = false;
+  bool _isLoading = true;
+  List<NotificationData> _allNotifications = [];
 
   // Track clicked/read notifications
   final Set<String> _clickedNotifications = <String>{};
 
-  // Mock notification data grouped by date
-  final Map<String, List<NotificationItem>> _notificationData = {
-    'Today': [
-      NotificationItem(
-        id: '1',
-        title: 'New Category Course.!',
-        description:
-            'New category course is now available. Check it out now and start learning today.',
-        icon: 'school',
-        iconColor: AppTheme.primaryTeal,
-        timestamp: '2h ago',
-        type: NotificationType.course,
-      ),
-      NotificationItem(
-        id: '2',
-        title: 'Today\'s Special Offers',
-        description:
-            'Don\'t miss out on today\'s special offers. Get up to 50% off on selected courses.',
-        icon: 'local_offer',
-        iconColor: AppTheme.warningAmber,
-        timestamp: '4h ago',
-        type: NotificationType.offer,
-      ),
-    ],
-    'Yesterday': [
-      NotificationItem(
-        id: '3',
-        title: 'Credit Card Connected.!',
-        description:
-            'Your credit card has been successfully connected to your account. You can now make payments.',
-        icon: 'credit_card',
-        iconColor: AppTheme.successGreen,
-        timestamp: '1 day ago',
-        type: NotificationType.payment,
-      ),
-      NotificationItem(
-        id: '4',
-        title: 'Account Setup Successful.!',
-        description:
-            'Your account has been set up successfully. Welcome to our learning platform!',
-        icon: 'account_circle',
-        iconColor: AppTheme.primaryTeal,
-        timestamp: '1 day ago',
-        type: NotificationType.account,
-      ),
-    ],
-    'Nov 20 2022': [
-      NotificationItem(
-        id: '5',
-        title: 'Course Assignment Due',
-        description:
-            'Reminder: Your assignment for Introduction to Flutter is due in 2 days. Submit before the deadline.',
-        icon: 'assignment',
-        iconColor: AppTheme.warningAmber,
-        timestamp: 'Nov 20, 2022',
-        type: NotificationType.course,
-      ),
-      NotificationItem(
-        id: '6',
-        title: 'Payment Confirmation',
-        description:
-            'Payment of \$29.99 for Premium Course Pack has been confirmed. Receipt sent to your email.',
-        icon: 'payment',
-        iconColor: AppTheme.successGreen,
-        timestamp: 'Nov 20, 2022',
-        type: NotificationType.payment,
-      ),
-    ],
-  };
+  // Dynamic notification data grouped by date
+  Map<String, List<NotificationItem>> _notificationData = {};
 
-  // Handle notification tap to change color
-  void _onNotificationTap(String notificationId) {
-    setState(() {
-      if (_clickedNotifications.contains(notificationId)) {
-        _clickedNotifications.remove(notificationId);
-      } else {
-        _clickedNotifications.add(notificationId);
-      }
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
   }
 
-  // Mark all notifications as read
-  void _markAllAsRead() {
+  /// Load notifications from the database
+  Future<void> _loadNotifications() async {
     setState(() {
-      _clickedNotifications.clear();
-      // Add all notification IDs to clicked set
-      for (final notifications in _notificationData.values) {
-        for (final notification in notifications) {
-          _clickedNotifications.add(notification.id);
+      _isLoading = true;
+    });
+
+    try {
+      final notifications =
+          await NotificationDataService.fetchUserNotifications();
+      _allNotifications = notifications;
+
+      // Convert to UI format and group by date
+      final groupedData = NotificationDataService.groupNotificationsByDate(
+        notifications,
+      );
+      final convertedData = <String, List<NotificationItem>>{};
+
+      for (final entry in groupedData.entries) {
+        convertedData[entry.key] = entry.value
+            .map((notif) => notif.toNotificationItem())
+            .toList();
+      }
+
+      // Initialize clicked notifications based on read status
+      for (final notif in notifications) {
+        if (notif.isRead) {
+          _clickedNotifications.add(notif.id);
         }
       }
-    });
+
+      if (mounted) {
+        setState(() {
+          _notificationData = convertedData;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading notifications: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar('Failed to load notifications. Please try again.');
+      }
+    }
+  }
+
+  /// Show error message to user
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(4.w),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Show success message to user
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(4.w),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // Handle notification tap to navigate first, then mark as read
+  void _onNotificationTap(String notificationId) async {
+    try {
+      // Find the notification data to get the navigate field
+      final notification = _allNotifications.firstWhere(
+        (notif) => notif.id == notificationId,
+        orElse: () => throw Exception('Notification not found'),
+      );
+
+      bool navigationSuccess = false;
+
+      // Check navigation type and handle accordingly
+      if (notification.navigate != null && notification.navigate!.isNotEmpty) {
+        // Check if it's a feedback notification by looking at navigate_type or navigate content
+        if (notification.navigate == '/admin/users') {
+          // Admin feedback notification - navigate to admin users page
+          navigationSuccess = await _navigateToAdminUsers();
+        } else if (notification.navigate!.startsWith('/')) {
+          // Route-based navigation
+          navigationSuccess = await _navigateToRoute(notification.navigate!);
+        } else {
+          // Reminder notification - navigate to reminder details
+          navigationSuccess = await _navigateToReminderDetails(
+            notification.navigate!,
+          );
+        }
+
+        // SECONDARY ACTION: Mark as read only if navigation was successful
+        if (navigationSuccess) {
+          await _markNotificationAsRead(notificationId);
+        }
+      } else {
+        // If no navigation target, just mark as read (fallback behavior)
+        await _markNotificationAsRead(notificationId);
+        _showErrorSnackBar('No details available for this notification');
+      }
+    } catch (e) {
+      print('Error handling notification tap: $e');
+      _showErrorSnackBar('Failed to open notification');
+    }
+  }
+
+  /// Mark a single notification as read
+  Future<void> _markNotificationAsRead(String notificationId) async {
+    try {
+      // Update UI immediately for responsive feel
+      setState(() {
+        _clickedNotifications.add(notificationId);
+      });
+
+      // Update in database
+      final success = await NotificationDataService.markNotificationAsRead(
+        notificationId,
+      );
+
+      if (!success) {
+        // Revert UI change if database update failed
+        setState(() {
+          _clickedNotifications.remove(notificationId);
+        });
+        _showErrorSnackBar('Failed to mark notification as read');
+      }
+    } catch (e) {
+      print('Error marking notification as read: $e');
+      // Revert UI change on error
+      setState(() {
+        _clickedNotifications.remove(notificationId);
+      });
+    }
+  }
+
+  /// Navigate to admin users page
+  Future<bool> _navigateToAdminUsers() async {
+    try {
+      print('📱 Attempting to navigate to admin users page');
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Navigate to admin users page
+      final result = await Navigator.pushNamed(context, '/admin/users');
+
+      // Return true if navigation was successful
+      return result != null || true;
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      print('❌ Error navigating to admin users: $e');
+      _showErrorSnackBar('Failed to open admin users page');
+      return false;
+    }
+  }
+
+  /// Navigate to a specific route
+  Future<bool> _navigateToRoute(String route) async {
+    try {
+      print('📱 Attempting to navigate to route: $route');
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Navigate to the specified route
+      final result = await Navigator.pushNamed(context, route);
+
+      // Return true if navigation was successful
+      return result != null || true;
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      print('❌ Error navigating to route $route: $e');
+      _showErrorSnackBar('Failed to open page');
+      return false;
+    }
+  }
+
+  /// Navigate to reminder details page
+  Future<bool> _navigateToReminderDetails(String reminderId) async {
+    try {
+      print('📱 Attempting to navigate to reminder: $reminderId');
+
+      // First, verify the reminder exists and belongs to the user
+      final reminderData = await NotificationDataService.getReminderDetails(
+        reminderId,
+      );
+
+      if (reminderData == null) {
+        _showErrorSnackBar('Reminder not found or no longer exists');
+        return false;
+      }
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Convert reminderData to Reminder object for navigation
+      final reminder = _convertToReminderObject(reminderData);
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Navigate to the task detail view screen
+      final result = await Navigator.pushNamed(
+        context,
+        '/task-detail-view',
+        arguments: reminder,
+      );
+
+      // Return true if navigation was successful (user returned from the screen)
+      return result != null || true; // Return true since navigation happened
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      print('❌ Error navigating to reminder details: $e');
+      _showErrorSnackBar('Failed to open reminder details');
+      return false;
+    }
+  }
+
+  /// Convert reminder data from Map to Reminder object
+  Reminder _convertToReminderObject(Map<String, dynamic> reminderData) {
+    return Reminder(
+      id: reminderData['id'].toString(),
+      title: reminderData['title'] ?? 'Untitled Reminder',
+      description: reminderData['description'],
+      time: DateTime.parse(reminderData['time']),
+      endTime: reminderData['end_time'] != null
+          ? DateTime.parse(reminderData['end_time'])
+          : null,
+      priority: reminderData['priority'] ?? 'Medium',
+      courseId: reminderData['course_id'],
+      userId: reminderData['user_id'],
+      createdBy: reminderData['created_by'],
+    );
+  } // Mark all notifications as read
+
+  void _markAllAsRead() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final success =
+          await NotificationDataService.markAllNotificationsAsRead();
+
+      if (success) {
+        setState(() {
+          _clickedNotifications.clear();
+          // Add all notification IDs to clicked set
+          for (final notifications in _notificationData.values) {
+            for (final notification in notifications) {
+              _clickedNotifications.add(notification.id);
+            }
+          }
+          _isLoading = false;
+        });
+        _showSuccessSnackBar('All notifications marked as read');
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar('Failed to mark all notifications as read');
+      }
+    } catch (e) {
+      print('Error marking all as read: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackBar('Failed to mark all notifications as read');
+    }
   }
 
   // Clear all notifications
@@ -117,7 +344,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppTheme.surfaceWhite, // Add white background
+          backgroundColor: AppTheme.surfaceWhite,
           title: Text(
             'Clear All Notifications',
             style: TextStyle(
@@ -138,12 +365,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
             TextButton(
-              onPressed: () {
-                setState(() {
-                  _notificationData.clear();
-                  _clickedNotifications.clear();
-                });
+              onPressed: () async {
                 Navigator.of(context).pop();
+                await _performClearAll();
               },
               child: Text(
                 'Clear All',
@@ -156,26 +380,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
+  /// Perform the actual clear all operation
+  Future<void> _performClearAll() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final success = await NotificationDataService.deleteAllNotifications();
+
+      if (success) {
+        setState(() {
+          _notificationData.clear();
+          _clickedNotifications.clear();
+          _allNotifications.clear();
+          _isLoading = false;
+        });
+        _showSuccessSnackBar('All notifications cleared');
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackBar('Failed to clear notifications');
+      }
+    } catch (e) {
+      print('Error clearing all notifications: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      _showErrorSnackBar('Failed to clear notifications');
+    }
+  }
+
   // Check if notification is clicked/read
   bool _isNotificationClicked(String notificationId) {
     return _clickedNotifications.contains(notificationId);
   }
 
   Future<void> _onRefresh() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Simulate refresh operation
-      await Future.delayed(const Duration(seconds: 1));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    await _loadNotifications();
   }
 
   @override

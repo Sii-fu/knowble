@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 import './widgets/course_list_item_card.dart';
 import './widgets/course_preview_modal.dart';
 import '../../widgets/custom_icon_widget.dart';
+import '../../core/services/admin/admin_course_service.dart';
 
 class AdminCoursesManagement extends StatefulWidget {
   const AdminCoursesManagement({super.key});
@@ -17,44 +18,47 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isSelectionMode = false;
-  final List<int> _selectedCourses = [];
+  final List<String> _selectedCourses = [];
+  final AdminCourseService _adminCourseService = AdminCourseService();
 
-  final List<Map<String, dynamic>> _mockCourses = [
-    {
-      "id": 1,
-      "title": "Advanced Mathematics for Engineers",
-      "instructor": "Dr. Sarah Johnson",
-      "thumbnail":
-          "https://images.unsplash.com/photo-1509228468518-180dd4864904?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      "enrollmentCount": 1284,
-      "status": "pending",
-      "category": "Mathematics",
-      "createdAt": DateTime.now().subtract(const Duration(days: 2)),
-      "reportCount": 0,
-      "duration": "12 hours",
-      "rating": 4.8,
-    },
-    {
-      "id": 2,
-      "title": "Computer Science Fundamentals",
-      "instructor": "Prof. Michael Rodriguez",
-      "thumbnail":
-          "https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80",
-      "enrollmentCount": 956,
-      "status": "approved",
-      "category": "Computer Science",
-      "createdAt": DateTime.now().subtract(const Duration(days: 5)),
-      "reportCount": 0,
-      "duration": "15 hours",
-      "rating": 4.7,
-    },
-  ];
+  List<Map<String, dynamic>> _courses = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final courses = await _adminCourseService.fetchAllCoursesForAdmin();
+      setState(() {
+        _courses = courses;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading courses: $e'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredCourses {
     if (_searchQuery.isEmpty) {
-      return _mockCourses;
+      return _courses;
     }
-    return _mockCourses.where((course) {
+    return _courses.where((course) {
       final title = (course['title'] as String).toLowerCase();
       final instructor = (course['instructor'] as String).toLowerCase();
       final category = (course['category'] as String).toLowerCase();
@@ -81,7 +85,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
     });
   }
 
-  void _toggleCourseSelection(int courseId) {
+  void _toggleCourseSelection(String courseId) {
     setState(() {
       if (_selectedCourses.contains(courseId)) {
         _selectedCourses.remove(courseId);
@@ -91,20 +95,62 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
     });
   }
 
-  void _performBulkAction(String action) {
+  void _performBulkAction(String action) async {
     if (_selectedCourses.isEmpty) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$action applied to ${_selectedCourses.length} courses'),
-        backgroundColor: AppTheme.successGreen,
-      ),
-    );
+    try {
+      String status;
+      switch (action.toLowerCase()) {
+        case 'approve':
+          status = 'approved';
+          break;
+        case 'reject':
+          status = 'rejected';
+          break;
+        default:
+          return;
+      }
 
-    setState(() {
-      _selectedCourses.clear();
-      _isSelectionMode = false;
-    });
+      final success = await _adminCourseService.bulkUpdateCourseStatus(
+        _selectedCourses,
+        status,
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '$action applied to ${_selectedCourses.length} courses',
+            ),
+            backgroundColor: action == 'approve'
+                ? AppTheme.successGreen
+                : AppTheme.errorRed,
+          ),
+        );
+
+        setState(() {
+          _selectedCourses.clear();
+          _isSelectionMode = false;
+        });
+
+        // Reload courses to reflect changes
+        _loadCourses();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to $action courses'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
   }
 
   void _onBottomNavTap(int index) {
@@ -161,8 +207,8 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
               ),
             ),
             TextButton(
-              onPressed: () => _performBulkAction('Flag'),
-              child: Text('Flag', style: TextStyle(color: AppTheme.errorRed)),
+              onPressed: () => _performBulkAction('Reject'),
+              child: Text('Reject', style: TextStyle(color: AppTheme.errorRed)),
             ),
           ] else ...[
             IconButton(
@@ -215,19 +261,19 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
             ),
             // Courses List
             Expanded(
-              child: _filteredCourses.isEmpty
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredCourses.isEmpty
                   ? _buildEmptyState()
                   : RefreshIndicator(
-                      onRefresh: () async {
-                        await Future.delayed(Duration(seconds: 1));
-                      },
+                      onRefresh: _loadCourses,
                       color: AppTheme.primaryTeal,
                       child: ListView.builder(
                         padding: EdgeInsets.symmetric(vertical: 1.h),
                         itemCount: _filteredCourses.length,
                         itemBuilder: (context, index) {
                           final course = _filteredCourses[index];
-                          final courseId = course['id'] as int;
+                          final courseId = course['id'] as String;
                           final isSelected = _selectedCourses.contains(
                             courseId,
                           );
@@ -243,10 +289,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
                                 // Handle course tap
                               }
                             },
-                            onApprove: () => _approveCourse(course),
-                            onFlag: () => _flagCourse(course),
-                            onDelete: () => _deleteCourse(course),
-                            onPreview: () => _showCoursePreview(course),
+                            onDetails: () => _showCoursePreview(course),
                           );
                         },
                       ),
@@ -309,121 +352,131 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
     );
   }
 
-  void _approveCourse(Map<String, dynamic> course) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Course "${course['title']}" approved'),
-        backgroundColor: AppTheme.successGreen,
-      ),
-    );
-  }
+  void _showCoursePreview(Map<String, dynamic> course) async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
 
-  void _flagCourse(Map<String, dynamic> course) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Course "${course['title']}" flagged for review'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-  }
+      // Fetch detailed course information
+      final detailedCourse = await _adminCourseService.fetchCourseDetails(
+        course['id'] as String,
+      );
 
-  void _deleteCourse(Map<String, dynamic> course) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Course'),
-        content: Text(
-          'Are you sure you want to delete "${course['title']}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Course "${course['title']}" deleted'),
-                  backgroundColor: AppTheme.errorRed,
-                ),
-              );
+      // Close loading dialog
+      Navigator.pop(context);
+
+      if (detailedCourse != null) {
+        showDialog(
+          context: context,
+          builder: (context) => CoursePreviewModal(
+            course: detailedCourse,
+            onDecision: (decision, reason) {
+              _handleCourseDecision(detailedCourse, decision, reason);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.errorRed),
-            child: const Text('Delete'),
           ),
-        ],
-      ),
-    );
-  }
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load course details'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      Navigator.pop(context);
 
-  void _showCoursePreview(Map<String, dynamic> course) {
-    showDialog(
-      context: context,
-      builder: (context) => CoursePreviewModal(
-        course: course,
-        onDecision: (decision, reason) {
-          _handleCourseDecision(course, decision, reason);
-        },
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading course details: $e'),
+          backgroundColor: AppTheme.errorRed,
+        ),
+      );
+    }
   }
 
   void _handleCourseDecision(
     Map<String, dynamic> course,
     String decision,
     String? reason,
-  ) {
-    String message;
-    Color backgroundColor;
+  ) async {
+    try {
+      String status;
+      switch (decision) {
+        case 'approve':
+          status = 'approved';
+          break;
+        case 'reject':
+          status = 'rejected';
+          break;
+        default:
+          return;
+      }
 
-    switch (decision) {
-      case 'approve':
-        message = 'Course "${course['title']}" has been approved';
-        backgroundColor = AppTheme.successGreen;
-        // Update course status in mock data
-        setState(() {
-          course['status'] = 'approved';
-        });
-        break;
-      case 'reject':
-        message = 'Course "${course['title']}" has been rejected';
-        backgroundColor = AppTheme.errorRed;
-        // Update course status in mock data
-        setState(() {
-          course['status'] = 'rejected';
-        });
-        break;
-      case 'flag':
-        message = 'Course "${course['title']}" has been flagged for review';
-        backgroundColor = Colors.orange;
-        // Update course status in mock data
-        setState(() {
-          course['status'] = 'flagged';
-        });
-        break;
-      default:
-        return;
-    }
+      final success = await _adminCourseService.updateCourseStatus(
+        course['id'] as String,
+        status,
+        reason: reason,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(message),
-            if (reason != null && reason.isNotEmpty) ...[
-              SizedBox(height: 0.5.h),
-              Text('Reason: $reason', style: TextStyle(fontSize: 12)),
-            ],
-          ],
+      if (success) {
+        String message;
+        Color backgroundColor;
+
+        switch (decision) {
+          case 'approve':
+            message = 'Course "${course['title']}" has been approved';
+            backgroundColor = AppTheme.successGreen;
+            break;
+          case 'reject':
+            message = 'Course "${course['title']}" has been rejected';
+            backgroundColor = AppTheme.errorRed;
+            break;
+          default:
+            return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message),
+                if (reason != null && reason.isNotEmpty) ...[
+                  SizedBox(height: 0.5.h),
+                  Text('Reason: $reason', style: TextStyle(fontSize: 12)),
+                ],
+              ],
+            ),
+            backgroundColor: backgroundColor,
+            duration: Duration(seconds: 4),
+          ),
+        );
+
+        // Reload courses to reflect changes
+        _loadCourses();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update course status'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: AppTheme.errorRed,
         ),
-        backgroundColor: backgroundColor,
-        duration: Duration(seconds: 4),
-      ),
-    );
+      );
+    }
   }
 
   Widget _buildEmptyState() {

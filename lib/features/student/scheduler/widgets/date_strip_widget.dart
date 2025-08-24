@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:knowble_app/config/theme.dart';
+import 'package:Knowble/config/theme.dart';
 
 class DateStripWidget extends StatefulWidget {
   final DateTime selectedDate;
@@ -47,15 +47,20 @@ class _DateStripWidgetState extends State<DateStripWidget> {
 
   void _scrollToSelectedDate() {
     final List<DateTime> dates = _generateDateList();
-    final int selectedIndex = dates.indexWhere((d) =>
-      d.year == widget.selectedDate.year &&
-      d.month == widget.selectedDate.month &&
-      d.day == widget.selectedDate.day);
+    final int selectedIndex = dates.indexWhere(
+      (d) =>
+          d.year == widget.selectedDate.year &&
+          d.month == widget.selectedDate.month &&
+          d.day == widget.selectedDate.day,
+    );
     if (selectedIndex == -1) return;
     final double itemWidth = 15.w;
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double scrollPosition = selectedIndex * itemWidth - (screenWidth / 2 - itemWidth / 2);
-    print('Scrolling to index: $selectedIndex, scrollPosition: $scrollPosition');
+    final double scrollPosition =
+        selectedIndex * itemWidth - (screenWidth / 2 - itemWidth / 2);
+    print(
+      'Scrolling to index: $selectedIndex, scrollPosition: $scrollPosition',
+    );
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         scrollPosition.clamp(0.0, _scrollController.position.maxScrollExtent),
@@ -129,23 +134,23 @@ class _DateStripWidgetState extends State<DateStripWidget> {
               width: 15.w,
               margin: EdgeInsets.symmetric(horizontal: 1.w, vertical: 1.h),
               decoration: BoxDecoration(
-                color:
-                    isSelected ? AppTheme.primaryTeal : AppTheme.surfaceWhite,
+                color: isSelected
+                    ? AppTheme.primaryTeal
+                    : AppTheme.surfaceWhite,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isToday ? AppTheme.primaryTeal : AppTheme.borderSubtle,
                   width: isToday ? 2 : 1,
                 ),
-                boxShadow:
-                    isSelected
-                        ? [
-                          BoxShadow(
-                            color: AppTheme.primaryTeal.withOpacity(0.3),
-                            offset: Offset(0, 4),
-                            blurRadius: 8,
-                          ),
-                        ]
-                        : null,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.primaryTeal.withOpacity(0.3),
+                          offset: Offset(0, 4),
+                          blurRadius: 8,
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -155,10 +160,9 @@ class _DateStripWidgetState extends State<DateStripWidget> {
                     style: TextStyle(
                       fontSize: 10.sp,
                       fontWeight: FontWeight.w500,
-                      color:
-                          isSelected
-                              ? AppTheme.surfaceWhite
-                              : AppTheme.textSecondary,
+                      color: isSelected
+                          ? AppTheme.surfaceWhite
+                          : AppTheme.textSecondary,
                       fontFamily: 'Jost',
                     ),
                   ),
@@ -168,10 +172,9 @@ class _DateStripWidgetState extends State<DateStripWidget> {
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
-                      color:
-                          isSelected
-                              ? AppTheme.surfaceWhite
-                              : AppTheme.textPrimary,
+                      color: isSelected
+                          ? AppTheme.surfaceWhite
+                          : AppTheme.textPrimary,
                       fontFamily: 'Jost',
                     ),
                   ),
@@ -181,12 +184,11 @@ class _DateStripWidgetState extends State<DateStripWidget> {
                     height: 6,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color:
-                          hasTasks
-                              ? (isSelected
-                                  ? AppTheme.surfaceWhite
-                                  : AppTheme.primaryTeal)
-                              : Colors.transparent,
+                      color: hasTasks
+                          ? (isSelected
+                                ? AppTheme.surfaceWhite
+                                : AppTheme.primaryTeal)
+                          : Colors.transparent,
                     ),
                   ),
                 ],

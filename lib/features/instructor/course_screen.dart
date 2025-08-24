@@ -18,11 +18,29 @@ class _CourseScreenState extends State<CourseScreen> {
   bool _isLoading = true;
   String _selectedFilter = 'All';
   List<String> _availableFilters = ['All'];
+  // Search controller and query
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    // listen for search input changes
+    _searchController.addListener(() {
+      final q = _searchController.text.trim();
+      if (q != _searchQuery) {
+        setState(() {
+          _searchQuery = q;
+        });
+      }
+    });
     _loadCourses();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCourses() async {
@@ -55,9 +73,9 @@ class _CourseScreenState extends State<CourseScreen> {
   }
 
   List<Map<String, dynamic>> get _filteredCourses {
-    if (_selectedFilter == 'All') return _courses;
-    
-    return _courses.where((course) {
+    // Start from all courses, then apply category filter (if any), then apply search query
+    final base = _courses.where((course) {
+      if (_selectedFilter == 'All') return true;
       final courseTags = course['course_tags'] as List<dynamic>?;
       if (courseTags != null && courseTags.isNotEmpty) {
         final firstTag = courseTags[0] as Map<String, dynamic>?;
@@ -70,6 +88,15 @@ class _CourseScreenState extends State<CourseScreen> {
         }
       }
       return false;
+    });
+
+    if (_searchQuery.isEmpty) return base.toList();
+
+    final q = _searchQuery.toLowerCase();
+    return base.where((course) {
+      final title = (course['title'] as String?)?.toLowerCase() ?? '';
+      final desc = (course['description'] as String?)?.toLowerCase() ?? '';
+      return title.contains(q) || desc.contains(q);
     }).toList();
   }
 
@@ -112,6 +139,23 @@ class _CourseScreenState extends State<CourseScreen> {
         body: SafeArea(
           child: Column(
             children: [
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search courses by title or description',
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: AppThemeInstructor.surfaceWhite,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
               // Filter Chips
               Container(
                 height: 60,
@@ -482,4 +526,3 @@ class ModernCourseCard extends StatelessWidget {
     );
   }
 }
-

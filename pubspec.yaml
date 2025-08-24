@@ -1,5 +1,5 @@
-name: knowble_app
-description: "A new Flutter project."
+name: Knowble
+description: "Your Smart Learning Companion"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -30,6 +30,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # Networking & file download
+  dio: ^5.9.0
+
+  # Access device directories
+  path_provider: ^2.0.14
+  universal_html: ^2.0.11
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -48,11 +55,14 @@ dependencies:
   fluttertoast: ^8.2.8
   flutter_pdfview: ^1.4.1+1
   permission_handler: ^11.3.1
+  flutter_local_notifications: ^17.2.2
+  timezone: ^0.9.4
   syncfusion_flutter_pdfviewer: ^30.1.41
   mailer: ^6.0.1
   shared_preferences: ^2.4.0
   crypto: ^3.0.3
   device_info_plus: ^11.0.0
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:

@@ -8,7 +8,6 @@ import '../../data/models/content.dart';
 import '../../data/models/course.dart';
 import 'chat/chat_detail_page.dart';
 import '../course/quiz_page.dart';
-import 'chatbot/chatbotpage.dart';
 
 class CourseLessonsPage extends StatefulWidget {
   final String courseId;
@@ -84,6 +83,7 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
         final contents = await _service.fetchContents(section.id);
         allContents.addAll(contents);
         List<Map<String, dynamic>> contentList = contents.map((content) => {
+              'id': content.id, // ensure id is included so downstream callers have it
               'title': content.title,
               'type': content.type,
               'url': content.url,
@@ -222,10 +222,10 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                               color: Colors.transparent,
                               child: InkWell(
                                 onTap: () {
-                                  final pdfContents = _contents
-                                      .where((content) => content.type == 'pdf')
-                                      .map((c) => {'title': c.title, 'url': c.url})
-                                      .toList();
+                  final pdfContents = _contents
+                    .where((content) => content.type == 'pdf')
+                    .map((c) => {'id': c.id, 'title': c.title, 'url': c.url})
+                    .toList();
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -384,6 +384,8 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                                     builder: (_) => PDFViewerPage(
                                                       pdfUrl: content['url'],
                                                       title: content['title'],
+                                                      contentId: content['id'],
+                                                      courseId: widget.courseId,
                                                     ),
                                                   ),
                                                 );
