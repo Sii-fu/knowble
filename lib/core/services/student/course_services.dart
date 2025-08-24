@@ -137,7 +137,75 @@ class CourseServices {
     return allCourses.where((c) => enrolledCourseIds.contains(c.id)).toList();
   }
 
+  /// New: Recommendation Algorithm
   Future<List<Course>> fetchRecommendedCourses(String studentId) async {
+    try {
+      // Step 1: Get user's chosen tags
+      final studentTagsResponse = await _client
+          .from('student_tags')
+          .select('tag_id')
+          .eq('student_id', studentId);
+      final studentTagIds = (studentTagsResponse as List<dynamic>)
+          .map((e) => e['tag_id'] as String)
+          .toSet();
+
+      if (studentTagIds.isEmpty) {
+        // No chosen tags, fallback to non-enrolled courses
+        return _fallbackRecommendations(studentId);
+      }
+
+      // Step 2: Get courses matching those tags
+      final matchingCoursesResponse = await _client
+          .from('course_tags')
+          .select('course_id, tag_id')
+          .inFilter('tag_id', studentTagIds.toList());
+
+      // Count matching tags per course
+      final Map<String, int> courseMatchCount = {};
+      for (var row in matchingCoursesResponse as List<dynamic>) {
+        final courseId = row['course_id'] as String;
+        courseMatchCount[courseId] = (courseMatchCount[courseId] ?? 0) + 1;
+      }
+
+      if (courseMatchCount.isEmpty) {
+        return _fallbackRecommendations(studentId);
+      }
+
+      // Step 3: Exclude already enrolled courses
+      final enrollments = await fetchUserEnrollments(studentId);
+      final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
+
+      final sortedCourseIds = courseMatchCount.entries
+          .where((e) => !enrolledCourseIds.contains(e.key))
+          .toList()
+        ..sort((a, b) => b.value.compareTo(a.value)); // Desc by match count
+
+      // Step 4: Fetch course details
+      final courseIds = sortedCourseIds.map((e) => e.key).toList();
+      if (courseIds.isEmpty) return [];
+
+      final coursesResponse = await _client
+          .from('courses')
+          .select()
+          .inFilter('id', courseIds);
+
+      final allCourses = (coursesResponse as List<dynamic>)
+          .map((course) => Course.fromMap(course as Map<String, dynamic>))
+          .toList();
+
+      // Order by match count
+      allCourses.sort((a, b) =>
+          (courseMatchCount[b.id] ?? 0).compareTo(courseMatchCount[a.id] ?? 0));
+
+      return allCourses;
+    } catch (e) {
+      print('Error fetching recommended courses: $e');
+      return _fallbackRecommendations(studentId);
+    }
+  }
+
+  /// Fallback: Return all courses not enrolled by the user
+  Future<List<Course>> _fallbackRecommendations(String studentId) async {
     final allCourses = await fetchAllCourses();
     final enrollments = await fetchUserEnrollments(studentId);
     final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
@@ -145,7 +213,4 @@ class CourseServices {
         .where((course) => !enrolledCourseIds.contains(course.id))
         .toList();
   }
-
-
-
 }
