@@ -31,17 +31,21 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   }
 
   Future<void> _loadCourses() async {
+    print('🔍 AdminCoursesManagement: Starting to load courses...');
     setState(() {
       _isLoading = true;
     });
 
     try {
+      print('🔍 AdminCoursesManagement: Calling fetchAllCoursesForAdmin...');
       final courses = await _adminCourseService.fetchAllCoursesForAdmin();
+      print('🔍 AdminCoursesManagement: Received ${courses.length} courses');
       setState(() {
         _courses = courses;
         _isLoading = false;
       });
     } catch (e) {
+      print('❌ AdminCoursesManagement: Error loading courses: $e');
       setState(() {
         _isLoading = false;
       });

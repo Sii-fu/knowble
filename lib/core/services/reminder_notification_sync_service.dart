@@ -47,11 +47,11 @@ class ReminderNotificationSyncService {
           .select()
           .single();
 
-      print('✅ Notification entry created: ${response['id']}');
-      print('   📋 Title: $title');
-      print('   🔗 Linked to reminder: $reminderId');
+      print('Notification entry created: ${response['id']}');
+      print('    Title: $title');
+      print('    Linked to reminder: $reminderId');
     } catch (e) {
-      print('❌ Error creating notification entry: $e');
+      print(' Error creating notification entry: $e');
       // Re-throw the error so calling code knows about the failure
       rethrow;
     }
@@ -68,11 +68,11 @@ class ReminderNotificationSyncService {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        print('❌ User not authenticated, cannot update notification');
+        print(' User not authenticated, cannot update notification');
         return;
       }
 
-      print('📝 Updating notification for reminder: $reminderId');
+      print(' Updating notification for reminder: $reminderId');
 
       final updateData = {
         'title': title,
@@ -91,9 +91,9 @@ class ReminderNotificationSyncService {
           .select();
 
       if (response.isNotEmpty) {
-        print('✅ Notification updated for reminder: $reminderId');
+        print(' Notification updated for reminder: $reminderId');
       } else {
-        print('⚠️ No notification found to update for reminder: $reminderId');
+        print(' No notification found to update for reminder: $reminderId');
         // Create new notification if none exists
         await createNotificationForReminder(
           reminderId: reminderId,
@@ -113,11 +113,11 @@ class ReminderNotificationSyncService {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        print('❌ User not authenticated, cannot delete notification');
+        print(' User not authenticated, cannot delete notification');
         return;
       }
 
-      print('🗑️ Deleting notification for reminder: $reminderId');
+      print(' Deleting notification for reminder: $reminderId');
 
       await _supabase
           .from('notification')
@@ -125,9 +125,9 @@ class ReminderNotificationSyncService {
           .eq('navigate', reminderId)
           .eq('user_id', user.id);
 
-      print('✅ Notification deleted for reminder: $reminderId');
+      print(' Notification deleted for reminder: $reminderId');
     } catch (e) {
-      print('❌ Error deleting notification: $e');
+      print(' Error deleting notification: $e');
     }
   }
 
@@ -137,11 +137,11 @@ class ReminderNotificationSyncService {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        print('❌ User not authenticated');
+        print(' User not authenticated');
         return;
       }
 
-      print('🔄 Starting sync of all reminders to notifications...');
+      print(' Starting sync of all reminders to notifications...');
 
       // Get all reminders for the user
       final reminders = await _supabase
@@ -151,7 +151,7 @@ class ReminderNotificationSyncService {
           .order('time', ascending: true);
 
       if (reminders.isEmpty) {
-        print('✅ No reminders found to sync');
+        print(' No reminders found to sync');
         return;
       }
 
@@ -172,7 +172,7 @@ class ReminderNotificationSyncService {
 
           if (existingNotification != null) {
             print(
-              '⏭️ Notification already exists for reminder: ${reminder['title']}',
+              '⏭ Notification already exists for reminder: ${reminder['title']}',
             );
             skippedCount++;
             continue;
@@ -189,16 +189,16 @@ class ReminderNotificationSyncService {
 
           syncedCount++;
         } catch (e) {
-          print('❌ Error syncing reminder ${reminder['id']}: $e');
+          print(' Error syncing reminder ${reminder['id']}: $e');
         }
       }
 
-      print('✅ Sync completed!');
-      print('   📊 Total reminders: ${reminders.length}');
-      print('   ✅ Synced: $syncedCount');
-      print('   ⏭️ Skipped (already exist): $skippedCount');
+      print(' Sync completed!');
+      print('    Total reminders: ${reminders.length}');
+      print('    Synced: $syncedCount');
+      print('   ⏭ Skipped (already exist): $skippedCount');
     } catch (e) {
-      print('❌ Error syncing reminders to notifications: $e');
+      print(' Error syncing reminders to notifications: $e');
     }
   }
 }

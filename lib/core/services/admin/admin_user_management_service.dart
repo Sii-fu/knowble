@@ -127,7 +127,7 @@ class AdminUserManagementService {
           .order('submitted_at', ascending: false);
 
       if (response.isEmpty) {
-        print('📭 No feedback found for user');
+        print(' No feedback found for user');
         return [];
       }
 

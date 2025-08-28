@@ -6,6 +6,8 @@ class AdminCourseService {
   // Fetch all courses with instructor information for admin management
   Future<List<Map<String, dynamic>>> fetchAllCoursesForAdmin() async {
     try {
+      print(' AdminCourseService: Starting to fetch all courses...');
+
       final response = await _client
           .from('courses')
           .select('''
@@ -15,10 +17,12 @@ class AdminCourseService {
           .order('created_at', ascending: false);
 
       final data = response as List<dynamic>? ?? [];
+      print(' AdminCourseService: Raw response length: ${data.length}');
 
       List<Map<String, dynamic>> courses = [];
       for (var courseData in data) {
         final course = courseData as Map<String, dynamic>;
+        print(' Processing course: ${course['title']} (ID: ${course['id']})');
 
         // Get enrollment count
         final enrollmentCount = await _getEnrollmentCount(course['id']);
@@ -41,6 +45,10 @@ class AdminCourseService {
           status = 'rejected';
         }
 
+        print(
+          ' Course ${course['title']}: status=$status, isVerified=$isVerified',
+        );
+
         courses.add({
           'id': course['id'],
           'title': course['title'],
@@ -61,9 +69,10 @@ class AdminCourseService {
         });
       }
 
+      print(' AdminCourseService: Processed ${courses.length} courses');
       return courses;
     } catch (e) {
-      print('Error fetching courses for admin: $e');
+      print(' Error fetching courses for admin: $e');
       return [];
     }
   }
@@ -83,31 +92,27 @@ class AdminCourseService {
     }
   }
 
-  // Calculate course duration from modules and sections
+  // Calculate course duration from course duration_days column
   Future<String> _calculateCourseDuration(String courseId) async {
     try {
-      final modules = await _client
-          .from('modules')
-          .select('id')
-          .eq('course_id', courseId);
+      // Use the duration_days from the course table instead of calculating from sections
+      final courseResponse = await _client
+          .from('courses')
+          .select('duration_days')
+          .eq('id', courseId)
+          .maybeSingle();
 
-      int totalSections = 0;
-      for (var module in modules) {
-        final sections = await _client
-            .from('sections')
-            .select('id')
-            .eq('module_id', module['id']);
-
-        totalSections += sections.length;
+      if (courseResponse != null) {
+        final durationDays = courseResponse['duration_days'] as int? ?? 0;
+        if (durationDays > 0) {
+          return '$durationDays days';
+        }
       }
 
-      // Estimate 30 minutes per section
-      final totalMinutes = totalSections * 30;
-      final hours = (totalMinutes / 60).round();
-      return hours > 0 ? '$hours hours' : '$totalMinutes minutes';
+      return '0 days';
     } catch (e) {
       print('Error calculating course duration: $e');
-      return '0 hours';
+      return '0 days';
     }
   }
 
@@ -132,23 +137,36 @@ class AdminCourseService {
       // Get enrollment statistics
       final enrollmentStats = await _getEnrollmentStatistics(courseId);
 
+      // Determine status based on is_verified column
+      String status;
+      final isVerified = course['is_verified'];
+      if (isVerified == null) {
+        status = 'pending';
+      } else if (isVerified == true) {
+        status = 'approved';
+      } else {
+        status = 'rejected';
+      }
+
       return {
-        'id': course['id'],
-        'title': course['title'],
-        'description': course['description'],
-        'banner': course['banner'],
-        'price': course['price'],
-        'isPaid': course['is_paid'],
-        'durationDays': course['duration_days'],
-        'createdAt': DateTime.parse(course['created_at']),
-        'status': course['status'] ?? 'pending',
-        'category': course['category'] ?? 'General',
-        'rating': course['rating'] ?? 0.0,
+        'id': course['id'] ?? '',
+        'title': course['title'] ?? 'Untitled Course',
+        'description': course['description'] ?? 'No description available',
+        'banner': course['banner'] ?? '',
+        'price': course['price'] ?? 0.0,
+        'isPaid': course['is_paid'] ?? false,
+        'durationDays': course['duration_days'] ?? 0,
+        'createdAt': DateTime.parse(
+          course['created_at'] ?? DateTime.now().toIso8601String(),
+        ),
+        'status': status,
+        'category': 'General', // Default category
+        'rating': 0.0, // Simplified
         'instructor': {
-          'id': instructor?['id'],
+          'id': instructor?['id'] ?? '',
           'name': instructor?['name'] ?? 'Unknown',
           'email': instructor?['email'] ?? '',
-          'profilePic': instructor?['profile_pic'],
+          'profilePic': instructor?['profile_pic'] ?? '',
         },
         'modules': modules,
         'enrollmentStats': enrollmentStats,
@@ -159,16 +177,15 @@ class AdminCourseService {
     }
   }
 
-  // Fetch modules with sections and contents
+  // Fetch modules with sections (simplified - no contents to improve performance)
   Future<List<Map<String, dynamic>>> _fetchModulesWithDetails(
     String courseId,
   ) async {
     try {
       final modulesResponse = await _client
           .from('modules')
-          .select('*')
-          .eq('course_id', courseId)
-          .order('order');
+          .select('id, title, created_at')
+          .eq('course_id', courseId);
 
       final modules = modulesResponse as List<dynamic>;
       List<Map<String, dynamic>> modulesList = [];
@@ -176,12 +193,11 @@ class AdminCourseService {
       for (var moduleData in modules) {
         final module = moduleData as Map<String, dynamic>;
 
-        // Get sections for this module
+        // Get sections for this module (simplified)
         final sectionsResponse = await _client
             .from('sections')
-            .select('*')
-            .eq('module_id', module['id'])
-            .order('order');
+            .select('id, title, created_at')
+            .eq('module_id', module['id']);
 
         final sections = sectionsResponse as List<dynamic>;
         List<Map<String, dynamic>> sectionsList = [];
@@ -189,38 +205,17 @@ class AdminCourseService {
         for (var sectionData in sections) {
           final section = sectionData as Map<String, dynamic>;
 
-          // Get contents for this section
-          final contentsResponse = await _client
-              .from('contents')
-              .select('*')
-              .eq('section_id', section['id'])
-              .order('order');
-
-          final contents = contentsResponse as List<dynamic>;
-
           sectionsList.add({
-            'id': section['id'],
-            'title': section['title'],
-            'order': section['order'],
-            'estimatedDuration': 30, // Default 30 minutes per section
-            'contents': contents
-                .map(
-                  (content) => {
-                    'id': content['id'],
-                    'title': content['title'],
-                    'type': content['type'],
-                    'url': content['url'],
-                    'order': content['order'],
-                  },
-                )
-                .toList(),
+            'id': section['id'] ?? '',
+            'title': section['title'] ?? 'Untitled Section',
+            'order': 1, // Default order
           });
         }
 
         modulesList.add({
-          'id': module['id'],
-          'title': module['title'],
-          'order': module['order'],
+          'id': module['id'] ?? '',
+          'title': module['title'] ?? 'Untitled Module',
+          'order': 1, // Default order
           'sections': sectionsList,
         });
       }
@@ -341,10 +336,7 @@ class AdminCourseService {
       // 4. Delete enrollments
       await _client.from('enrollments').delete().eq('course_id', courseId);
 
-      // 5. Delete course reports
-      await _client.from('course_reports').delete().eq('course_id', courseId);
-
-      // 6. Finally delete the course
+      // 5. Finally delete the course
       await _client.from('courses').delete().eq('id', courseId);
 
       return true;

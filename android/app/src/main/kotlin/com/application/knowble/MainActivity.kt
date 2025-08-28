@@ -1,4 +1,4 @@
-package com.example.knowble_app
+package com.application.knowble
 
 import io.flutter.embedding.android.FlutterActivity
 

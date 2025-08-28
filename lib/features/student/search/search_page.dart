@@ -29,7 +29,7 @@ class _SearchPageState extends State<SearchPage> {
   List<Map<String, dynamic>> _categories = [];
   List<Course> _searchResults = [];
   bool _isLoading = false;
-  final String? _currentUserId = 'test-user-123'; // TODO: Get this from your auth service/provider
+  final String _currentUserId = 'test-user-123'; // TODO: Get this from your auth service/provider
 
   // TODO: Add this method to get current user ID from your authentication system
   // String? _getCurrentUserId() {
@@ -137,10 +137,8 @@ class _SearchPageState extends State<SearchPage> {
 
       // Load recent searches if user is logged in
       List<String> recentSearches = [];
-      if (_currentUserId != null) {
-        recentSearches = await _searchService.getRecentSearches(_currentUserId);
-      }
-
+      recentSearches = await _searchService.getRecentSearches(_currentUserId);
+    
       setState(() {
         _categories = categoriesWithIcons;
         _recentSearches = recentSearches;
@@ -214,10 +212,8 @@ class _SearchPageState extends State<SearchPage> {
       await _performSearch();
       
       // Save search query if user is logged in
-      if (_currentUserId != null) {
-        await _searchService.saveSearchQuery(_currentUserId, query);
-      }
-    }
+      await _searchService.saveSearchQuery(_currentUserId, query);
+        }
   }
 
   void _onCategorySelected(String categoryId, String categoryName) async {
@@ -381,13 +377,11 @@ class _SearchPageState extends State<SearchPage> {
 
   /// Clear recent searches
   Future<void> _clearRecentSearches() async {
-    if (_currentUserId != null) {
-      await _searchService.clearRecentSearches(_currentUserId);
-      setState(() {
-        _recentSearches = [];
-      });
+    await _searchService.clearRecentSearches(_currentUserId);
+    setState(() {
+      _recentSearches = [];
+    });
     }
-  }
 
   @override
   Widget build(BuildContext context) {

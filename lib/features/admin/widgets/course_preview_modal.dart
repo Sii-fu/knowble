@@ -399,6 +399,14 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
                 value: '${widget.course['rating']}',
                 label: 'Rating',
               ),
+              SizedBox(width: 3.w),
+              _buildStatChip(
+                icon: 'attach_money',
+                value: widget.course['isPaid'] == true
+                    ? '৳${(widget.course['price'] ?? 0.0).toStringAsFixed(0)}'
+                    : 'Free',
+                label: 'Price',
+              ),
             ],
           ),
           SizedBox(height: 3.h),
@@ -540,6 +548,16 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
                   _formatDate(widget.course['createdAt']),
                 ),
                 _buildDetailRow('Duration', widget.course['duration']),
+                _buildDetailRow(
+                  'Price',
+                  widget.course['isPaid'] == true
+                      ? '৳${(widget.course['price'] ?? 0.0).toStringAsFixed(0)}'
+                      : 'Free',
+                ),
+                _buildDetailRow(
+                  'Course Type',
+                  widget.course['isPaid'] == true ? 'Paid' : 'Free',
+                ),
                 _buildDetailRow('Difficulty', 'Intermediate'),
                 _buildDetailRow('Language', 'English'),
                 _buildDetailRow('Certificate', 'Yes'),

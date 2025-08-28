@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'edit_course_screen.dart';
 import '../../config/theme_instructor.dart';
 import '../../core/services/Instructor/course_fetch.dart';

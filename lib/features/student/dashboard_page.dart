@@ -625,7 +625,7 @@ class _TodaysTasksList extends StatelessWidget {
     final minute = dateTime.minute;
     final period = hour >= 12 ? 'PM' : 'AM';
     final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
-    return '${displayHour}:${minute.toString().padLeft(2, '0')} $period';
+    return '$displayHour:${minute.toString().padLeft(2, '0')} $period';
   }
 
   String _getPriorityBadge(String priority) {
@@ -767,11 +767,11 @@ class _TaskCard extends StatelessWidget {
   Color _getPriorityColor(String? priority) {
     switch (priority?.toLowerCase()) {
       case 'high':
-        return Colors.red;
+        return const Color.fromARGB(255, 249, 169, 163);
       case 'medium':
-        return Colors.orange;
+        return const Color.fromARGB(255, 253, 202, 126);
       case 'low':
-        return Colors.green;
+        return const Color.fromARGB(255, 173, 250, 175);
       default:
         return AppTheme.primaryTeal;
     }
