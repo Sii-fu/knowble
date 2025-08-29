@@ -284,20 +284,16 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final yesterday = today.subtract(const Duration(days: 1));
+    final selectedDateOnly = DateTime(date.year, date.month, date.day);
 
-    if (date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day) {
+    if (selectedDateOnly == today) {
       return 'Today, ${date.day}/${date.month}/${date.year}';
-    } else if (date.year == tomorrow.year &&
-        date.month == tomorrow.month &&
-        date.day == tomorrow.day) {
+    } else if (selectedDateOnly == tomorrow) {
       return 'Tomorrow, ${date.day}/${date.month}/${date.year}';
-    } else if (date.year == yesterday.year &&
-        date.month == yesterday.month &&
-        date.day == yesterday.day) {
+    } else if (selectedDateOnly == yesterday) {
       return 'Yesterday, ${date.day}/${date.month}/${date.year}';
     } else {
       return '${date.day}/${date.month}/${date.year}';

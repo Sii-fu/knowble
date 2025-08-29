@@ -23,7 +23,7 @@ class ReminderService {
 
       return response?['role'] as String?;
     } catch (e) {
-      print('❌ Error getting user role: $e');
+      print(' Error getting user role: $e');
       return null;
     }
   }
@@ -48,12 +48,9 @@ class ReminderService {
       // Get user's role for created_by field
       final userRole = await _getCurrentUserRole();
 
-      // Convert times to Bangladesh Standard Time (GMT+6) before storing
-      final bstStartTime = convertToBangladeshTime(startTime);
-      final bstEndTime = convertToBangladeshTime(endTime);
-
-      print('🔍 Original start time: ${startTime.toString()}');
-      print('🔍 BST start time: ${bstStartTime.toString()}');
+      // Store the DateTime as-is (no timezone conversion needed)
+      print(' Original start time: ${startTime.toString()}');
+      print(' Original end time: ${endTime.toString()}');
 
       // Prepare reminder data for database insertion
       final reminderData = {
@@ -62,10 +59,10 @@ class ReminderService {
         'title': title.trim(), // Remove extra whitespace from title
         'description': description
             .trim(), // Remove extra whitespace from description
-        'time': bstStartTime
-            .toIso8601String(), // Convert BST DateTime to ISO string for database
-        'end_time': bstEndTime
-            .toIso8601String(), // Convert BST DateTime to ISO string for database
+        'time': startTime
+            .toIso8601String(), // Store as-is without timezone conversion
+        'end_time': endTime
+            .toIso8601String(), // Store as-is without timezone conversion
         'created_by': userRole, // Set user role (student, instructor, or admin)
         'priority': priority, // Store priority in dedicated priority column
       };
@@ -80,8 +77,8 @@ class ReminderService {
       // Get the created reminder ID for notification scheduling
       final String createdReminderId = response['id'];
 
-      print('🔍 Reminder created with ID: $createdReminderId');
-      print('🔍 Now creating notification entry in notification table...');
+      print(' Reminder created with ID: $createdReminderId');
+      print(' Now creating notification entry in notification table...');
 
       // Create notification entry in notification table for the notifications page
       // This contains the task title, description, and start time as requested
@@ -94,9 +91,9 @@ class ReminderService {
               startTime, // This will be converted to GMT+6 in the sync service
           priority: priority,
         );
-        print('✅ Notification entry created for reminder: $createdReminderId');
+        print(' Notification entry created for reminder: $createdReminderId');
       } catch (e) {
-        print('❌ Critical: Failed to create notification entry: $e');
+        print(' Critical: Failed to create notification entry: $e');
         // This is critical - we want to know if this fails
         throw Exception('Failed to create notification entry: $e');
       }
@@ -114,27 +111,27 @@ class ReminderService {
             scheduledTime: startTime,
             priority: priority,
           );
-      print('🔍 Push notification scheduled with ID: $notificationId');
+      print(' Push notification scheduled with ID: $notificationId');
       */
 
       // Log success for debugging purposes
-      print('✅ Reminder created successfully: $title');
-      print('   📅 Date: ${startTime.toString().split(' ')[0]}');
+      print(' Reminder created successfully: $title');
+      print('    Date: ${startTime.toString().split(' ')[0]}');
       print(
-        '   ⏰ Time: ${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')} - ${endTime.hour}:${endTime.minute.toString().padLeft(2, '0')}',
+        '    Time: ${startTime.hour}:${startTime.minute.toString().padLeft(2, '0')} - ${endTime.hour}:${endTime.minute.toString().padLeft(2, '0')}',
       );
-      print('   🎯 Priority: $priority');
-      print('   👤 Created by: $userRole');
-      print('   � Notification entry created in database');
+      print('    Priority: $priority');
+      print('    Created by: $userRole');
+      print('    Notification entry created in database');
 
       return null; // Return null to indicate success (AuthManager pattern)
     } on PostgrestException catch (e) {
       // Handle Supabase database-specific errors
-      print('❌ Database Error creating reminder: ${e.message}');
+      print(' Database Error creating reminder: ${e.message}');
       return 'Database error: ${e.message}';
     } catch (e) {
       // Handle any other unexpected errors
-      print('❌ Unknown Error creating reminder: $e');
+      print(' Unknown Error creating reminder: $e');
       return 'Failed to create reminder. Please try again.';
     }
   }
@@ -186,7 +183,7 @@ class ReminderService {
 
       // Log success with details for debugging
       print(
-        '✅ Fetched ${reminders.length} reminders for ${date.toString().split(' ')[0]}',
+        ' Fetched ${reminders.length} reminders for ${date.toString().split(' ')[0]}',
       );
       if (reminders.isNotEmpty) {
         print('   📋 Tasks: ${reminders.map((r) => r.title).join(', ')}');
@@ -195,11 +192,11 @@ class ReminderService {
       return reminders;
     } on PostgrestException catch (e) {
       // Handle database errors gracefully
-      print('❌ Database Error fetching reminders: ${e.message}');
+      print(' Database Error fetching reminders: ${e.message}');
       return []; // Return empty list on error so UI doesn't crash
     } catch (e) {
       // Handle other errors
-      print('❌ Error fetching reminders: $e');
+      print(' Error fetching reminders: $e');
       return []; // Return empty list on error
     }
   }
@@ -243,17 +240,17 @@ class ReminderService {
 
       // Log success with details for debugging
       print(
-        '✅ Fetched ${reminders.length} reminders for ${month.year}-${month.month.toString().padLeft(2, '0')}',
+        ' Fetched ${reminders.length} reminders for ${month.year}-${month.month.toString().padLeft(2, '0')}',
       );
 
       return reminders;
     } on PostgrestException catch (e) {
       // Handle database errors gracefully
-      print('❌ Database Error fetching month reminders: ${e.message}');
+      print(' Database Error fetching month reminders: ${e.message}');
       return []; // Return empty list on error so UI doesn't crash
     } catch (e) {
       // Handle other errors
-      print('❌ Error fetching month reminders: $e');
+      print(' Error fetching month reminders: $e');
       return []; // Return empty list on error
     }
   }
@@ -276,19 +273,16 @@ class ReminderService {
         return 'User not authenticated';
       }
 
-      // Convert times to Bangladesh Standard Time (GMT+6) before storing
-      final bstStartTime = convertToBangladeshTime(startTime);
-      final bstEndTime = convertToBangladeshTime(endTime);
-
-      print('🔍 Update - Original start time: ${startTime.toString()}');
-      print('🔍 Update - BST start time: ${bstStartTime.toString()}');
+      // Store the DateTime as-is (no timezone conversion needed)
+      print(' Update - Original start time: ${startTime.toString()}');
+      print(' Update - Original end time: ${endTime.toString()}');
 
       // Prepare updated data
       final updateData = {
         'title': title.trim(), // Updated title
         'description': description.trim(), // Updated description
-        'time': bstStartTime.toIso8601String(), // Updated start time in BST
-        'end_time': bstEndTime.toIso8601String(), // Updated end time in BST
+        'time': startTime.toIso8601String(), // Updated start time as-is
+        'end_time': endTime.toIso8601String(), // Updated end time as-is
         'course_id': courseId, // Updated course reference (can be null)
         'priority': priority, // Updated priority
       };
@@ -327,18 +321,18 @@ class ReminderService {
       );
 
       // Log success
-      print('✅ Reminder updated successfully: $title');
+      print(' Reminder updated successfully: $title');
       if (notificationId != null) {
-        print('   📱 New notification scheduled with ID: $notificationId');
+        print('    New notification scheduled with ID: $notificationId');
       }
       return null; // Success
     } on PostgrestException catch (e) {
       // Handle database errors
-      print('❌ Database Error updating reminder: ${e.message}');
+      print(' Database Error updating reminder: ${e.message}');
       return 'Database error: ${e.message}';
     } catch (e) {
       // Handle other errors
-      print('❌ Error updating reminder: $e');
+      print(' Error updating reminder: $e');
       return 'Failed to update reminder. Please try again.';
     }
   }
@@ -370,15 +364,15 @@ class ReminderService {
       // You could query the notifications table and cancel related notifications
 
       // Log success
-      print('✅ Reminder deleted successfully');
+      print(' Reminder deleted successfully');
       return null; // Success
     } on PostgrestException catch (e) {
       // Handle database errors
-      print('❌ Database Error deleting reminder: ${e.message}');
+      print(' Database Error deleting reminder: ${e.message}');
       return 'Database error: ${e.message}';
     } catch (e) {
       // Handle other errors
-      print('❌ Error deleting reminder: $e');
+      print(' Error deleting reminder: $e');
       return 'Failed to delete reminder. Please try again.';
     }
   }
@@ -389,8 +383,8 @@ class ReminderService {
     // Add 6 hours to convert to Bangladesh time
     DateTime bangladeshTime = dateTime.add(Duration(hours: 6));
 
-    print('🔍 Input time: ${dateTime.toString()}');
-    print('🔍 Bangladesh time (GMT+6): ${bangladeshTime.toString()}');
+    print(' Input time: ${dateTime.toString()}');
+    print(' Bangladesh time (GMT+6): ${bangladeshTime.toString()}');
 
     return bangladeshTime;
   }
@@ -415,7 +409,7 @@ class ReminderService {
           .eq('user_id', user.id);
 
       if (response.isEmpty) {
-        print('✅ No reminders found to convert');
+        print(' No reminders found to convert');
         return null;
       }
 
@@ -448,23 +442,23 @@ class ReminderService {
 
           convertedCount++;
 
-          print('✅ Converted reminder: ${reminderData['title']}');
+          print(' Converted reminder: ${reminderData['title']}');
           print('   Original: ${originalTime.toString()}');
           print('   BST: ${bstTime.toString()}');
         } catch (e) {
-          print('❌ Error converting reminder ${reminderData['id']}: $e');
+          print(' Error converting reminder ${reminderData['id']}: $e');
         }
       }
 
       print(
-        '✅ Conversion completed. $convertedCount reminders converted to Bangladesh Standard Time.',
+        ' Conversion completed. $convertedCount reminders converted to Bangladesh Standard Time.',
       );
       return null;
     } on PostgrestException catch (e) {
-      print('❌ Database Error converting reminders: ${e.message}');
+      print(' Database Error converting reminders: ${e.message}');
       return 'Database error: ${e.message}';
     } catch (e) {
-      print('❌ Error converting reminders: $e');
+      print(' Error converting reminders: $e');
       return 'Failed to convert reminders. Please try again.';
     }
   }

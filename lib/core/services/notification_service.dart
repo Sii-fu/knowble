@@ -53,9 +53,9 @@ class NotificationService {
       await _requestPermissions();
 
       _isInitialized = true;
-      print('✅ NotificationService initialized successfully');
+      print(' NotificationService initialized successfully');
     } catch (e) {
-      print('❌ Error initializing NotificationService: $e');
+      print(' Error initializing NotificationService: $e');
     }
   }
 
@@ -131,7 +131,7 @@ class NotificationService {
         await Permission.scheduleExactAlarm.request();
       }
     } catch (e) {
-      print('⚠️ Could not request scheduleExactAlarm permission: $e');
+      print(' Could not request scheduleExactAlarm permission: $e');
       // Continue anyway as this permission is not critical
     }
 
@@ -141,7 +141,7 @@ class NotificationService {
   /// Handle notification tap
   static void _onNotificationTapped(NotificationResponse response) {
     final payload = response.payload;
-    print('📱 Notification tapped with payload: $payload');
+    print(' Notification tapped with payload: $payload');
 
     // TODO: Navigate to specific reminder/task based on payload
     // You can parse the payload to get reminder ID and navigate accordingly
@@ -185,7 +185,7 @@ class NotificationService {
   }) async {
     try {
       print('🚀 scheduleReminderNotification called');
-      print('   📋 Title: $title');
+      print('    Title: $title');
       print('   ⏰ Scheduled time: ${scheduledTime.toString()}');
 
       if (!_isInitialized) {
@@ -195,10 +195,10 @@ class NotificationService {
 
       // Check permissions first
       final hasPermission = await areNotificationsEnabled();
-      print('📱 Notification permission granted: $hasPermission');
+      print(' Notification permission granted: $hasPermission');
 
       if (!hasPermission) {
-        print('❌ No notification permission! Requesting...');
+        print(' No notification permission! Requesting...');
         await _requestPermissions();
       }
 
@@ -233,26 +233,26 @@ class NotificationService {
 
       // Convert scheduled time to timezone-aware DateTime
       // Add debugging to understand timezone issues
-      print('🔍 Original scheduledTime: ${scheduledTime.toString()}');
-      print('🔍 Is UTC: ${scheduledTime.isUtc}');
-      print('🔍 Current local time: ${DateTime.now().toString()}');
-      print('🔍 Current UTC time: ${DateTime.now().toUtc().toString()}');
+      print(' Original scheduledTime: ${scheduledTime.toString()}');
+      print(' Is UTC: ${scheduledTime.isUtc}');
+      print(' Current local time: ${DateTime.now().toString()}');
+      print(' Current UTC time: ${DateTime.now().toUtc().toString()}');
 
       // If the scheduledTime is UTC, convert it to local time first
       DateTime localScheduledTime = scheduledTime.isUtc
           ? scheduledTime.toLocal()
           : scheduledTime;
 
-      print('🔍 Converted to local: ${localScheduledTime.toString()}');
+      print(' Converted to local: ${localScheduledTime.toString()}');
 
       final tz.TZDateTime tzScheduledTime = tz.TZDateTime.from(
         localScheduledTime,
         tz.local,
       );
 
-      print('🔍 TZ DateTime: ${tzScheduledTime.toString()}');
+      print(' TZ DateTime: ${tzScheduledTime.toString()}');
       print(
-        '🔍 Current TZ DateTime: ${tz.TZDateTime.now(tz.local).toString()}',
+        ' Current TZ DateTime: ${tz.TZDateTime.now(tz.local).toString()}',
       );
 
       // Only schedule if the time is in the future
@@ -280,20 +280,20 @@ class NotificationService {
           priority: priority,
         );
 
-        print('✅ Notification scheduled for: ${localScheduledTime.toString()}');
-        print('   📱 Notification ID: $notificationId');
-        print('   📋 Title: $title');
-        print('   🎯 Priority: $priority');
+        print(' Notification scheduled for: ${localScheduledTime.toString()}');
+        print('    Notification ID: $notificationId');
+        print('    Title: $title');
+        print('    Priority: $priority');
 
         return notificationId;
       } else {
         print(
-          '⚠️ Cannot schedule notification for past time: ${localScheduledTime.toString()}',
+          ' Cannot schedule notification for past time: ${localScheduledTime.toString()}',
         );
         return null;
       }
     } catch (e) {
-      print('❌ Error scheduling notification: $e');
+      print(' Error scheduling notification: $e');
       return null;
     }
   }
@@ -310,7 +310,7 @@ class NotificationService {
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        print('❌ User not authenticated, cannot store notification');
+        print(' User not authenticated, cannot store notification');
         return;
       }
 
@@ -332,17 +332,17 @@ class NotificationService {
             .toIso8601String(), // Current UTC time
       };
 
-      print('🔍 Attempting to insert notification data: $notificationData');
+      print(' Attempting to insert notification data: $notificationData');
 
       final response = await _supabase
           .from('notification')
           .insert(notificationData)
           .select();
 
-      print('✅ Notification stored in database successfully');
-      print('🔍 Inserted notification: $response');
+      print(' Notification stored in database successfully');
+      print(' Inserted notification: $response');
     } catch (e) {
-      print('❌ Error storing notification in database: $e');
+      print(' Error storing notification in database: $e');
     }
   }
 
@@ -354,9 +354,9 @@ class NotificationService {
       // Remove from database (optional, you might want to keep for history)
       // await _supabase.from('notifications').delete().eq('id', notificationId);
 
-      print('✅ Notification cancelled: $notificationId');
+      print(' Notification cancelled: $notificationId');
     } catch (e) {
-      print('❌ Error cancelling notification: $e');
+      print(' Error cancelling notification: $e');
     }
   }
 
@@ -364,9 +364,9 @@ class NotificationService {
   static Future<void> cancelAllNotifications() async {
     try {
       await _notifications.cancelAll();
-      print('✅ All notifications cancelled');
+      print(' All notifications cancelled');
     } catch (e) {
-      print('❌ Error cancelling all notifications: $e');
+      print(' Error cancelling all notifications: $e');
     }
   }
 
@@ -421,7 +421,7 @@ class NotificationService {
       final status = await Permission.notification.status;
       return status.isGranted;
     } catch (e) {
-      print('⚠️ Could not check notification permission: $e');
+      print(' Could not check notification permission: $e');
       return true; // Assume enabled to avoid blocking functionality
     }
   }
@@ -466,9 +466,9 @@ class NotificationService {
         platformDetails,
       );
 
-      print('✅ Immediate notification shown: $title');
+      print(' Immediate notification shown: $title');
     } catch (e) {
-      print('❌ Error showing immediate notification: $e');
+      print(' Error showing immediate notification: $e');
     }
   }
 
@@ -485,13 +485,13 @@ class NotificationService {
       priority: 'high',
     );
 
-    print('🧪 Test notification scheduled for: ${testTime.toString()}');
+    print(' Test notification scheduled for: ${testTime.toString()}');
   }
 
   /// Test database insertion directly
   static Future<void> testDatabaseInsertion() async {
     try {
-      print('🧪 Testing direct database insertion...');
+      print(' Testing direct database insertion...');
 
       await _storeNotificationInDatabase(
         notificationId: 999999,
@@ -502,9 +502,9 @@ class NotificationService {
         priority: 'medium',
       );
 
-      print('🧪 Direct database test completed');
+      print(' Direct database test completed');
     } catch (e) {
-      print('❌ Direct database test failed: $e');
+      print(' Direct database test failed: $e');
     }
   }
 }

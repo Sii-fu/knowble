@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1099493065004",
+    "project_id": "knowble-ba6e5",
+    "storage_bucket": "knowble-ba6e5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1099493065004:android:cc7a99e58d78679b176c89",
+        "android_client_info": {
+          "package_name": "com.application.knowble"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmb-UIikO7ZHm1SmV35erK8hVNRGtqhyQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

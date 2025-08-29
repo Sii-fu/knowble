@@ -4,6 +4,7 @@ import 'package:Knowble/config/theme.dart';
 import 'package:Knowble/widgets/custom_icon_widget.dart';
 import '../../widgets/notifications/notification_list_widget.dart';
 import '../../../../core/services/notification_data_service.dart';
+import '../../../../core/services/local_notification_service.dart';
 import '../../../../data/models/reminder.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -417,6 +418,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return _clickedNotifications.contains(notificationId);
   }
 
+  /// Send a REAL device notification
+  Future<void> _sendTestNotification() async {
+    try {
+      _showSuccessSnackBar('Sending device notification...');
+
+      // Ask for permission first
+      await LocalNotificationService.initialize();
+
+      // Send REAL device notification
+      await LocalNotificationService.showNotification(
+        title: 'Knowble Test Notification',
+        body:
+            'This notification appeared in your device notification tray! Pull down from top to see it. 📱',
+        payload: 'test_notification',
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      );
+
+      _showSuccessSnackBar(
+        'Device notification sent! Pull down from top to see it 🎉',
+      );
+    } catch (e) {
+      print('Error sending device notification: $e');
+      _showErrorSnackBar('Error sending device notification: ${e.toString()}');
+    }
+  }
+
   Future<void> _onRefresh() async {
     await _loadNotifications();
   }
@@ -475,7 +502,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(width: 10.w), // Balance the back button
+                      // Test notification button
+                      GestureDetector(
+                        onTap: _sendTestNotification,
+                        child: Container(
+                          width: 10.w,
+                          height: 5.h,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryTeal,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryTeal.withValues(
+                                  alpha: 0.3,
+                                ),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.notification_add,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 1.h),

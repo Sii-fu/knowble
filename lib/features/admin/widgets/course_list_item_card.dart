@@ -182,6 +182,32 @@ class CourseListItemCard extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            SizedBox(height: 0.5.h),
+                            // Price Information
+                            Row(
+                              children: [
+                                CustomIconWidget(
+                                  iconName: 'attach_money',
+                                  color: course['isPaid'] == true
+                                      ? AppTheme.primaryTeal
+                                      : AppTheme.successGreen,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 1.w),
+                                Text(
+                                  course['isPaid'] == true
+                                      ? '৳${(course['price'] ?? 0.0).toStringAsFixed(0)}'
+                                      : 'Free',
+                                  style: AppTheme.lightTheme.textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: course['isPaid'] == true
+                                            ? AppTheme.primaryTeal
+                                            : AppTheme.successGreen,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
                             if (reportCount > 0) ...[
                               SizedBox(height: 1.h),
                               Row(
