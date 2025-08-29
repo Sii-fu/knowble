@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../config/theme.dart';
+import 'instructor_profile_page.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String courseId;
@@ -182,40 +183,52 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           foregroundColor: theme.appBarTheme.foregroundColor,
           elevation: 0,
           titleSpacing: 0,
-          title: Row(
-            children: [
-              const SizedBox(width: 8),
-              CircleAvatar(
-                radius: 18,
-                backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
-                backgroundColor: AppTheme.accentLight,
-                child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.primaryTeal) : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      widget.instructorName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      widget.courseCode,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary),
-                    ),
-                  ],
+          title: InkWell(
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => InstructorProfilePage(
+                  instructorId: widget.receiverId,
+                  instructorName: widget.instructorName,
+                  profileImage: widget.profileImage,
+                  courseId: widget.courseId,
                 ),
-              ),
-            ],
+              ));
+            },
+            child: Row(
+              children: [
+                const SizedBox(width: 8),
+                CircleAvatar(
+                  radius: 18,
+                  backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
+                  backgroundColor: AppTheme.accentLight,
+                  child: widget.profileImage == null ? Icon(Icons.person, color: AppTheme.primaryTeal) : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.instructorName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        widget.courseCode,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         backgroundColor: theme.scaffoldBackgroundColor,

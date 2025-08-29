@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../config/theme_instructor.dart';
+import 'student_profile_view.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String courseId;
@@ -176,32 +177,44 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           backgroundColor: AppThemeInstructor.primaryBlue,
           foregroundColor: AppThemeInstructor.surfaceWhite,
           elevation: 0,
-          title: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
-                backgroundColor: AppThemeInstructor.surfaceWhite,
-                child: widget.profileImage == null ? Icon(Icons.person, color: AppThemeInstructor.primaryBlue) : null,
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.instructorName,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppThemeInstructor.surfaceWhite,
-                      fontWeight: FontWeight.w700,
+          title: InkWell(
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => StudentProfileView(
+                  studentId: widget.receiverId,
+                  studentName: widget.instructorName,
+                  profileImage: widget.profileImage,
+                  courseId: widget.courseId,
+                ),
+              ));
+            },
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: widget.profileImage != null ? NetworkImage(widget.profileImage!) : null,
+                  backgroundColor: AppThemeInstructor.surfaceWhite,
+                  child: widget.profileImage == null ? Icon(Icons.person, color: AppThemeInstructor.primaryBlue) : null,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.instructorName,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppThemeInstructor.surfaceWhite,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  Text(
-                    widget.courseCode,
-                    style: theme.textTheme.labelSmall?.copyWith(color: AppThemeInstructor.surfaceWhite.withOpacity(0.85)),
-                  ),
-                ],
-              ),
-            ],
+                    Text(
+                      widget.courseCode,
+                      style: theme.textTheme.labelSmall?.copyWith(color: AppThemeInstructor.surfaceWhite.withOpacity(0.85)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         backgroundColor: AppThemeInstructor.backgroundLight,

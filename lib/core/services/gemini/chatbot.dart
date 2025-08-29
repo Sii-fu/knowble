@@ -99,6 +99,7 @@ You’re not just a tutor — you’re the user’s academic ride-or-die.
     }
   }
 
+
   /// Generate content using Gemini API with retry mechanism
   Future<String> generateContent(String prompt, {int maxRetries = 3}) async {
     for (int attempt = 1; attempt <= maxRetries; attempt++) {
