@@ -172,7 +172,14 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
         final ch = _chapters[i];
         final chTitle = ch.nameController.text.trim();
         if (ch.remoteId != null) {
-          final origCh = origChapters.firstWhere((c) => c['id'] == ch.remoteId, orElse: () => null);
+          // find original chapter map safely
+          Map<String, dynamic>? origCh;
+          for (final c in origChapters) {
+            if (c is Map && c['id'] == ch.remoteId) {
+              origCh = Map<String, dynamic>.from(c);
+              break;
+            }
+          }
           if (origCh != null && chTitle != (origCh['title'] ?? '')) {
             await _service.updateModule(moduleId: ch.remoteId!, title: chTitle);
           }
@@ -182,16 +189,29 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
           if (newId != null) ch.remoteId = newId;
         }
 
-        final origLessons = ch.remoteId != null
-            ? List.from((origChapters.firstWhere((c) => c['id'] == ch.remoteId, orElse: () => {})['lessons'] as List? ?? []))
-            : <dynamic>[];
+        // build original lessons list for this chapter (if any) in a null-safe way
+        final origLessons = <dynamic>[];
+        if (ch.remoteId != null) {
+          for (final c in origChapters) {
+            if (c is Map && c['id'] == ch.remoteId) {
+              origLessons.addAll(List.from((c['lessons'] as List? ?? [])));
+              break;
+            }
+          }
+        }
 
         for (int j = 0; j < ch.lessons.length; j++) {
           final ls = ch.lessons[j];
           final lsTitle = ls.titleController.text.trim();
           final lsDesc = ls.descriptionController.text.trim();
           if (ls.remoteId != null) {
-            final origLs = origLessons.firstWhere((l) => l['id'] == ls.remoteId, orElse: () => null);
+            Map<String, dynamic>? origLs;
+            for (final l in origLessons) {
+              if (l is Map && l['id'] == ls.remoteId) {
+                origLs = Map<String, dynamic>.from(l);
+                break;
+              }
+            }
             if (origLs != null && (lsTitle != (origLs['title'] ?? '') || lsDesc != (origLs['description'] ?? ''))) {
               await _service.updateSection(sectionId: ls.remoteId!, title: lsTitle, description: lsDesc);
             }
@@ -210,10 +230,22 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
             final contentTitle = ls.pdfFile!['name'] ?? '';
             final contentUrl = ls.pdfFile!['url'] ?? '';
             if (contentRemote != null) {
-              final origContent = origLessons.firstWhere((l) => l['id'] == ls.remoteId, orElse: () => null);
-              // try to find original content entry
-              final origContents = origLessons.firstWhere((l) => l['id'] == ls.remoteId, orElse: () => null)?['contents'] as List? ?? [];
-              final found = origContents.firstWhere((c) => c['id'] == contentRemote, orElse: () => null);
+              // find the original lesson entry and its contents safely
+              Map<String, dynamic>? origLessonMap;
+              for (final l in origLessons) {
+                if (l is Map && l['id'] == ls.remoteId) {
+                  origLessonMap = Map<String, dynamic>.from(l);
+                  break;
+                }
+              }
+              final origContents = origLessonMap != null ? List.from(origLessonMap['contents'] as List? ?? []) : <dynamic>[];
+              Map<String, dynamic>? found;
+              for (final c in origContents) {
+                if (c is Map && c['id'] == contentRemote) {
+                  found = Map<String, dynamic>.from(c);
+                  break;
+                }
+              }
               if (found != null && (contentTitle != (found['title'] ?? '') || contentUrl != (found['url'] ?? ''))) {
                 await _service.updateContent(contentId: contentRemote, title: contentTitle, url: contentUrl);
               }
