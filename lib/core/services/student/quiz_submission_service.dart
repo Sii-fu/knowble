@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class QuizSubmissionService {
   final _client = Supabase.instance.client;
 
-  /// Save a student's answer into the submissions table
   Future<void> submitAnswer({
     required String studentId,
     required String questionId,
@@ -20,31 +19,50 @@ class QuizSubmissionService {
         'marks_awarded': marksAwarded,
       });
     } catch (e) {
-      print("❌ Error submitting answer: $e");
+      print("Error inserting submission: $e");
       rethrow;
     }
   }
 
-  /// Fetch total score for a student in a course
-  Future<int> fetchTotalScore(String studentId, String courseId) async {
+  Future<int> fetchTotalScore(String studentId, String sectionId) async {
     try {
-      final data = await _client
+      // ✅ get all assessments in this section
+      final assRes = await _client
+          .from('assessments')
+          .select('id')
+          .eq('section_id', sectionId)
+          .eq('type', 'quiz');
+
+      if ((assRes as List).isEmpty) return 0;
+
+      final assessmentIds = assRes.map((e) => e['id']).toList();
+
+      // ✅ get all question IDs from those assessments - FIXED: use inFilter
+      final qRes = await _client
+          .from('questions')
+          .select('id')
+          .inFilter('assessment_id', assessmentIds); // ✅ Corrected
+
+      if ((qRes as List).isEmpty) return 0;
+
+      final questionIds = qRes.map((e) => e['id']).toList();
+
+      // ✅ sum marks awarded from submissions for those questions - FIXED: use inFilter
+      final subRes = await _client
           .from('submissions')
-          .select('marks_awarded, questions!inner(assessment_id, assessments!inner(course_id))')
+          .select('marks_awarded')
           .eq('student_id', studentId)
-          .eq('questions.assessments.course_id', courseId);
+          .inFilter('question_id', questionIds); // ✅ Corrected
 
-      final submissions = data as List;
+      if ((subRes as List).isEmpty) return 0;
 
-      // Safely cast to int
-      final totalScore = submissions.fold<int>(
-        0,
-        (sum, row) => sum + ((row['marks_awarded'] as num?)?.toInt() ?? 0),
-      );
+      final total = (subRes as List)
+          .map((s) => (s['marks_awarded'] as num?) ?? 0)
+          .fold<int>(0, (a, b) => a + b.toInt());
 
-      return totalScore;
+      return total;
     } catch (e) {
-      print("❌ Error fetching total score: $e");
+      print("Error fetching total score: $e");
       return 0;
     }
   }

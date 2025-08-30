@@ -5,14 +5,14 @@ import '../../core/services/student/quiz_submission_service.dart';
 import '../../config/theme.dart';
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key});
+  final String sectionId;
+  const QuizPage({super.key, required this.sectionId});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
-  final String courseId = '20c27261-04ef-4601-b65c-ff8371485785';
   final QuizSubmissionService _submissionService = QuizSubmissionService();
 
   List<Map<String, dynamic>> quizData = [];
@@ -39,7 +39,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   Future<void> _fetchQuizData() async {
     try {
-      final data = await QuizService().fetchQuizData(courseId);
+      final data = await QuizService().fetchQuizData(widget.sectionId);
       setState(() {
         quizData = data;
         isLoading = false;
@@ -151,7 +151,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: const Text('Interactive Quiz',
+        title: const Text('Section Quiz',
             style: TextStyle(
                 fontFamily: 'Jost',
                 fontWeight: FontWeight.w600,
@@ -214,7 +214,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 8),
             const Text(
-              'There are no quiz questions available for this course.',
+              'There are no quiz questions available for this section yet.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Jost',
@@ -225,10 +225,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                setState(() => isLoading = true);
-                _fetchQuizData();
-              },
+              onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryTeal,
                 foregroundColor: AppTheme.surfaceWhite,
@@ -239,7 +236,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 ),
               ),
               child: const Text(
-                'Retry',
+                'Back to Lessons',
                 style: TextStyle(
                   fontFamily: 'Jost',
                   fontWeight: FontWeight.w500,

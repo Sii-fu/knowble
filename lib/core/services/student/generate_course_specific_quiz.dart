@@ -3,65 +3,69 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class QuizService {
   final _client = Supabase.instance.client;
 
-  /// Fetches all MCQ quiz data for a given course.
-  /// Returns a list of maps:
-  /// [
-  ///   {
-  ///     'id': 'questionId',
-  ///     'question': '...',
-  ///     'options': ['opt1','opt2',...],
-  ///     'answer': 'correctOption',
-  ///   },
-  ///   ...
-  /// ]
-  Future<List<Map<String, dynamic>>> fetchQuizData(String courseId) async {
+  Future<List<Map<String, dynamic>>> fetchQuizData(String sectionId) async {
     try {
-      final assRes = await _client
+      print('🔍 Fetching quiz for section: "$sectionId"');
+
+      // 1. Find the assessment for this section
+      final assessment = await _client
           .from('assessments')
-          .select('id')
-          .eq('course_id', courseId)
-          .eq('type', 'quiz');
+          .select('id, title, section_id, type')
+          .eq('section_id', sectionId)  // ← Dynamic: use the section ID
+          .eq('type', 'quiz')
+          .maybeSingle();
 
-      if ((assRes as List).isEmpty) return [];
+      if (assessment == null) {
+        print('❌ No quiz assessment found for section: $sectionId');
+        return [];
+      }
 
-      final assessmentIds = assRes.map((e) => e['id'] as String).toList();
+      print('✅ Found assessment: ${assessment['title']}');
+      print('   Assessment ID: ${assessment['id']}');
+      print('   Section ID: ${assessment['section_id']}');
+      print('   Type: ${assessment['type']}');
 
+      final assessmentId = assessment['id'] as String;
+
+      // 2. Get questions for this assessment
       final questionsRes = await _client
           .from('questions')
           .select('id, question_text')
-          .inFilter('assessment_id', assessmentIds);
+          .eq('assessment_id', assessmentId);
 
-      if ((questionsRes as List).isEmpty) return [];
+      print('❓ Questions found: ${questionsRes.length}');
 
       final quizData = <Map<String, dynamic>>[];
-
       for (var q in questionsRes) {
         final questionId = q['id'] as String;
         final optsRes = await _client
             .from('options')
             .select('id, option_text, is_correct')
-            .eq('question_id', questionId)
-            .order('order', ascending: true);
+            .eq('question_id', questionId);
 
-        if ((optsRes as List).isEmpty) continue;
+        if (optsRes.isNotEmpty) {
+          final options = optsRes.map((o) => o['option_text'] as String).toList();
+          final correctOption = optsRes.firstWhere(
+            (o) => o['is_correct'] == true,
+            orElse: () => {},
+          );
 
-        final opts = (optsRes).map((o) => o['option_text'] as String).toList();
-        final correctOptions = (optsRes).where((o) => o['is_correct'] == true);
-        if (correctOptions.isEmpty) continue;
-
-        final correct = correctOptions.first['option_text'] as String;
-
-        quizData.add({
-          'id': questionId, // ✅ include question id for submissions
-          'question': q['question_text'] as String,
-          'options': opts,
-          'answer': correct,
-        });
+          if (correctOption.isNotEmpty) {
+            quizData.add({
+              'id': questionId,
+              'question': q['question_text'],
+              'options': options,
+              'answer': correctOption['option_text'],
+            });
+          }
+        }
       }
 
+      print('🎯 Final quiz data: ${quizData.length} questions');
       return quizData;
+
     } catch (e) {
-      print('Error fetching quiz data: $e');
+      print("❌ Error fetching quiz: $e");
       return [];
     }
   }

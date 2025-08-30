@@ -35,29 +35,25 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
-      value: 1.0, // Start at normal position (visible)
+      value: 1.0,
     );
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(1.2, 0.0), // Off-screen right
-      end: Offset.zero, // Normal position
+      begin: const Offset(1.2, 0.0),
+      end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeOutBack,
     ));
-    
+
     _loadCourseLessons();
-    
-    // Auto-collapse the FAB after 3 seconds with sequential animation
+
     Future.delayed(const Duration(seconds: 3), () async {
       if (mounted) {
-        // First slide out extended button (600ms)
-        await _animationController.reverse(); // Goes from 1.0 to 0.0 (normal to off-screen)
-        // Then switch to collapsed button
+        await _animationController.reverse();
         setState(() {
           _showExtendedFAB = false;
         });
-        // Then slide in collapsed button (600ms)
-        await _animationController.forward(); // Goes from 0.0 to 1.0 (off-screen to normal)
+        await _animationController.forward();
       }
     });
   }
@@ -82,16 +78,17 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
         final section = sections[i];
         final contents = await _service.fetchContents(section.id);
         allContents.addAll(contents);
-        List<Map<String, dynamic>> contentList = contents.map((content) => {
-              'id': content.id, // ensure id is included so downstream callers have it
-              'title': content.title,
-              'type': content.type,
-              'url': content.url,
-            }).toList();
+
         sectionList.add({
+          'id': section.id, // ✅ section id for quiz
           'number': (i + 1).toString(),
           'title': section.title,
-          'contents': contentList,
+          'contents': contents.map((content) => {
+                'id': content.id,
+                'title': content.title,
+                'type': content.type,
+                'url': content.url,
+              }).toList(),
         });
       }
       lessons.add({
@@ -100,7 +97,6 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
       });
     }
 
-    // Check enrollment
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
     final enrollments = await _service.fetchUserEnrollments(userId);
     final enrolled = enrollments.any((e) => e.courseId == widget.courseId);
@@ -185,7 +181,8 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                         Padding(
                           padding: const EdgeInsets.only(left: 8),
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primaryTeal),
+                            icon: const Icon(Icons.arrow_back_ios,
+                                color: AppTheme.primaryTeal),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
@@ -193,7 +190,10 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                         Expanded(
                           child: Text(
                             'Course Lessons',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.primaryTeal,
                                   letterSpacing: 0.5,
@@ -201,114 +201,28 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                           ),
                         ),
                         if (_enrolled)
-                          Container(
-                            margin: const EdgeInsets.only(right: 16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppTheme.primaryTeal.withOpacity(0.1),
-                                  AppTheme.successGreen.withOpacity(0.1),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: AppTheme.primaryTeal.withOpacity(0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () {
-                  final pdfContents = _contents
-                    .where((content) => content.type == 'pdf')
-                    .map((c) => {'id': c.id, 'title': c.title, 'url': c.url})
-                    .toList();
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ChatBotPage(
-                                        courseTitle: _course?.title ?? '',
-                                        courseDescription: _course?.description ?? '',
-                                        pdfContents: pdfContents,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(16),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        child: Icon(
-                                          Icons.smart_toy_outlined,
-                                          size: 16,
-                                          color: AppTheme.primaryTeal,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'AI Assistant',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppTheme.primaryTeal,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          _buildAIAssistantButton(),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
                   Expanded(
                     child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                      itemCount: _lessons.length + 1, // +1 for the quiz button
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 8),
+                      itemCount: _lessons.length,
                       separatorBuilder: (_, index) => const SizedBox(height: 18),
                       itemBuilder: (_, index) {
-                        if (index == _lessons.length) {
-                          // Quiz button as the last item
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const QuizPage()),
-                                );
-                              },
-                              icon: const Icon(Icons.quiz, color: Colors.white),
-                              label: const Text(
-                                'Take Quiz',
-                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryTeal,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                            ),
-                          );
-                        }
-                        
                         final module = _lessons[index];
                         final sections = module['sections'] as List<dynamic>;
                         return Card(
                           elevation: 3,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
                           color: Colors.white,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 18),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -316,17 +230,24 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                   children: [
                                     Container(
                                       decoration: BoxDecoration(
-                                        color: AppTheme.primaryTeal.withOpacity(0.12),
+                                        color: AppTheme.primaryTeal
+                                            .withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
                                       child: Row(
                                         children: [
-                                          const Icon(Icons.menu_book, color: AppTheme.primaryTeal, size: 18),
+                                          const Icon(Icons.menu_book,
+                                              color: AppTheme.primaryTeal,
+                                              size: 18),
                                           const SizedBox(width: 6),
                                           Text(
                                             module['module'] as String,
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
                                                   fontWeight: FontWeight.bold,
                                                   color: AppTheme.primaryTeal,
                                                 ),
@@ -338,38 +259,76 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                 ),
                                 const SizedBox(height: 14),
                                 ...sections.asMap().entries.map((entry) {
-                                  final section = entry.value as Map<String, dynamic>;
-                                  final contents = section['contents'] as List<dynamic>;
+                                  final section =
+                                      entry.value as Map<String, dynamic>;
+                                  final contents =
+                                      section['contents'] as List<dynamic>;
                                   return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
-                                          CircleAvatar(
-                                            radius: 15,
-                                            backgroundColor: AppTheme.accentLight,
-                                            child: Text(
-                                              section['number'],
-                                              style: const TextStyle(
-                                                color: AppTheme.textPrimary,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Text(
-                                            section['title'],
-                                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppTheme.textPrimary,
+                                          Row(
+                                            children: [
+                                              CircleAvatar(
+                                                radius: 15,
+                                                backgroundColor:
+                                                    AppTheme.accentLight,
+                                                child: Text(
+                                                  section['number'],
+                                                  style: const TextStyle(
+                                                    color: AppTheme.textPrimary,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                section['title'],
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: AppTheme.textPrimary,
+                                                    ),
+                                              ),
+                                            ],
                                           ),
+                                          if (_enrolled)
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => QuizPage(
+                                                        sectionId:
+                                                            section['id']),
+                                                  ),
+                                                );
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    AppTheme.primaryTeal,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                              child: const Text('Quiz'),
+                                            ),
                                         ],
                                       ),
                                       Padding(
-                                        padding: const EdgeInsets.only(left: 40, top: 4, bottom: 10),
+                                        padding: const EdgeInsets.only(
+                                            left: 40, top: 4, bottom: 10),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: contents.map<Widget>((content) {
                                             IconData icon;
                                             Color iconColor;
@@ -381,11 +340,13 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                                 Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
-                                                    builder: (_) => PDFViewerPage(
+                                                    builder: (_) =>
+                                                        PDFViewerPage(
                                                       pdfUrl: content['url'],
                                                       title: content['title'],
                                                       contentId: content['id'],
-                                                      courseId: widget.courseId,
+                                                      courseId:
+                                                          widget.courseId,
                                                     ),
                                                   ),
                                                 );
@@ -396,21 +357,30 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                               onTap = null;
                                             }
                                             return Padding(
-                                              padding: const EdgeInsets.only(bottom: 2.5),
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 2.5),
                                               child: InkWell(
                                                 onTap: onTap,
-                                                borderRadius: BorderRadius.circular(6),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
                                                 child: Row(
                                                   children: [
-                                                    Icon(icon, color: iconColor, size: 18),
+                                                    Icon(icon,
+                                                        color: iconColor,
+                                                        size: 18),
                                                     const SizedBox(width: 6),
                                                     Flexible(
                                                       child: Text(
                                                         content['title'],
-                                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                              color: AppTheme.textSecondary,
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .bodySmall
+                                                            ?.copyWith(
+                                                              color: AppTheme
+                                                                  .textSecondary,
                                                             ),
-                                                        overflow: TextOverflow.ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                       ),
                                                     ),
                                                   ],
@@ -420,10 +390,13 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                           }).toList(),
                                         ),
                                       ),
-                                      const Divider(height: 18, thickness: 0.7, color: Color(0xFFE0E0E0)),
+                                      const Divider(
+                                          height: 18,
+                                          thickness: 0.7,
+                                          color: Color(0xFFE0E0E0)),
                                     ],
                                   );
-                                }),
+                                }).toList(),
                               ],
                             ),
                           ),
@@ -434,49 +407,114 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                 ],
               ),
             ),
-      floatingActionButton: _enrolled
-          ? AnimatedBuilder(
-              animation: _slideAnimation,
-              builder: (context, child) {
-                return SlideTransition(
-                  position: _slideAnimation,
-                  child: _showExtendedFAB
-                      ? FloatingActionButton.extended(
-                          key: const ValueKey('extended'),
-                          heroTag: 'instructor',
-                          onPressed: _startInstructorChat,
-                          backgroundColor: Colors.orange.shade600,
-                          foregroundColor: Colors.white,
-                          icon: const Icon(Icons.school_outlined, size: 20),
-                          label: const Text(
-                            'Ask Instructor',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 4,
-                        )
-                      : FloatingActionButton(
-                          key: const ValueKey('collapsed'),
-                          heroTag: 'instructor',
-                          onPressed: _startInstructorChat,
-                          backgroundColor: Colors.orange.shade600,
-                          foregroundColor: Colors.white,
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          tooltip: 'Ask Instructor',
-                          child: const Icon(Icons.school_outlined, size: 24),
-                        ),
-                );
-              },
-            )
-          : null,
+      floatingActionButton: _enrolled ? _buildInstructorFAB() : null,
+    );
+  }
+
+  Widget _buildAIAssistantButton() {
+    final pdfContents = _contents
+        .where((content) => content.type == 'pdf')
+        .map((c) => {'id': c.id, 'title': c.title, 'url': c.url})
+        .toList();
+    return Container(
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryTeal.withOpacity(0.1),
+            AppTheme.successGreen.withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryTeal.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChatBotPage(
+                  courseTitle: _course?.title ?? '',
+                  courseDescription: _course?.description ?? '',
+                  pdfContents: pdfContents,
+                ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.smart_toy_outlined,
+                    size: 16, color: AppTheme.primaryTeal),
+                const SizedBox(width: 8),
+                Text(
+                  'AI Assistant',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryTeal,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInstructorFAB() {
+    return AnimatedBuilder(
+      animation: _slideAnimation,
+      builder: (context, child) {
+        return SlideTransition(
+          position: _slideAnimation,
+          child: _showExtendedFAB
+              ? FloatingActionButton.extended(
+                  key: const ValueKey('extended'),
+                  heroTag: 'instructor',
+                  onPressed: _startInstructorChat,
+                  backgroundColor: Colors.orange.shade600,
+                  foregroundColor: Colors.white,
+                  icon: const Icon(Icons.school_outlined, size: 20),
+                  label: const Text(
+                    'Ask Instructor',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 4,
+                )
+              : FloatingActionButton(
+                  key: const ValueKey('collapsed'),
+                  heroTag: 'instructor',
+                  onPressed: _startInstructorChat,
+                  backgroundColor: Colors.orange.shade600,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tooltip: 'Ask Instructor',
+                  child: const Icon(Icons.school_outlined, size: 24),
+                ),
+        );
+      },
     );
   }
 }
