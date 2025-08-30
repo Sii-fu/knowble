@@ -607,25 +607,8 @@ class ModernSectionWidget extends StatelessWidget {
     );
   }
 }
-Future<void> downloadPdf(String url, String title) async {
-  if (kIsWeb) {
-    // Web download
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', '$title.pdf')
-      ..click();
-  } else {
-    // Mobile download
-    try {
-      final dio = Dio();
-      Directory directory = await getApplicationDocumentsDirectory();
-      final savePath = '${directory.path}/$title.pdf';
-      await dio.download(url, savePath);
-      print('Downloaded to $savePath');
-    } catch (e) {
-      print('Download failed: $e');
-    }
-  }
-}
+// Removed global helper to centralize download logic inside the widget
+// (ModernContentWidget._downloadPdf handles both web and mobile and shows feedback).
 class ModernContentWidget extends StatelessWidget {
   final Map<String, dynamic> content;
 
@@ -633,6 +616,39 @@ class ModernContentWidget extends StatelessWidget {
 
   Future<void> _downloadPdf(BuildContext context, String url, String title) async {
     try {
+      if (kIsWeb) {
+        // Try to fetch the file as a blob and create an object URL so the
+        // browser will download it instead of opening inline. This may fail
+        // if the server blocks cross-origin blob requests (CORS) or forces
+        // inline Content-Disposition. In that case we fallback to opening
+        // the URL in a new tab.
+        try {
+          final req = await html.HttpRequest.request(url, responseType: 'blob');
+          final blob = req.response as html.Blob;
+          final objectUrl = html.Url.createObjectUrlFromBlob(blob);
+
+          final anchor = html.AnchorElement(href: objectUrl)
+            ..setAttribute('download', '$title.pdf');
+          anchor.click();
+
+          // Revoke the object URL shortly after
+          html.Url.revokeObjectUrl(objectUrl);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Download started in browser')),
+          );
+          return;
+        } catch (e) {
+          // Fallback: open in new tab if blob fetch isn't allowed
+          final anchor = html.AnchorElement(href: url)..setAttribute('target', '_blank');
+          anchor.click();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Opened in new tab (download may be blocked by server/CORS)')),
+          );
+          return;
+        }
+      }
+
       final dio = Dio();
 
       // Get app's documents directory
@@ -697,20 +713,20 @@ class ModernContentWidget extends StatelessWidget {
             ),
           ),
           if (type == 'pdf' && url.isNotEmpty)
-  Container(
-    decoration: BoxDecoration(
-      color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: IconButton(
-      icon: Icon(
-        Icons.download,
-        size: 18,
-        color: AppThemeInstructor.primaryBlue,
-      ),
-      onPressed: () => downloadPdf(url, title),
-    ),
-  ),
+            Container(
+              decoration: BoxDecoration(
+                color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.download,
+                  size: 18,
+                  color: AppThemeInstructor.primaryBlue,
+                ),
+                onPressed: () => _downloadPdf(context, url, title),
+              ),
+            ),
         ],
       ),
     );

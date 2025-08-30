@@ -1,61 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/student/generate_course_specific_quiz.dart';
+import '../../core/services/student/quiz_submission_service.dart';
 import '../../config/theme.dart';
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key});
+  final String sectionId;
+  const QuizPage({super.key, required this.sectionId});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
-  // 💾 Quiz data
-  final String courseid = '9c341deb-5373-4a42-89df-867faa4f63d3';
-  
+  final QuizSubmissionService _submissionService = QuizSubmissionService();
 
   List<Map<String, dynamic>> quizData = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _initAnimations();
-    _fetchQuizData();
-
-  }
-
-  Future<void> _fetchQuizData() async {
-    try {
-      // Replace 'yourCourseId' with the actual course ID or required argument
-      final data = await QuizService().fetchQuizData(courseid);
-      // print('Fetched quiz data: $data');
-      setState(() {
-        quizData = data;
-        isLoading = false; // Set loading to false when data is loaded
-      });
-    } catch (e) {
-      print('Error fetching quiz data: $e');
-      setState(() {
-        isLoading = false; // Set loading to false even on error
-      });
-    }
-  }
-  // 🔧 State management
   int currentQuestionIndex = 0;
   String? selectedOption;
   int score = 0;
   bool isAnswered = false;
   bool showFeedback = false;
   bool quizCompleted = false;
-  bool isLoading = true; // Add loading state
-  
+  bool isLoading = true;
 
-  // Animation controllers
+  // Animations
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  @override
+  void initState() {
+    super.initState();
+    _initAnimations();
+    _fetchQuizData();
+  }
+
+  Future<void> _fetchQuizData() async {
+    try {
+      final data = await QuizService().fetchQuizData(widget.sectionId);
+      setState(() {
+        quizData = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error fetching quiz data: $e');
+      setState(() => isLoading = false);
+    }
+  }
 
   void _initAnimations() {
     _fadeController = AnimationController(
@@ -66,16 +59,16 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(1.0, 0.0),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
-    
+
     _fadeController.forward();
     _slideController.forward();
   }
@@ -89,29 +82,38 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   void _selectOption(String option) {
     if (!isAnswered) {
-      setState(() {
-        selectedOption = option;
-      });
+      setState(() => selectedOption = option);
     }
   }
 
-  void _submitAnswer() {
+  Future<void> _submitAnswer() async {
     if (selectedOption == null) return;
-    
+
+    final currentQuestion = quizData[currentQuestionIndex];
+    final isCorrect = selectedOption == currentQuestion['answer'];
+    final marks = isCorrect ? 1 : 0;
+
     setState(() {
       isAnswered = true;
       showFeedback = true;
-      
-      // Check if answer is correct
-      if (selectedOption == quizData[currentQuestionIndex]['answer']) {
-        score++;
-      }
+      if (isCorrect) score++;
     });
 
-    // Auto-move to next question after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      _nextQuestion();
-    });
+    // Save submission to Supabase
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    try {
+      await _submissionService.submitAnswer(
+        studentId: userId,
+        questionId: currentQuestion['id'],
+        selectedOptionIds: [selectedOption!],
+        isCorrect: isCorrect,
+        marksAwarded: marks,
+      );
+    } catch (e) {
+      print("❌ Failed to save submission: $e");
+    }
+
+    Future.delayed(const Duration(seconds: 2), () => _nextQuestion());
   }
 
   void _nextQuestion() {
@@ -122,15 +124,10 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         isAnswered = false;
         showFeedback = false;
       });
-      
-      // Restart animations for next question
       _slideController.reset();
       _slideController.forward();
     } else {
-      // Quiz completed
-      setState(() {
-        quizCompleted = true;
-      });
+      setState(() => quizCompleted = true);
     }
   }
 
@@ -142,13 +139,10 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       isAnswered = false;
       showFeedback = false;
       quizCompleted = false;
-      isLoading = true; // Set loading when restarting
+      isLoading = true;
     });
-    
     _slideController.reset();
     _slideController.forward();
-    
-    // Refetch quiz data
     _fetchQuizData();
   }
 
@@ -157,37 +151,34 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
-        title: const Text(
-          'Interactive Quiz',
-          style: TextStyle(
-            fontFamily: 'Jost',
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
-          ),
-        ),
+        title: const Text('Section Quiz',
+            style: TextStyle(
+                fontFamily: 'Jost',
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary)),
         backgroundColor: AppTheme.backgroundLight,
         foregroundColor: AppTheme.textPrimary,
         elevation: 0,
         centerTitle: true,
       ),
-      body: isLoading 
+      body: isLoading
           ? _buildLoadingScreen()
-          : quizData.isEmpty 
+          : quizData.isEmpty
               ? _buildErrorScreen()
-              : quizCompleted 
-                  ? _buildCompletionScreen() 
+              : quizCompleted
+                  ? _buildCompletionScreen()
                   : _buildQuizScreen(),
     );
   }
+
+  // ---------------- UI Builders ----------------
 
   Widget _buildLoadingScreen() {
     return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            color: AppTheme.primaryTeal,
-          ),
+          CircularProgressIndicator(color: AppTheme.primaryTeal),
           SizedBox(height: 16),
           Text(
             'Loading Quiz...',
@@ -210,11 +201,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppTheme.errorRed,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: AppTheme.errorRed),
             const SizedBox(height: 16),
             const Text(
               'No Quiz Available',
@@ -227,7 +214,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 8),
             const Text(
-              'There are no quiz questions available for this course.',
+              'There are no quiz questions available for this section yet.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Jost',
@@ -238,22 +225,18 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  isLoading = true;
-                });
-                _fetchQuizData();
-              },
+              onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryTeal,
                 foregroundColor: AppTheme.surfaceWhite,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
               child: const Text(
-                'Retry',
+                'Back to Lessons',
                 style: TextStyle(
                   fontFamily: 'Jost',
                   fontWeight: FontWeight.w500,
@@ -267,10 +250,8 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   }
 
   Widget _buildQuizScreen() {
-    if (quizData.isEmpty) return _buildErrorScreen();
-    
     final currentQuestion = quizData[currentQuestionIndex];
-    
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Padding(
@@ -278,20 +259,13 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Progress indicator
             _buildProgressIndicator(),
-            
             const SizedBox(height: 30),
-            
-            // Question card
             SlideTransition(
               position: _slideAnimation,
               child: _buildQuestionCard(currentQuestion),
             ),
-            
             const SizedBox(height: 30),
-            
-            // Options
             Expanded(
               child: ListView.builder(
                 itemCount: currentQuestion['options'].length,
@@ -304,10 +278,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 },
               ),
             ),
-            
             const SizedBox(height: 20),
-            
-            // Submit/Next button
             _buildActionButton(),
           ],
         ),
@@ -317,7 +288,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   Widget _buildProgressIndicator() {
     final progress = (currentQuestionIndex + 1) / quizData.length;
-    
+
     return Column(
       children: [
         Row(
@@ -347,7 +318,8 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         LinearProgressIndicator(
           value: progress,
           backgroundColor: AppTheme.borderSubtle,
-          valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryTeal),
+          valueColor:
+              const AlwaysStoppedAnimation<Color>(AppTheme.primaryTeal),
           minHeight: 6,
         ),
       ],
@@ -373,11 +345,8 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.quiz_rounded,
-                color: AppTheme.primaryTeal,
-                size: 24,
-              ),
+              Icon(Icons.quiz_rounded,
+                  color: AppTheme.primaryTeal, size: 24),
               SizedBox(width: 8),
               Text(
                 'Question',
@@ -411,20 +380,20 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     final correctAnswer = currentQuestion['answer'];
     final isSelected = selectedOption == option;
     final isCorrect = option == correctAnswer;
-    
+
     Color cardColor = AppTheme.surfaceWhite;
     Color borderColor = AppTheme.borderSubtle;
     Color textColor = AppTheme.textPrimary;
     IconData? icon;
-    
+
     if (showFeedback) {
       if (isCorrect) {
-        cardColor = AppTheme.successGreen.withValues(alpha: 0.1);
+        cardColor = AppTheme.successGreen.withOpacity(0.1);
         borderColor = AppTheme.successGreen;
         textColor = AppTheme.successGreen;
         icon = Icons.check_circle;
       } else if (isSelected && !isCorrect) {
-        cardColor = AppTheme.errorRed.withValues(alpha: 0.1);
+        cardColor = AppTheme.errorRed.withOpacity(0.1);
         borderColor = AppTheme.errorRed;
         textColor = AppTheme.errorRed;
         icon = Icons.cancel;
@@ -434,7 +403,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       borderColor = AppTheme.primaryTeal;
       textColor = AppTheme.primaryTeal;
     }
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -456,13 +425,18 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected || showFeedback ? borderColor : AppTheme.borderSubtle,
+                    color: isSelected || showFeedback
+                        ? borderColor
+                        : AppTheme.borderSubtle,
                     width: 2,
                   ),
-                  color: isSelected || (showFeedback && isCorrect) ? borderColor : Colors.transparent,
+                  color: isSelected || (showFeedback && isCorrect)
+                      ? borderColor
+                      : Colors.transparent,
                 ),
                 child: isSelected || (showFeedback && isCorrect)
-                    ? const Icon(Icons.check, size: 16, color: AppTheme.surfaceWhite)
+                    ? const Icon(Icons.check,
+                        size: 16, color: AppTheme.surfaceWhite)
                     : null,
               ),
               const SizedBox(width: 16),
@@ -478,11 +452,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 ),
               ),
               if (showFeedback && icon != null)
-                Icon(
-                  icon,
-                  color: borderColor,
-                  size: 24,
-                ),
+                Icon(icon, color: borderColor, size: 24),
             ],
           ),
         ),
@@ -496,7 +466,10 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         height: 56,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [AppTheme.successGreen, AppTheme.successGreen.withValues(alpha: 0.8)],
+            colors: [
+              AppTheme.successGreen,
+              AppTheme.successGreen.withOpacity(0.8)
+            ],
           ),
           borderRadius: BorderRadius.circular(12),
         ),
@@ -520,16 +493,14 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         ),
       );
     }
-    
+
     return ElevatedButton(
       onPressed: selectedOption != null ? _submitAnswer : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primaryTeal,
         foregroundColor: AppTheme.surfaceWhite,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 2,
       ),
       child: const Text(
@@ -545,7 +516,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   Widget _buildCompletionScreen() {
     final percentage = (score / quizData.length * 100).round();
-    
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Padding(
@@ -569,9 +540,13 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
               child: Column(
                 children: [
                   Icon(
-                    percentage >= 70 ? Icons.celebration : Icons.psychology,
+                    percentage >= 70
+                        ? Icons.celebration
+                        : Icons.psychology,
                     size: 80,
-                    color: percentage >= 70 ? const Color(0xFF22C55E) : const Color(0xFFF59E0B),
+                    color: percentage >= 70
+                        ? const Color(0xFF22C55E)
+                        : const Color(0xFFF59E0B),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -635,7 +610,9 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: percentage >= 70 ? const Color(0xFF22C55E) : const Color(0xFFF59E0B),
+                                color: percentage >= 70
+                                    ? const Color(0xFF22C55E)
+                                    : const Color(0xFFF59E0B),
                               ),
                             ),
                           ],
@@ -664,8 +641,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 2,
                 ),
               ),
@@ -677,7 +653,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.home),
                 label: const Text(
-                  'Back to Home',
+                  'Back to Course',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -686,10 +662,9 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF64748B),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   side: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),

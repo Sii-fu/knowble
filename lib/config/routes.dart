@@ -77,7 +77,11 @@ class AppRoutes {
     '/courses': (context) => const CourseListPage(),
     '/course_detail': (context) => const CourseDetailPage(),
     '/course_content': (context) => const CourseContentPage(),
-    '/quiz': (context) => const QuizPage(),
+    '/quiz': (context) {
+  final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+  return QuizPage(sectionId: args['sectionId']);
+},
+
     '/chats': (context) => const ChatListPage(),
     '/student_dashboard': (context) => const StudentDashboardPage(),
     '/course_screen': (context) => const CourseScreen(),

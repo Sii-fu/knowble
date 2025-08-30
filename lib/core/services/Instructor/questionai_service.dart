@@ -153,10 +153,11 @@ Requirements:
     onStatus?.call('Questions are being prepared...');
 
     final assessmentInsert = await _supabase.from('assessments').insert({
-      'course_id': courseId,
+      
       'title': assessmentTitle,
       'type': type,
       'total_marks': totalMarks,
+      'section_id': sectionId,
     }).select().single();
 
     final assessmentId = assessmentInsert['id'];
