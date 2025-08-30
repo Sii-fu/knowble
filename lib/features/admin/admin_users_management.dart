@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sizer/sizer.dart';
 import 'package:Knowble/config/theme.dart';
 import './widgets/user_filter_chip.dart';
 import './widgets/user_list_item_card.dart';
@@ -166,129 +167,170 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
+        backgroundColor: AppTheme.surfaceWhite,
+        elevation: 2.0,
+        shadowColor: AppTheme.shadowLight,
+        automaticallyImplyLeading: false,
+        centerTitle: false,
+        titleSpacing: 6.w,
+        toolbarHeight: 8.h,
         title: Text(
           'User Feedback',
           style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: AppTheme.surfaceWhite,
-        elevation: 0,
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          color: AppTheme.primaryTeal,
-          child: Column(
-            children: [
-              // Search Bar
-              Container(
-                padding: EdgeInsets.all(16),
-                color: AppTheme.surfaceWhite,
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _filterUsers,
-                  style: TextStyle(
-                    color: AppTheme.textPrimary, // Fix white text issue
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Search users with feedback...',
-                    hintStyle: TextStyle(color: AppTheme.textSecondary),
-                    prefixIcon: CustomIconWidget(
-                      iconName: 'search',
-                      color: AppTheme.textSecondary,
-                      size: 20,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            onPressed: () {
-                              _searchController.clear();
-                              _filterUsers('');
-                            },
-                            icon: CustomIconWidget(
-                              iconName: 'clear',
-                              color: AppTheme.textSecondary,
-                              size: 20,
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-
-              // Filter Chips
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: AppTheme.surfaceWhite,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      UserFilterChip(
-                        label: 'All',
-                        isSelected: _selectedFilter == 'All',
-                        onTap: () => _onFilterChanged('All'),
-                      ),
-                      SizedBox(width: 8),
-                      UserFilterChip(
-                        label: 'Students',
-                        isSelected: _selectedFilter == 'Student',
-                        onTap: () => _onFilterChanged('Student'),
-                      ),
-                      SizedBox(width: 8),
-                      UserFilterChip(
-                        label: 'Instructors',
-                        isSelected: _selectedFilter == 'Instructor',
-                        onTap: () => _onFilterChanged('Instructor'),
-                      ),
-                      SizedBox(width: 8),
-                      UserFilterChip(
-                        label: 'Admins',
-                        isSelected: _selectedFilter == 'Admin',
-                        onTap: () => _onFilterChanged('Admin'),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: AppTheme.primaryTeal,
+            child: Column(
+              children: [
+                // Search Bar
+                Container(
+                  height: 8.h, // Set consistent height with courses page
+                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.shadowLight,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                ),
-              ),
-
-              // Users List
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          color: AppTheme.primaryTeal,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterUsers,
+                    style: TextStyle(
+                      color: AppTheme.textPrimary, // Fix white text issue
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search users with feedback...',
+                      hintStyle: TextStyle(color: AppTheme.textSecondary),
+                      prefixIcon: Padding(
+                        padding: EdgeInsets.all(3.w),
+                        child: CustomIconWidget(
+                          iconName: 'search',
+                          color: AppTheme.textSecondary,
+                          size: 20,
                         ),
-                      )
-                    : _filteredUsers.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        itemCount:
-                            _filteredUsers.length + (_isLoadingMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == _filteredUsers.length) {
-                            return Container(
-                              padding: EdgeInsets.all(16),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: AppTheme.primaryTeal,
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                _filterUsers('');
+                              },
+                              icon: CustomIconWidget(
+                                iconName: 'clear',
+                                color: AppTheme.textSecondary,
+                                size: 20,
+                              ),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 1.h),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 3.h),
+
+                // Filter Chips
+                Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.shadowLight,
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        UserFilterChip(
+                          label: 'All',
+                          isSelected: _selectedFilter == 'All',
+                          onTap: () => _onFilterChanged('All'),
+                        ),
+                        SizedBox(width: 8),
+                        UserFilterChip(
+                          label: 'Students',
+                          isSelected: _selectedFilter == 'Student',
+                          onTap: () => _onFilterChanged('Student'),
+                        ),
+                        SizedBox(width: 8),
+                        UserFilterChip(
+                          label: 'Instructors',
+                          isSelected: _selectedFilter == 'Instructor',
+                          onTap: () => _onFilterChanged('Instructor'),
+                        ),
+                        SizedBox(width: 8),
+                        UserFilterChip(
+                          label: 'Admins',
+                          isSelected: _selectedFilter == 'Admin',
+                          onTap: () => _onFilterChanged('Admin'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 3.h),
+
+                // Users List
+                Expanded(
+                  child: _isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: AppTheme.primaryTeal,
+                          ),
+                        )
+                      : _filteredUsers.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(bottom: 2.h),
+                          itemCount:
+                              _filteredUsers.length + (_isLoadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == _filteredUsers.length) {
+                              return Container(
+                                padding: EdgeInsets.all(4.w),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppTheme.primaryTeal,
+                                  ),
                                 ),
+                              );
+                            }
+
+                            final user = _filteredUsers[index];
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 3.h),
+                              child: UserListItemCard(
+                                user: user,
+                                onTap: () => _showUserActions(user),
+                                onLongPress: () => _showUserActions(user),
                               ),
                             );
-                          }
-
-                          final user = _filteredUsers[index];
-                          return UserListItemCard(
-                            user: user,
-                            onTap: () => _showUserActions(user),
-                            onLongPress: () => _showUserActions(user),
-                          );
-                        },
-                      ),
-              ),
-            ],
+                          },
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

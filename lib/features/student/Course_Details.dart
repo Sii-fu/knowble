@@ -9,7 +9,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
 import 'chat/chat_detail_page.dart';
-import 'courses_lessons.dart';
 import 'transaction_page.dart';
 
 

@@ -239,7 +239,7 @@ class InstructorListItemCard extends StatelessWidget {
                               size: 16,
                             ),
                             label: Text(
-                              'Document',
+                              'Docs',
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w600,

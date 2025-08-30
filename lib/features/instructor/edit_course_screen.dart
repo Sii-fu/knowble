@@ -108,7 +108,7 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
               lesson.pdfFile = {
                 'name': first['title'] ?? '',
                 'url': first['url'] ?? '',
-                'remoteId': first['id'] ?? null,
+                'remoteId': first['id'],
               };
             }
 

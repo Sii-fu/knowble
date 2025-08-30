@@ -16,6 +16,7 @@ class AdminCoursesManagement extends StatefulWidget {
 class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   int _currentIndex = 2; // Courses tab active
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   bool _isSelectionMode = false;
   final List<String> _selectedCourses = [];
@@ -23,32 +24,91 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
 
   List<Map<String, dynamic>> _courses = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMoreCourses = true;
+  static const int _batchSize = 20;
+  int _currentOffset = 0;
 
   @override
   void initState() {
     super.initState();
     _loadCourses();
+    _scrollController.addListener(_onScroll);
   }
 
-  Future<void> _loadCourses() async {
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreCourses();
+    }
+  }
+
+  Future<void> _loadCourses({bool isRefresh = false}) async {
     print('🔍 AdminCoursesManagement: Starting to load courses...');
+
+    if (isRefresh) {
+      _currentOffset = 0;
+      _hasMoreCourses = true;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      print('🔍 AdminCoursesManagement: Calling fetchAllCoursesForAdmin...');
-      final courses = await _adminCourseService.fetchAllCoursesForAdmin();
-      print('🔍 AdminCoursesManagement: Received ${courses.length} courses');
+      print(
+        '🔍 AdminCoursesManagement: Loading courses with batch approach...',
+      );
+
+      // For now, load all courses and implement client-side pagination
+      // TODO: Update AdminCourseService to support server-side pagination
+      final allCourses = await _adminCourseService.fetchAllCoursesForAdmin();
+
+      // Apply search filter if needed
+      List<Map<String, dynamic>> filteredCourses = allCourses;
+      if (_searchQuery.isNotEmpty) {
+        filteredCourses = allCourses.where((course) {
+          final title = (course['title'] as String).toLowerCase();
+          final instructor = (course['instructor'] as String).toLowerCase();
+          final category = (course['category'] as String).toLowerCase();
+          final query = _searchQuery.toLowerCase();
+
+          return title.contains(query) ||
+              instructor.contains(query) ||
+              category.contains(query);
+        }).toList();
+      }
+
+      // Implement client-side pagination
+      List<Map<String, dynamic>> batchCourses = [];
+      int endIndex = _currentOffset + _batchSize;
+      if (_currentOffset < filteredCourses.length) {
+        endIndex = endIndex > filteredCourses.length
+            ? filteredCourses.length
+            : endIndex;
+        batchCourses = filteredCourses.sublist(_currentOffset, endIndex);
+      }
+
+      print(
+        '🔍 AdminCoursesManagement: Received ${batchCourses.length} courses in batch',
+      );
+
       setState(() {
-        _courses = courses;
+        if (isRefresh) {
+          _courses = batchCourses;
+        } else {
+          _courses.addAll(batchCourses);
+        }
         _isLoading = false;
+        _currentOffset = endIndex;
+        _hasMoreCourses = endIndex < filteredCourses.length;
       });
     } catch (e) {
       print('❌ AdminCoursesManagement: Error loading courses: $e');
       setState(() {
         _isLoading = false;
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error loading courses: $e'),
@@ -58,26 +118,66 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
     }
   }
 
-  List<Map<String, dynamic>> get _filteredCourses {
-    if (_searchQuery.isEmpty) {
-      return _courses;
-    }
-    return _courses.where((course) {
-      final title = (course['title'] as String).toLowerCase();
-      final instructor = (course['instructor'] as String).toLowerCase();
-      final category = (course['category'] as String).toLowerCase();
-      final query = _searchQuery.toLowerCase();
+  Future<void> _loadMoreCourses() async {
+    if (_isLoadingMore || !_hasMoreCourses) return;
 
-      return title.contains(query) ||
-          instructor.contains(query) ||
-          category.contains(query);
-    }).toList();
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      // Load all courses again for client-side pagination
+      // TODO: Optimize this when server-side pagination is available
+      final allCourses = await _adminCourseService.fetchAllCoursesForAdmin();
+
+      // Apply search filter if needed
+      List<Map<String, dynamic>> filteredCourses = allCourses;
+      if (_searchQuery.isNotEmpty) {
+        filteredCourses = allCourses.where((course) {
+          final title = (course['title'] as String).toLowerCase();
+          final instructor = (course['instructor'] as String).toLowerCase();
+          final category = (course['category'] as String).toLowerCase();
+          final query = _searchQuery.toLowerCase();
+
+          return title.contains(query) ||
+              instructor.contains(query) ||
+              category.contains(query);
+        }).toList();
+      }
+
+      // Get next batch
+      List<Map<String, dynamic>> moreCourses = [];
+      int endIndex = _currentOffset + _batchSize;
+      if (_currentOffset < filteredCourses.length) {
+        endIndex = endIndex > filteredCourses.length
+            ? filteredCourses.length
+            : endIndex;
+        moreCourses = filteredCourses.sublist(_currentOffset, endIndex);
+      }
+
+      setState(() {
+        _courses.addAll(moreCourses);
+        _isLoadingMore = false;
+        _currentOffset = endIndex;
+        _hasMoreCourses = endIndex < filteredCourses.length;
+      });
+    } catch (e) {
+      print('Error loading more courses: $e');
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
   }
 
   void _onSearchChanged(String value) {
     setState(() {
       _searchQuery = value;
     });
+
+    // Reset and reload with search query
+    _currentOffset = 0;
+    _hasMoreCourses = true;
+    _loadCourses(isRefresh: true);
   }
 
   void _toggleSelectionMode() {
@@ -138,7 +238,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
         });
 
         // Reload courses to reflect changes
-        _loadCourses();
+        _loadCourses(isRefresh: true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -183,6 +283,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -194,6 +295,10 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
         backgroundColor: AppTheme.surfaceWhite,
         elevation: 2.0,
         shadowColor: AppTheme.shadowLight,
+        automaticallyImplyLeading: false,
+        centerTitle: false,
+        titleSpacing: 6.w,
+        toolbarHeight: 8.h,
         title: Text(
           'Courses Management',
           style: AppTheme.lightTheme.textTheme.titleLarge?.copyWith(
@@ -224,82 +329,139 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
               ),
             ),
           ],
-          SizedBox(width: 2.w),
+          SizedBox(width: 4.w),
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Search Section
-            Container(
-              color: AppTheme.surfaceWhite,
-              padding: EdgeInsets.all(4.w),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: 'Search courses, instructors, categories...',
-                  prefixIcon: Padding(
-                    padding: EdgeInsets.all(3.w),
-                    child: CustomIconWidget(
-                      iconName: 'search',
-                      color: AppTheme.textSecondary,
-                      size: 20,
-                    ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          child: Column(
+            children: [
+              // Search Section
+              Container(
+                height: 6.h, // Reduced height
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primaryTeal, // Thin teal border
+                    width: 1.5,
                   ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            _onSearchChanged('');
-                          },
-                          icon: CustomIconWidget(
-                            iconName: 'clear',
-                            color: AppTheme.textSecondary,
-                            size: 20,
-                          ),
-                        )
-                      : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.shadowLight,
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            // Courses List
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredCourses.isEmpty
-                  ? _buildEmptyState()
-                  : RefreshIndicator(
-                      onRefresh: _loadCourses,
-                      color: AppTheme.primaryTeal,
-                      child: ListView.builder(
-                        padding: EdgeInsets.symmetric(vertical: 1.h),
-                        itemCount: _filteredCourses.length,
-                        itemBuilder: (context, index) {
-                          final course = _filteredCourses[index];
-                          final courseId = course['id'] as String;
-                          final isSelected = _selectedCourses.contains(
-                            courseId,
-                          );
-
-                          return CourseListItemCard(
-                            course: course,
-                            isSelectionMode: _isSelectionMode,
-                            isSelected: isSelected,
-                            onTap: () {
-                              if (_isSelectionMode) {
-                                _toggleCourseSelection(courseId);
-                              } else {
-                                // Handle course tap
-                              }
-                            },
-                            onDetails: () => _showCoursePreview(course),
-                          );
-                        },
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: 'Search courses, instructors, categories...',
+                    hintStyle: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: Padding(
+                      padding: EdgeInsets.all(2.w),
+                      child: CustomIconWidget(
+                        iconName: 'search',
+                        color:
+                            AppTheme.primaryTeal, // Teal color for search icon
+                        size: 28, // Bigger search icon
                       ),
                     ),
-            ),
-          ],
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                            icon: CustomIconWidget(
+                              iconName: 'clear',
+                              color: AppTheme.textSecondary,
+                              size: 24,
+                            ),
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 0),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              SizedBox(height: 3.h),
+              // Courses List
+              Expanded(
+                child: _isLoading && _courses.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : _courses.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: () => _loadCourses(isRefresh: true),
+                        color: AppTheme.primaryTeal,
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(bottom: 2.h),
+                          itemCount: _courses.length + (_isLoadingMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            // Show loading indicator for more items
+                            if (index == _courses.length) {
+                              return Container(
+                                padding: EdgeInsets.all(4.w),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: AppTheme.primaryTeal,
+                                      ),
+                                      SizedBox(height: 2.h),
+                                      Text(
+                                        'Loading more courses...',
+                                        style: TextStyle(
+                                          color: AppTheme.textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final course = _courses[index];
+                            final courseId = course['id'] as String;
+                            final isSelected = _selectedCourses.contains(
+                              courseId,
+                            );
+
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 3.h),
+                              child: CourseListItemCard(
+                                course: course,
+                                isSelectionMode: _isSelectionMode,
+                                isSelected: isSelected,
+                                onTap: () {
+                                  if (_isSelectionMode) {
+                                    _toggleCourseSelection(courseId);
+                                  } else {
+                                    // Handle course tap
+                                  }
+                                },
+                                onDetails: () => _showCoursePreview(course),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -464,7 +626,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
         );
 
         // Reload courses to reflect changes
-        _loadCourses();
+        _loadCourses(isRefresh: true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

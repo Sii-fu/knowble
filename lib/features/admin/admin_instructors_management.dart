@@ -199,8 +199,8 @@ class _AdminInstructorsManagementState
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: 2.w,
-          ), // Reduced from 4.w to 2.w
+            horizontal: 6.w,
+          ), // Increased for better mobile spacing
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

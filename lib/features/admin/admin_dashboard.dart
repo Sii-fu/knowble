@@ -5,7 +5,9 @@ import 'package:Knowble/config/theme.dart';
 import './widgets/admin_info_card.dart';
 import './widgets/admin_list_item_card.dart';
 import './widgets/quick_action_button.dart';
+import './widgets/enrollment_chart.dart';
 import '../../widgets/custom_icon_widget.dart';
+import '../../core/services/admin/admin_dashboard_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -20,87 +22,15 @@ class _AdminDashboardState extends State<AdminDashboard>
   late AnimationController _refreshController;
   bool _isRefreshing = false;
 
-  // Mock data for dashboard metrics
-  final List<Map<String, dynamic>> _dashboardMetrics = [
-    {
-      "title": "Active Users",
-      "value": "2,458",
-      "growth": "+12.5%",
-      "isPositive": true,
-      "icon": "people",
-      "color": AppTheme.primaryTeal,
-    },
-    {
-      "title": "Pending Verifications",
-      "value": "23",
-      "growth": "-8.2%",
-      "isPositive": false,
-      "icon": "pending_actions",
-      "color": AppTheme.errorRed,
-    },
-    {
-      "title": "Course Reports",
-      "value": "7",
-      "growth": "+3.1%",
-      "isPositive": true,
-      "icon": "report",
-      "color": AppTheme.successGreen,
-    },
-  ];
+  // Service instance
+  final AdminDashboardService _dashboardService = AdminDashboardService();
 
-  // Mock data for activity feed
-  final List<Map<String, dynamic>> _activityFeed = [
-    {
-      "id": 1,
-      "type": "instructor_application",
-      "title": "New Instructor Application",
-      "description": "Dr. Sarah Johnson submitted verification documents",
-      "timestamp": DateTime.now().subtract(const Duration(minutes: 15)),
-      "status": "pending",
-      "avatar":
-          "https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_640.png",
-    },
-    {
-      "id": 2,
-      "type": "course_report",
-      "title": "Course Content Reported",
-      "description": "Advanced Mathematics course flagged for review",
-      "timestamp": DateTime.now().subtract(const Duration(hours: 2)),
-      "status": "pending",
-      "avatar":
-          "https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_640.png",
-    },
-    {
-      "id": 3,
-      "type": "instructor_application",
-      "title": "Instructor Verification Complete",
-      "description": "Prof. Michael Chen has been approved",
-      "timestamp": DateTime.now().subtract(const Duration(hours: 4)),
-      "status": "approved",
-      "avatar":
-          "https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_640.png",
-    },
-    {
-      "id": 4,
-      "type": "course_report",
-      "title": "Course Review Completed",
-      "description": "Physics 101 content has been approved",
-      "timestamp": DateTime.now().subtract(const Duration(hours: 6)),
-      "status": "approved",
-      "avatar":
-          "https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_640.png",
-    },
-    {
-      "id": 5,
-      "type": "instructor_application",
-      "title": "Application Rejected",
-      "description": "Incomplete documentation from Alex Rodriguez",
-      "timestamp": DateTime.now().subtract(const Duration(days: 1)),
-      "status": "rejected",
-      "avatar":
-          "https://cdn.pixabay.com/photo/2015/03/04/22/35/avatar-659652_640.png",
-    },
-  ];
+  // Real data state
+  Map<String, dynamic>? _dashboardMetrics;
+  List<Map<String, dynamic>>? _activityFeed;
+  List<Map<String, dynamic>>? _enrollmentChartData;
+  bool _isLoading = true;
+  String? _error;
 
   // Mock data for quick actions with updated routes
   final List<Map<String, dynamic>> _quickActions = [
@@ -125,6 +55,34 @@ class _AdminDashboardState extends State<AdminDashboard>
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      // Load all dashboard data
+      final metrics = await _dashboardService.getDashboardMetrics();
+      final activities = await _dashboardService.getActivityFeed();
+      final chartData = await _dashboardService.getEnrollmentChartData();
+
+      setState(() {
+        _dashboardMetrics = metrics;
+        _activityFeed = activities;
+        _enrollmentChartData = chartData;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+      print('Error loading dashboard data: $e');
+    }
   }
 
   @override
@@ -157,8 +115,8 @@ class _AdminDashboardState extends State<AdminDashboard>
 
     _refreshController.forward();
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
+    // Load real data instead of simulation
+    await _loadDashboardData();
 
     _refreshController.reverse();
 
@@ -203,6 +161,213 @@ class _AdminDashboardState extends State<AdminDashboard>
     } else {
       return '${difference.inDays}d ago';
     }
+  }
+
+  Widget _buildMetricsLoadingState() {
+    return Column(
+      children: List.generate(3, (index) {
+        return Container(
+          width: double.infinity,
+          height: 15.h,
+          margin: EdgeInsets.only(bottom: 3.h),
+          padding: EdgeInsets.all(4.w),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceWhite,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.shadowLight,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                color: AppTheme.primaryTeal,
+                strokeWidth: 2,
+              ),
+              SizedBox(width: 4.w),
+              Text(
+                'Loading metrics...',
+                style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Container(
+      width: double.infinity,
+      height: 20.h,
+      padding: EdgeInsets.all(6.w),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.errorRed.withOpacity(0.3)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, color: AppTheme.errorRed, size: 40),
+          SizedBox(height: 2.h),
+          Text(
+            'Error loading dashboard data',
+            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+              color: AppTheme.errorRed,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 2.h),
+          ElevatedButton(
+            onPressed: _loadDashboardData,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricsCards() {
+    if (_dashboardMetrics == null) return const SizedBox();
+
+    final metricsData = [
+      {
+        "title": "Total Users",
+        "value": _dashboardMetrics!['totalUsers']['value'].toString(),
+        "growth":
+            "${_dashboardMetrics!['totalUsers']['growth'].toStringAsFixed(1)}%",
+        "isPositive": _dashboardMetrics!['totalUsers']['isPositive'],
+        "icon": "people",
+        "color": AppTheme.primaryTeal,
+      },
+      {
+        "title": "Verified Instructors",
+        "value": _dashboardMetrics!['verifiedInstructors']['value'].toString(),
+        "growth":
+            "${_dashboardMetrics!['verifiedInstructors']['growth'].toStringAsFixed(1)}%",
+        "isPositive": _dashboardMetrics!['verifiedInstructors']['isPositive'],
+        "icon": "verified_user",
+        "color": AppTheme.successGreen,
+      },
+      {
+        "title": "Total Courses",
+        "value": _dashboardMetrics!['totalCourses']['value'].toString(),
+        "growth":
+            "${_dashboardMetrics!['totalCourses']['growth'].toStringAsFixed(1)}%",
+        "isPositive": _dashboardMetrics!['totalCourses']['isPositive'],
+        "icon": "school",
+        "color": AppTheme.errorRed,
+      },
+    ];
+
+    return Column(
+      children: metricsData.map((metric) {
+        return Container(
+          width: double.infinity,
+          margin: EdgeInsets.only(bottom: 3.h),
+          child: AdminInfoCard(
+            title: metric["title"] as String,
+            value: metric["value"] as String,
+            growth: metric["growth"] as String,
+            isPositive: metric["isPositive"] as bool,
+            iconName: metric["icon"] as String,
+            color: metric["color"] as Color,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildActivityLoadingState() {
+    return Column(
+      children: List.generate(3, (index) {
+        return Container(
+          margin: EdgeInsets.only(bottom: 3.h),
+          padding: EdgeInsets.all(5.w),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceWhite,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.shadowLight,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              CircularProgressIndicator(
+                color: AppTheme.primaryTeal,
+                strokeWidth: 2,
+              ),
+              SizedBox(width: 5.w),
+              Text(
+                'Loading activity...',
+                style: AppTheme.lightTheme.textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildEmptyActivityState() {
+    return Container(
+      padding: EdgeInsets.all(8.w),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceWhite,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 56,
+            color: AppTheme.textSecondary.withOpacity(0.5),
+          ),
+          SizedBox(height: 3.h),
+          Text(
+            'No recent activity',
+            style: AppTheme.lightTheme.textTheme.titleMedium?.copyWith(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 1.5.h),
+          Text(
+            'Activity will appear here as users interact with the platform',
+            style: AppTheme.lightTheme.textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondary.withOpacity(0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -264,7 +429,7 @@ class _AdminDashboardState extends State<AdminDashboard>
               size: 24,
             ),
           ),
-          SizedBox(width: 2.w),
+          SizedBox(width: 4.w),
         ],
       ),
       body: SafeArea(
@@ -273,7 +438,7 @@ class _AdminDashboardState extends State<AdminDashboard>
           color: AppTheme.primaryTeal,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 3.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -285,31 +450,30 @@ class _AdminDashboardState extends State<AdminDashboard>
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                SizedBox(height: 2.h),
-                SizedBox(
-                  height: 20.h,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _dashboardMetrics.length,
-                    itemBuilder: (context, index) {
-                      final metric = _dashboardMetrics[index];
-                      return Container(
-                        width: 70.w,
-                        margin: EdgeInsets.only(right: 4.w),
-                        child: AdminInfoCard(
-                          title: metric["title"] as String,
-                          value: metric["value"] as String,
-                          growth: metric["growth"] as String,
-                          isPositive: metric["isPositive"] as bool,
-                          iconName: metric["icon"] as String,
-                          color: metric["color"] as Color,
-                        ),
-                      );
-                    },
+                SizedBox(height: 3.h),
+                _isLoading
+                    ? _buildMetricsLoadingState()
+                    : _error != null
+                    ? _buildErrorState()
+                    : _buildMetricsCards(),
+
+                SizedBox(height: 4.h),
+
+                // Enrollment Chart Section
+                Text(
+                  'Enrollment Trends',
+                  style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
-
                 SizedBox(height: 3.h),
+                EnrollmentChart(
+                  chartData: _enrollmentChartData ?? [],
+                  isLoading: _isLoading,
+                ),
+
+                SizedBox(height: 4.h),
 
                 // Quick Actions Section
                 Text(
@@ -319,15 +483,15 @@ class _AdminDashboardState extends State<AdminDashboard>
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: 3.h),
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 4.w,
-                    mainAxisSpacing: 2.h,
-                    childAspectRatio: 2.2,
+                    crossAxisSpacing: 5.w,
+                    mainAxisSpacing: 3.h,
+                    childAspectRatio: 2.0,
                   ),
                   itemCount: _quickActions.length,
                   itemBuilder: (context, index) {
@@ -340,7 +504,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                   },
                 ),
 
-                SizedBox(height: 3.h),
+                SizedBox(height: 4.h),
 
                 // Activity Feed Section
                 Text(
@@ -350,33 +514,37 @@ class _AdminDashboardState extends State<AdminDashboard>
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                SizedBox(height: 2.h),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _activityFeed.length,
-                  itemBuilder: (context, index) {
-                    final activity = _activityFeed[index];
-                    return AdminListItemCard(
-                      title: activity["title"] as String,
-                      description: activity["description"] as String,
-                      timestamp: _formatTimestamp(
-                        activity["timestamp"] as DateTime,
+                SizedBox(height: 3.h),
+                _isLoading
+                    ? _buildActivityLoadingState()
+                    : (_activityFeed?.isEmpty ?? true)
+                    ? _buildEmptyActivityState()
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _activityFeed!.length,
+                        itemBuilder: (context, index) {
+                          final activity = _activityFeed![index];
+                          return AdminListItemCard(
+                            title: activity["title"] as String,
+                            description: activity["description"] as String,
+                            timestamp: _formatTimestamp(
+                              activity["timestamp"] as DateTime,
+                            ),
+                            status: activity["status"] as String,
+                            avatarUrl: activity["avatar"] as String? ?? '',
+                            onTap: () {
+                              // Handle activity item tap
+                            },
+                            onLongPress: () {
+                              // Show context menu for quick actions
+                              _showContextMenu(context, activity);
+                            },
+                          );
+                        },
                       ),
-                      status: activity["status"] as String,
-                      avatarUrl: activity["avatar"] as String,
-                      onTap: () {
-                        // Handle activity item tap
-                      },
-                      onLongPress: () {
-                        // Show context menu for quick actions
-                        _showContextMenu(context, activity);
-                      },
-                    );
-                  },
-                ),
 
-                SizedBox(height: 10.h), // Bottom padding for navigation bar
+                SizedBox(height: 12.h), // Bottom padding for navigation bar
               ],
             ),
           ),
