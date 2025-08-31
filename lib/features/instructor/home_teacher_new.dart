@@ -16,12 +16,15 @@ class TeacherHomePage extends StatefulWidget {
 
 class _TeacherHomePageState extends State<TeacherHomePage> {
   int _selectedIndex = 0;
-  String _selectedRevenueYear = '2024';
+  String _selectedRevenueYear = '${DateTime.now().year}';
   final _dashboardService = TeacherDashboardService();
   int _totalCourses = 0;
   int _totalStudents = 0;
   int _totalDays = 0;
   List<Map<String, dynamic>> _recentCourses = [];
+  String _teacherName = 'Instructor';
+  List<double> _monthlyRevenue = List.filled(12, 0.0);
+  double _totalRevenue = 0.0;
 
   @override
   void initState() {
@@ -40,13 +43,33 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       _recentCourses = List<Map<String, dynamic>>.from(
         data['recentCourses'] as List? ?? [],
       );
+      _teacherName = data['teacherName'] as String? ?? _teacherName;
     });
+
+  // Load revenue for selected year (default to current year)
+  _loadRevenue();
+  }
+
+  Future<void> _loadRevenue({int? year}) async {
+    final rev = await _dashboardService.fetchAnnualRevenue(year: year);
+    setState(() {
+      _monthlyRevenue = List<double>.from(rev['monthly'] as List? ?? List.filled(12, 0.0));
+      _totalRevenue = (rev['total'] as num?)?.toDouble() ?? 0.0;
+    });
+    // Debug logging from UI so developer can inspect values easily
+    final debug = rev['debug'] as Map<String, dynamic>?;
+    if (debug != null) {
+      print('revenue debug: courseIds=${debug['courseIds']}, priceKeys=${debug['priceByCourseKeys']}, enrollmentCourseIds=${debug['enrollmentCourseIds']}');
+    }
+    if (_totalRevenue == 0.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Revenue is zero — check console logs for debug details')),
+      );
+    }
   }
 
   void _onTabSelected(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    // kept for backward-compat but no bottom nav is shown anymore
     if (index == 1) {
       Navigator.push(
         context,
@@ -72,13 +95,13 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good morning',
+                'Welcome',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppThemeInstructor.textSecondary,
                 ),
               ),
               Text(
-                'Samuel Thompson',
+                _teacherName,
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: AppThemeInstructor.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -137,17 +160,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             ],
           ),
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onTabSelected,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.menu_book),
-              label: 'Courses',
-            ),
-          ],
-        ),
+  // Bottom nav removed as requested
       ),
     );
   }
@@ -615,6 +628,12 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   }
 
   Widget _buildRevenueSection() {
+    // Build spots from monthly revenue data
+    final spots = <FlSpot>[];
+    for (int i = 0; i < _monthlyRevenue.length; i++) {
+      spots.add(FlSpot(i.toDouble(), _monthlyRevenue[i]));
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -635,13 +654,24 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Revenue Overview',
-                style: AppThemeInstructor.lightTheme.textTheme.titleLarge
-                    ?.copyWith(
-                      color: AppThemeInstructor.textPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Revenue Overview',
+                    style: AppThemeInstructor.lightTheme.textTheme.titleLarge
+                        ?.copyWith(
+                          color: AppThemeInstructor.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '\$${_totalRevenue.toStringAsFixed(2)} total',
+                    style: AppThemeInstructor.lightTheme.textTheme.bodyMedium
+                        ?.copyWith(color: AppThemeInstructor.textSecondary),
+                  ),
+                ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -661,69 +691,17 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                       color: AppThemeInstructor.primaryBlue,
                     ),
                     items: ['2022', '2023', '2024', '2025']
-                        .map(
-                          (y) => DropdownMenuItem<String>(
-                            value: y,
-                            child: Text(
-                              y,
-                              style: TextStyle(
-                                color: AppThemeInstructor.primaryBlue,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        )
+                        .map((y) => DropdownMenuItem(value: y, child: Text(y)))
                         .toList(),
                     onChanged: (val) {
                       if (val == null) return;
                       setState(() {
                         _selectedRevenueYear = val;
-                        // TODO: update chart/data based on selected year
                       });
+                      _loadRevenue(year: int.tryParse(val));
                     },
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '\$24,850',
-                    style: AppThemeInstructor
-                        .lightTheme
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(
-                          color: AppThemeInstructor.textPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.trending_up,
-                        size: 16,
-                        color: AppThemeInstructor.successGreen,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '+12.5% from last month',
-                        style: TextStyle(
-                          color: AppThemeInstructor.successGreen,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ],
           ),
@@ -732,31 +710,31 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             height: 160,
             child: LineChart(
               LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
+                gridData: FlGridData(show: true),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
+                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    final idx = value.toInt();
+                    if (idx < 0 || idx >= months.length) return const SizedBox.shrink();
+                    return Text(months[idx], style: TextStyle(fontSize: 10, color: AppThemeInstructor.textSecondary));
+                  }, interval: 1)),
+                ),
                 borderData: FlBorderData(show: false),
+                minY: 0,
                 lineBarsData: [
                   LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 3),
-                      FlSpot(1, 4),
-                      FlSpot(2, 6),
-                      FlSpot(3, 5),
-                      FlSpot(4, 8),
-                      FlSpot(5, 7),
-                      FlSpot(6, 9),
-                    ],
+                    spots: spots,
                     isCurved: true,
                     color: AppThemeInstructor.primaryBlue,
                     barWidth: 3,
-                    dotData: FlDotData(show: false),
+                    dotData: FlDotData(show: true),
                     belowBarData: BarAreaData(
-                      show: true,
                       color: AppThemeInstructor.primaryBlue.withOpacity(0.1),
                     ),
                   ),
                 ],
-                lineTouchData: LineTouchData(enabled: false),
+                lineTouchData: LineTouchData(enabled: true),
               ),
             ),
           ),
