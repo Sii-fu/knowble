@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class QuizSubmissionService {
   final _client = Supabase.instance.client;
@@ -11,13 +12,18 @@ class QuizSubmissionService {
     required int marksAwarded,
   }) async {
     try {
-      await _client.from('submissions').insert({
+      // Generate a UUID for the submission
+      final submissionId = Uuid().v4();
+      final res = await _client.from('submissions').insert({
+        'id': submissionId,
         'student_id': studentId,
         'question_id': questionId,
-        'selected_option_ids': selectedOptionIds,
+        'selected_option_ids': selectedOptionIds, // List<String> of UUIDs
         'is_correct': isCorrect,
         'marks_awarded': marksAwarded,
-      });
+      }).select();
+      print('Supabase insert response: $res');
+      print("✅ Submission inserted: $submissionId");
     } catch (e) {
       print("Error inserting submission: $e");
       rethrow;

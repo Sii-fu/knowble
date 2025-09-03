@@ -16,6 +16,15 @@ class TeacherDashboardService {
     };
     }
 
+    // Try to fetch instructor name from users table (if available)
+    String teacherName = user.email ?? 'Instructor';
+    try {
+      final profile = await supabase.from('users').select('full_name').eq('id', user.id).maybeSingle();
+      if (profile != null && profile['full_name'] != null && profile['full_name'].toString().trim().isNotEmpty) {
+        teacherName = profile['full_name'];
+      }
+    } catch (_) {}
+
     // Fetch courses for this instructor with required fields
     final coursesResp = await supabase
         .from('courses')
@@ -48,12 +57,13 @@ class TeacherDashboardService {
     // If there are courses, fetch enrollments for those course ids to compute student counts
     int totalStudents = 0;
     final studentsPerCourse = <String, int>{};
-    final courseIds = courses.map((c) => c['id']).where((e) => e != null).toList();
+    final courseIds = courses.map((c) => c['id']).where((e) => e != null).map((e) => e.toString()).toList();
     if (courseIds.isNotEmpty) {
+    final inList = '(${courseIds.map((id) => '"$id"').join(',')})';
     final enrollResp = await supabase
       .from('enrollments')
       .select('id, course_id')
-      .filter('course_id', 'in', courseIds);
+      .filter('course_id', 'in', inList);
       final enrolls = List.from(enrollResp as List? ?? []);
       for (final e in enrolls) {
         final cid = e['course_id'] as String?;
@@ -77,6 +87,108 @@ class TeacherDashboardService {
       'totalStudents': totalStudents,
       'totalDays': totalDays,
       'recentCourses': recentWithCounts,
+      'teacherName': teacherName,
+    };
+  }
+
+  /// Fetches revenue aggregated by month for a given year for the current instructor.
+  /// Returns a map: { 'monthly': List<double> (length 12, index 0 = Jan), 'total': double }
+  Future<Map<String, dynamic>> fetchAnnualRevenue({int? year}) async {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) return {'monthly': List.filled(12, 0.0), 'total': 0.0};
+    final int targetYear = year ?? DateTime.now().year;
+
+  // Fetch courses for instructor to get prices (only paid courses)
+  final coursesResp = await supabase
+    .from('courses')
+    .select('id, price, is_paid')
+    .eq('instructor_id', currentUser.id);
+
+    final courses = List.from(coursesResp as List? ?? []);
+    final priceByCourse = <String, double>{};
+    for (final c in courses) {
+      final id = c['id'] as String?;
+      final p = c['price'];
+      final isPaid = c['is_paid'];
+      double price = 0.0;
+      if (p is num) price = p.toDouble();
+      else if (p is String) price = double.tryParse(p) ?? 0.0;
+      // Only include paid courses with a positive price
+      final paidFlag = (isPaid is bool) ? isPaid : (isPaid?.toString().toLowerCase() == 'true');
+      if (id != null && paidFlag == true && price > 0) {
+        priceByCourse[id] = price;
+      }
+    }
+
+    if (priceByCourse.isEmpty) return {'monthly': List.filled(12, 0.0), 'total': 0.0};
+
+    // Fetch enrollments for these courses
+  final courseIds = priceByCourse.keys.map((e) => e.toString()).toList();
+  final inList = '(${courseIds.map((id) => '"$id"').join(',')})';
+  final enrollResp = await supabase
+    .from('enrollments')
+    .select('id, course_id, enrolled_at')
+    .filter('course_id', 'in', inList);
+
+    var enrolls = List.from(enrollResp as List? ?? []);
+
+    // Debugging info
+    print('fetchAnnualRevenue: courses=${courses.length}, paidCourses=${priceByCourse.length}, enrollmentsFetched=${enrolls.length}');
+    print('priceByCourse sample: ${priceByCourse.entries.take(5).toList()}');
+
+    // Fallback: if the single 'in' query didn't return results (some PostgREST
+    // setups reject the 'in' filter formatting), fetch enrollments per course id
+    // and merge them. This is slightly more chatty but reliable for correctness.
+    if (enrolls.isEmpty) {
+      final List<Map<String, dynamic>> merged = [];
+      for (final cid in priceByCourse.keys) {
+        try {
+          final r = await supabase
+              .from('enrollments')
+              .select('id, course_id, enrolled_at')
+              .eq('course_id', cid);
+          final lr = List.from(r as List? ?? []);
+          merged.addAll(lr.cast<Map<String, dynamic>>());
+        } catch (e) {
+          // ignore per-course failures
+          print('fetchAnnualRevenue: per-course enroll fetch failed for $cid: $e');
+        }
+      }
+      enrolls = merged;
+      print('fetchAnnualRevenue: after fallback enrollmentsFetched=${enrolls.length}');
+    }
+
+    final monthly = List<double>.filled(12, 0.0);
+    double total = 0.0;
+
+    for (final e in enrolls) {
+      final cid = e['course_id'] as String?;
+      final enrolledAtRaw = e['enrolled_at'];
+      if (cid == null) continue;
+      final price = priceByCourse[cid] ?? 0.0;
+      if (price == 0.0) continue;
+
+      DateTime? dt;
+      if (enrolledAtRaw is DateTime) dt = enrolledAtRaw;
+      else if (enrolledAtRaw is String) dt = DateTime.tryParse(enrolledAtRaw);
+      if (dt == null) continue;
+
+      if (dt.year != targetYear) continue;
+      final monthIndex = dt.month - 1;
+      monthly[monthIndex] = monthly[monthIndex] + price;
+      total += price;
+    }
+
+    // Also return some debug info to help validate mapping
+    final enrollmentCourseIds = enrolls.map((e) => e['course_id']?.toString()).where((e) => e != null).toList();
+    return {
+      'monthly': monthly,
+      'total': total,
+      'debug': {
+        'courseIds': courseIds,
+        'priceByCourseKeys': priceByCourse.keys.toList(),
+        'enrollmentCourseIds': enrollmentCourseIds,
+      }
     };
   }
 }

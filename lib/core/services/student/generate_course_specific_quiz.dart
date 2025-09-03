@@ -44,7 +44,11 @@ class QuizService {
             .eq('question_id', questionId);
 
         if (optsRes.isNotEmpty) {
-          final options = optsRes.map((o) => o['option_text'] as String).toList();
+          // Build options as List<Map<String, dynamic>>
+          final options = optsRes.map<Map<String, dynamic>>((o) => {
+            'id': o['id'],
+            'text': o['option_text'],
+          }).toList();
           final correctOption = optsRes.firstWhere(
             (o) => o['is_correct'] == true,
             orElse: () => {},
@@ -55,6 +59,7 @@ class QuizService {
               'id': questionId,
               'question': q['question_text'],
               'options': options,
+              'answer_id': correctOption['id'],
               'answer': correctOption['option_text'],
             });
           }

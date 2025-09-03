@@ -17,7 +17,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   List<Map<String, dynamic>> quizData = [];
   int currentQuestionIndex = 0;
-  String? selectedOption;
+  String? selectedOptionId;
   int score = 0;
   bool isAnswered = false;
   bool showFeedback = false;
@@ -40,8 +40,23 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   Future<void> _fetchQuizData() async {
     try {
       final data = await QuizService().fetchQuizData(widget.sectionId);
+      // Ensure each question's options are List<Map<String, dynamic>>
+      final normalizedData = (data as List).map<Map<String, dynamic>>((q) {
+        final options = (q['options'] as List).map<Map<String, dynamic>>((opt) {
+          if (opt is Map<String, dynamic>) {
+            return opt;
+          } else {
+            // If option is just a string, fallback to text only
+            return {'id': opt, 'text': opt};
+          }
+        }).toList();
+        return {
+          ...q,
+          'options': options,
+        };
+      }).toList();
       setState(() {
-        quizData = data;
+        quizData = normalizedData;
         isLoading = false;
       });
     } catch (e) {
@@ -82,15 +97,16 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   void _selectOption(String option) {
     if (!isAnswered) {
-      setState(() => selectedOption = option);
+      setState(() => selectedOptionId = option);
     }
   }
 
   Future<void> _submitAnswer() async {
-    if (selectedOption == null) return;
+    if (selectedOptionId == null) return;
 
     final currentQuestion = quizData[currentQuestionIndex];
-    final isCorrect = selectedOption == currentQuestion['answer'];
+  // No need to find selectedOptionObj, just use selectedOptionId
+    final isCorrect = selectedOptionId == currentQuestion['answer_id'];
     final marks = isCorrect ? 1 : 0;
 
     setState(() {
@@ -105,7 +121,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       await _submissionService.submitAnswer(
         studentId: userId,
         questionId: currentQuestion['id'],
-        selectedOptionIds: [selectedOption!],
+        selectedOptionIds: [selectedOptionId!],
         isCorrect: isCorrect,
         marksAwarded: marks,
       );
@@ -120,7 +136,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     if (currentQuestionIndex < quizData.length - 1) {
       setState(() {
         currentQuestionIndex++;
-        selectedOption = null;
+        selectedOptionId = null;
         isAnswered = false;
         showFeedback = false;
       });
@@ -134,7 +150,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
   void _restartQuiz() {
     setState(() {
       currentQuestionIndex = 0;
-      selectedOption = null;
+      selectedOptionId = null;
       score = 0;
       isAnswered = false;
       showFeedback = false;
@@ -273,7 +289,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                   final option = currentQuestion['options'][index];
                   return SlideTransition(
                     position: _slideAnimation,
-                    child: _buildOptionCard(option, index),
+                    child: _buildOptionCard(option as Map<String, dynamic>, index),
                   );
                 },
               ),
@@ -375,11 +391,14 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildOptionCard(String option, int index) {
-    final currentQuestion = quizData[currentQuestionIndex];
-    final correctAnswer = currentQuestion['answer'];
-    final isSelected = selectedOption == option;
-    final isCorrect = option == correctAnswer;
+  Widget _buildOptionCard(Map<String, dynamic> option, int index) {
+  final currentQuestion = quizData[currentQuestionIndex];
+  // option is a Map<String, dynamic> with 'id' and 'text'
+    final optionId = option['id'];
+    final optionText = option['text'];
+  final correctAnswerId = currentQuestion['answer_id'];
+  final isSelected = selectedOptionId == optionId;
+  final isCorrect = optionId == correctAnswerId;
 
     Color cardColor = AppTheme.surfaceWhite;
     Color borderColor = AppTheme.borderSubtle;
@@ -407,7 +426,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => _selectOption(option),
+        onTap: () => _selectOption(optionId),
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -442,7 +461,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  option,
+                  optionText,
                   style: TextStyle(
                     fontFamily: 'Jost',
                     fontSize: 16,
@@ -495,7 +514,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     }
 
     return ElevatedButton(
-      onPressed: selectedOption != null ? _submitAnswer : null,
+      onPressed: selectedOptionId != null ? _submitAnswer : null,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppTheme.primaryTeal,
         foregroundColor: AppTheme.surfaceWhite,
