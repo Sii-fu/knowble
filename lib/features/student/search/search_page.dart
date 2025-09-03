@@ -247,26 +247,35 @@ class _SearchPageState extends State<SearchPage> {
       
       final courses = await _searchService.searchCourses(
         query: _searchQuery.isNotEmpty ? _searchQuery : null,
-        tagId: tagId ?? (_selectedCategoryId.isNotEmpty ? _selectedCategoryId : null),
+        tagId: (tagId != null && tagId.isNotEmpty)
+            ? tagId
+            : (_selectedCategoryId.isNotEmpty ? _selectedCategoryId : null),
         freeOnly: _activeFilters['freeOnly'] == true ? true : null,
-        minPrice: (_activeFilters['priceRange'] is RangeValues && (_activeFilters['priceRange'] as RangeValues).start > 0)
+        minPrice: (_activeFilters['priceRange'] is RangeValues &&
+                (_activeFilters['priceRange'] as RangeValues).start > 0)
             ? (_activeFilters['priceRange'] as RangeValues).start
             : null,
-        maxPrice: (_activeFilters['priceRange'] is RangeValues && (_activeFilters['priceRange'] as RangeValues).end > 0)
+        maxPrice: (_activeFilters['priceRange'] is RangeValues &&
+                (_activeFilters['priceRange'] as RangeValues).end > 0)
             ? (_activeFilters['priceRange'] as RangeValues).end
-            : null,minRating: (_activeFilters['rating'] is double && _activeFilters['rating'] > 0)
+            : null,
+        minRating: (_activeFilters['rating'] is double &&
+                (_activeFilters['rating'] as double) > 0)
             ? _activeFilters['rating'] as double
             : null,
-        durationMin: (_activeFilters['duration'] is String && (_activeFilters['duration'] as String).isNotEmpty)
+        durationMin: (_activeFilters['duration'] is String &&
+                (_activeFilters['duration'] as String).isNotEmpty)
             ? _getDurationMin(_activeFilters['duration'] as String)
             : null,
-        durationMax: (_activeFilters['duration'] is String && (_activeFilters['duration'] as String).isNotEmpty)
+        durationMax: (_activeFilters['duration'] is String &&
+                (_activeFilters['duration'] as String).isNotEmpty)
             ? _getDurationMax(_activeFilters['duration'] as String)
             : null,
-        sortBy: _activeFilters['sortBy'] ?? 'relevance',
+        sortBy: (_activeFilters['sortBy'] as String?)?.toLowerCase().trim() ?? 'relevance',
         offset: _activeFilters['offset'] ?? 0,
         limit: _activeFilters['limit'] ?? 100,
       );
+
 
 
       print('SearchPage: Search completed, found ${courses.length} courses');
