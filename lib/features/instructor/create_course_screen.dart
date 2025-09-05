@@ -6,6 +6,7 @@ import 'package:Knowble/core/services/Instructor/questionai_service.dart';
 import 'package:Knowble/core/services/Instructor/course_service.dart';
 import 'package:flutter/foundation.dart';
 import '../../config/theme_instructor.dart';
+import 'manual_quiz_creation.dart';
 
 class CreateCourseScreen extends StatefulWidget {
   const CreateCourseScreen({super.key});
@@ -405,6 +406,40 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       });
       _showSuccessDialog('AI generation failed: ${e.toString()}');
     }
+  }
+
+  void _navigateToManualQuizPage(int chapterIndex, int lessonIndex) async {
+    final lesson = _chapters[chapterIndex].lessons[lessonIndex];
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ManualQuizCreationPage(
+          lessonTitle: lesson.titleController.text.isEmpty 
+              ? 'Lesson ${lessonIndex + 1}' 
+              : lesson.titleController.text,
+          existingQuizzes: lesson.manualQuizzes,
+        ),
+      ),
+    );
+
+    if (result != null && result is List<ManualQuiz>) {
+      setState(() {
+        lesson.manualQuizzes.clear();
+        lesson.manualQuizzes.addAll(result);
+      });
+    }
+  }
+
+  void _showQuizzesReadOnly(int chapterIndex, int lessonIndex) {
+    final lesson = _chapters[chapterIndex].lessons[lessonIndex];
+    showDialog(
+      context: context,
+      builder: (context) => QuizViewDialog(
+        lessonTitle: lesson.titleController.text.isEmpty 
+            ? 'Lesson ${lessonIndex + 1}' 
+            : lesson.titleController.text,
+        quizzes: lesson.manualQuizzes,
+      ),
+    );
   }
 
 
@@ -1028,7 +1063,9 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                         ),
                                         const SizedBox(height: 8),
                                         // Quick-select options for number of quizzes (5, 10, 15)
-                                        Row(
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          
                                           children: [
                                             Text(
                                               'Number of quizzes:',
@@ -1038,7 +1075,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
+                                            const SizedBox(height: 12),
                                             Wrap(
                                               spacing: 8,
                                               children: [5, 10, 15].map((count) {
@@ -1059,7 +1096,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                                 );
                                               }).toList(),
                                             ),
-                                            const SizedBox(width: 12),
+                                            const SizedBox(height: 12),
                                             ElevatedButton(
                                               onPressed: () async {
                                                 // Trigger AI generation for this lesson
@@ -1079,84 +1116,73 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                           const SizedBox(height: 6),
                                         ],
                                       ] else ...[
-                                        // Manual questions area
+                                        // Manual quiz area
                                         Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const SizedBox(height: 6),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text('Add questions', style: TextStyle(color: AppThemeInstructor.textPrimary, fontWeight: FontWeight.w600)),
-                                                IconButton(
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      _chapters[chapterIndex].lessons[lessonIndex].manualQuestions.add(ManualQuestion());
-                                                    });
-                                                  },
-                                                  icon: const Icon(Icons.add, size: 20),
-                                                  tooltip: 'Add question',
-                                                ),
-                                              ],
-                                            ),
-
-                                            // List of manual questions
-                                            for (int qIndex = 0; qIndex < _chapters[chapterIndex].lessons[lessonIndex].manualQuestions.length; qIndex++) ...[
-                                              Container(
-                                                margin: const EdgeInsets.only(top: 8, bottom: 8),
-                                                padding: const EdgeInsets.all(8),
-                                                decoration: BoxDecoration(
-                                                  color: AppThemeInstructor.backgroundLight,
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(color: AppThemeInstructor.borderSubtle),
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        // Question text on its own line to reduce congestion
-                                                        TextField(
-                                                          controller: _chapters[chapterIndex].lessons[lessonIndex].manualQuestions[qIndex].questionController,
-                                                          decoration: InputDecoration(
-                                                            hintText: 'Question text',
-                                                            hintStyle: TextStyle(color: AppThemeInstructor.textSecondary),
-                                                            border: InputBorder.none,
-                                                          ),
+                                            const SizedBox(height: 12),
+                                            // Show existing quizzes status or add button
+                                            if (_chapters[chapterIndex].lessons[lessonIndex].hasManualQuizzes()) ...[
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: ElevatedButton.icon(
+                                                      onPressed: () => _navigateToManualQuizPage(chapterIndex, lessonIndex),
+                                                      icon: const Icon(Icons.edit_outlined, size: 16),
+                                                      label: const Text('Edit Quizzes'),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: AppThemeInstructor.primaryBlue,
+                                                        foregroundColor: AppThemeInstructor.surfaceWhite,
+                                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(8),
                                                         ),
-                                                        const SizedBox(height: 8),
-                                                        // Marks input and delete button on a second row
-                                                        Row(
-                                                          children: [
-                                                            // Make marks field expand to fill space before the delete icon
-                                                            Expanded(
-                                                              child: TextField(
-                                                                controller: _chapters[chapterIndex].lessons[lessonIndex].manualQuestions[qIndex].marksController,
-                                                                keyboardType: TextInputType.number,
-                                                                decoration: InputDecoration(
-                                                                  hintText: 'Marks',
-                                                                  hintStyle: TextStyle(color: AppThemeInstructor.textSecondary),
-                                                                  border: InputBorder.none,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            const SizedBox(width: 8),
-                                                            IconButton(
-                                                              onPressed: () {
-                                                                setState(() {
-                                                                  _chapters[chapterIndex].lessons[lessonIndex].manualQuestions[qIndex].dispose();
-                                                                  _chapters[chapterIndex].lessons[lessonIndex].manualQuestions.removeAt(qIndex);
-                                                                });
-                                                              },
-                                                              icon: Icon(Icons.delete_outline, color: Colors.red.shade400, size: 18),
-                                                              tooltip: 'Remove question',
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ],
+                                                      ),
                                                     ),
-                                                  ],
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: ElevatedButton.icon(
+                                                      onPressed: () => _showQuizzesReadOnly(chapterIndex, lessonIndex),
+                                                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                                                      label: const Text('Show Quizzes'),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: AppThemeInstructor.backgroundLight,
+                                                        foregroundColor: AppThemeInstructor.textPrimary,
+                                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(8),
+                                                          side: BorderSide(color: AppThemeInstructor.borderSubtle),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                '${_chapters[chapterIndex].lessons[lessonIndex].getQuizCount()} quiz${_chapters[chapterIndex].lessons[lessonIndex].getQuizCount() != 1 ? 'zes' : ''} added',
+                                                style: TextStyle(
+                                                  color: AppThemeInstructor.successGreen,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ] else ...[
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: ElevatedButton.icon(
+                                                  onPressed: () => _navigateToManualQuizPage(chapterIndex, lessonIndex),
+                                                  icon: const Icon(Icons.quiz_outlined, size: 18),
+                                                  label: const Text('Add Quizzes Manually'),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: AppThemeInstructor.primaryBlue,
+                                                    foregroundColor: AppThemeInstructor.surfaceWhite,
+                                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
                                             ],
@@ -1615,6 +1641,7 @@ class LessonData {
   // Assessment related
   bool aiAssessmentEnabled;
   List<ManualQuestion> manualQuestions;
+  List<ManualQuiz> manualQuizzes; // New quiz system
   // How many quizzes AI should generate for this lesson
   int aiQuizCount;
   // AI generation status and result
@@ -1626,16 +1653,29 @@ class LessonData {
     required this.descriptionController,
     this.pdfFile,
     this.videoFile,
-  this.aiAssessmentEnabled = false,
-  List<ManualQuestion>? manualQuestions,
-  this.aiQuizCount = 5,
-  }) : manualQuestions = manualQuestions ?? [];
+    this.aiAssessmentEnabled = false,
+    List<ManualQuestion>? manualQuestions,
+    List<ManualQuiz>? manualQuizzes,
+    this.aiQuizCount = 5,
+  }) : manualQuestions = manualQuestions ?? [],
+       manualQuizzes = manualQuizzes ?? [];
+
+  bool hasManualQuizzes() {
+    return manualQuizzes.isNotEmpty && manualQuizzes.any((quiz) => quiz.isValid);
+  }
+
+  int getQuizCount() {
+    return manualQuizzes.where((quiz) => quiz.isValid).length;
+  }
 
   void dispose() {
     titleController.dispose();
     descriptionController.dispose();
     for (var q in manualQuestions) {
       q.dispose();
+    }
+    for (var quiz in manualQuizzes) {
+      quiz.dispose();
     }
   }
 }
