@@ -767,15 +767,28 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
               ? 'Lesson ${lessonIndex + 1}' 
               : lesson.titleController.text,
           existingQuizzes: lesson.manualQuizzes,
+          sectionId: lesson.sectionId,
         ),
       ),
     );
 
-    if (result != null && result is List<ManualQuiz>) {
-      setState(() {
-        lesson.manualQuizzes.clear();
-        lesson.manualQuizzes.addAll(result);
-      });
+    if (result != null) {
+      // When the manual quiz page returned a list, it's the in-memory quizzes
+      if (result is List<ManualQuiz>) {
+        setState(() {
+          lesson.manualQuizzes.clear();
+          lesson.manualQuizzes.addAll(result);
+        });
+      }
+
+      // When the page persisted quizzes to the DB it returns a Map with assessment info
+      else if (result is Map && result['assessment_id'] != null) {
+        setState(() {
+          lesson.manualQuizzes.clear();
+          lesson.generatedAssessmentId = result['assessment_id'] as String?;
+        });
+        _showSuccessDialog('Quizzes saved. ');
+      }
     }
   }
 
@@ -1521,7 +1534,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                               SizedBox(
                                                 width: double.infinity,
                                                 child: ElevatedButton.icon(
-                                                  onPressed: () => _navigateToManualQuizPage(chapterIndex, lessonIndex),
+                                                  onPressed: () {
+                                                    // If the course hasn't been created yet, prompt the user
+                                                    if (_currentCourseId == null) {
+                                                      _showSuccessDialog('Please create and save the course first before generating AI quizzes.');
+                                                      return;
+                                                    }
+                                                    _navigateToManualQuizPage(chapterIndex, lessonIndex);
+                                                  },
                                                   icon: const Icon(Icons.quiz_outlined, size: 18),
                                                   label: const Text('Add Quizzes Manually'),
                                                   style: ElevatedButton.styleFrom(
