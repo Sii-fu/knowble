@@ -102,20 +102,16 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     final enrollments = await _service.fetchUserEnrollments(userId);
     final enrolled = enrollments.any((e) => e.courseId == widget.courseId);
 
-    // Fetch passed quizzes for this user and course
+    // Fetch passed quizzes for this user using quiz_results table
+    final quizResultsRes = await Supabase.instance.client
+        .from('quiz_results')
+        .select('section_id, status')
+        .eq('student_id', userId);
     final passedSections = <String>{};
-    for (final module in lessons) {
-      for (final section in module['sections'] as List<dynamic>) {
-        final sectionId = section['id'] as String;
-        // Query submissions for this section
-        final res = await Supabase.instance.client
-            .from('submissions')
-            .select('is_correct')
-            .eq('student_id', userId)
-            .eq('question_id', sectionId);
-        // If any submission for this section is correct, mark as passed
-        if (res is List && res.any((s) => s['is_correct'] == true)) {
-          passedSections.add(sectionId);
+    if (quizResultsRes is List) {
+      for (final r in quizResultsRes) {
+        if (r['status'] == 'pass') {
+          passedSections.add(r['section_id'] as String);
         }
       }
     }
@@ -322,33 +318,34 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                           if (_enrolled)
                                             Builder(builder: (context) {
                                               final isPassed = _passedSectionIds.contains(section['id']);
-                                              return ElevatedButton(
-                                                onPressed: isPassed
-                                                    ? null
-                                                    : () {
-                                                        Navigator.push(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder: (_) => QuizPage(
-                                                                sectionId: section['id']),
-                                                          ),
-                                                        );
-                                                      },
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: isPassed
-                                                      ? Colors.grey.shade400
-                                                      : AppTheme.primaryTeal,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(12),
+                                              return AbsorbPointer(
+                                                absorbing: isPassed,
+                                                child: ElevatedButton(
+                                                  onPressed: isPassed
+                                                      ? null
+                                                      : () {
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (_) => QuizPage(
+                                                                  sectionId: section['id']),
+                                                            ),
+                                                          );
+                                                        },
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: isPassed
+                                                        ? Colors.grey.shade400
+                                                        : AppTheme.primaryTeal,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
                                                   ),
-                                                ),
-                                                child: Text(
-                                                  'Quiz',
-                                                  style: TextStyle(
-                                                    color: isPassed
-                                                        ? Colors.white
-                                                        : Colors.white,
-                                                    fontWeight: FontWeight.w600,
+                                                  child: Text(
+                                                    isPassed ? 'Quiz Passed' : 'Quiz',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
                                                   ),
                                                 ),
                                               );
