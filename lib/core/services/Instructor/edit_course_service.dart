@@ -24,9 +24,30 @@ class EditCourseService {
     if (durationDays != null) updateMap['duration_days'] = durationDays;
     if (bannerUrl != null) updateMap['banner'] = bannerUrl;
 
-    if (updateMap.isEmpty) return true;
-    final res = await supabase.from('courses').update(updateMap).eq('id', courseId).select().maybeSingle();
-    return res != null;
+  
+
+      if (updateMap.isEmpty) return true;
+      final res = await supabase.from('courses').update(updateMap).eq('id', courseId).select().maybeSingle();
+      final success = res != null;
+      if (success) {
+        // Log the edit to activities table (best-effort)
+        try {
+          final user = supabase.auth.currentUser;
+          if (user != null) {
+            final courseTitle = title ??
+                (await supabase.from('courses').select('title').eq('id', courseId).maybeSingle())?['title'];
+            await supabase.from('activities').insert({
+              'id': _uuid.v4(),
+              'user_id': user.id,
+              'text': 'You edited the course (${courseTitle ?? courseId})',
+              'created_at': DateTime.now().toIso8601String(),
+            });
+          }
+        } catch (e) {
+          print('updateCourseBasic: activities insert failed: $e');
+        }
+      }
+      return success;
   }
 
   /// Update a module (chapter) partially.
@@ -40,7 +61,30 @@ class EditCourseService {
     if (order != null) updateMap['order'] = order;
     if (updateMap.isEmpty) return true;
     final res = await supabase.from('modules').update(updateMap).eq('id', moduleId).select().maybeSingle();
-    return res != null;
+    final success = res != null;
+    if (success) {
+      // Resolve course id from module and log the edit
+      try {
+        final moduleRow = await supabase.from('modules').select('course_id').eq('id', moduleId).maybeSingle();
+        final courseId = moduleRow != null ? moduleRow['course_id'] as String? : null;
+        if (courseId != null) {
+          final course = await supabase.from('courses').select('title').eq('id', courseId).maybeSingle();
+          final courseTitle = course != null ? course['title'] : null;
+          final user = supabase.auth.currentUser;
+          if (user != null) {
+            await supabase.from('activities').insert({
+              'id': _uuid.v4(),
+              'user_id': user.id,
+              'text': 'You edit this course (${courseTitle ?? courseId})',
+              'created_at': DateTime.now().toIso8601String(),
+            });
+          }
+        }
+      } catch (e) {
+        print('updateModule: activities insert failed: $e');
+      }
+    }
+    return success;
   }
 
   /// Update a section (lesson) partially.
@@ -56,7 +100,34 @@ class EditCourseService {
     if (order != null) updateMap['order'] = order;
     if (updateMap.isEmpty) return true;
     final res = await supabase.from('sections').update(updateMap).eq('id', sectionId).select().maybeSingle();
-    return res != null;
+    final success = res != null;
+    if (success) {
+      // Resolve course id via section -> module -> course and log
+      try {
+        final sectionRow = await supabase.from('sections').select('module_id').eq('id', sectionId).maybeSingle();
+        final moduleId = sectionRow != null ? sectionRow['module_id'] as String? : null;
+        if (moduleId != null) {
+          final moduleRow = await supabase.from('modules').select('course_id').eq('id', moduleId).maybeSingle();
+          final courseId = moduleRow != null ? moduleRow['course_id'] as String? : null;
+          if (courseId != null) {
+            final course = await supabase.from('courses').select('title').eq('id', courseId).maybeSingle();
+            final courseTitle = course != null ? course['title'] : null;
+            final user = supabase.auth.currentUser;
+            if (user != null) {
+              await supabase.from('activities').insert({
+                'id': _uuid.v4(),
+                'user_id': user.id,
+                'text': 'You edited the course (${courseTitle ?? courseId})',
+                'created_at': DateTime.now().toIso8601String(),
+              });
+            }
+          }
+        }
+      } catch (e) {
+        print('updateSection: activities insert failed: $e');
+      }
+    }
+    return success;
   }
 
   /// Update content partially.
@@ -76,7 +147,38 @@ class EditCourseService {
     if (storagePath != null) updateMap['storage_path'] = storagePath;
     if (updateMap.isEmpty) return true;
     final res = await supabase.from('contents').update(updateMap).eq('id', contentId).select().maybeSingle();
-    return res != null;
+    final success = res != null;
+    if (success) {
+      // Resolve course id via content -> section -> module -> course and log
+      try {
+        final contentRow = await supabase.from('contents').select('section_id').eq('id', contentId).maybeSingle();
+        final sectionId = contentRow != null ? contentRow['section_id'] as String? : null;
+        if (sectionId != null) {
+          final sectionRow = await supabase.from('sections').select('module_id').eq('id', sectionId).maybeSingle();
+          final moduleId = sectionRow != null ? sectionRow['module_id'] as String? : null;
+          if (moduleId != null) {
+            final moduleRow = await supabase.from('modules').select('course_id').eq('id', moduleId).maybeSingle();
+            final courseId = moduleRow != null ? moduleRow['course_id'] as String? : null;
+            if (courseId != null) {
+              final course = await supabase.from('courses').select('title').eq('id', courseId).maybeSingle();
+              final courseTitle = course != null ? course['title'] : null;
+              final user = supabase.auth.currentUser;
+              if (user != null) {
+                await supabase.from('activities').insert({
+                  'id': _uuid.v4(),
+                  'user_id': user.id,
+                  'text': 'You edit this course (${courseTitle ?? courseId})',
+                  'created_at': DateTime.now().toIso8601String(),
+                });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        print('updateContent: activities insert failed: $e');
+      }
+    }
+    return success;
   }
 
   /// Fetch detailed course information (course + modules -> sections -> contents)
