@@ -2,6 +2,43 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TeacherDashboardService {
   final supabase = Supabase.instance.client;
+  
+  static final List<Map<String, dynamic>> _sessionActivities = [];
+  static DateTime? _sessionStart;
+  
+  /// Initialize session tracking
+  static void initializeSession() {
+    _sessionStart = DateTime.now();
+    _sessionActivities.clear();
+  }
+  
+  /// Clear session data (call on logout)
+  static void clearSession() {
+    _sessionActivities.clear();
+    _sessionStart = null;
+  }
+  
+  /// Log an activity for the current session
+  static void logActivity({
+    required String type,
+    required String message,
+    String? refId,
+  }) {
+    final activity = {
+      'type': type,
+      'message': message,
+      'created_at': DateTime.now().toIso8601String(),
+      'ref_id': refId,
+      'session_id': _sessionStart?.millisecondsSinceEpoch.toString(),
+    };
+    
+    _sessionActivities.insert(0, activity); // Insert at beginning for newest first
+    
+    // Keep only last 20 activities to prevent memory issues
+    if (_sessionActivities.length > 20) {
+      _sessionActivities.removeRange(20, _sessionActivities.length);
+    }
+  }
 
   /// Fetches dashboard overview for the current instructor.
   /// Returns a map with keys: totalCourses (int), totalStudents (int), totalDays (int), recentCourses (List<Map>)
@@ -89,6 +126,20 @@ class TeacherDashboardService {
       'recentCourses': recentWithCounts,
       'teacherName': teacherName,
     };
+  }
+
+  /// Fetch recent activity for the current instructor scoped to the current session.
+  /// Now returns session-based activities instead of synthesized ones
+  Future<List<Map<String, dynamic>>> fetchRecentActivity({DateTime? sessionStart, int limit = 6}) async {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) return [];
+
+    // Return session activities, limited by the requested amount
+    final activities = List<Map<String, dynamic>>.from(_sessionActivities);
+    if (activities.length > limit) {
+      return activities.take(limit).toList();
+    }
+    return activities;
   }
 
   /// Fetches revenue aggregated by month for a given year for the current instructor.

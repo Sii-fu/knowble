@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'teacher_dashboard.dart';
 
 class EditCourseService {
   final SupabaseClient supabase = Supabase.instance.client;
@@ -25,7 +26,18 @@ class EditCourseService {
     if (bannerUrl != null) updateMap['banner'] = bannerUrl;
 
     if (updateMap.isEmpty) return true;
+    
     final res = await supabase.from('courses').update(updateMap).eq('id', courseId).select().maybeSingle();
+    
+    if (res != null) {
+      final courseTitle = title ?? res['title'] ?? 'Unknown Course';
+      TeacherDashboardService.logActivity(
+        type: 'course_updated',
+        message: 'You edited the course "$courseTitle"',
+        refId: courseId,
+      );
+    }
+    
     return res != null;
   }
 
@@ -40,6 +52,15 @@ class EditCourseService {
     if (order != null) updateMap['order'] = order;
     if (updateMap.isEmpty) return true;
     final res = await supabase.from('modules').update(updateMap).eq('id', moduleId).select().maybeSingle();
+    
+    if (res != null && title != null) {
+      TeacherDashboardService.logActivity(
+        type: 'module_updated',
+        message: 'You edited the module "$title"',
+        refId: moduleId,
+      );
+    }
+    
     return res != null;
   }
 
@@ -56,6 +77,15 @@ class EditCourseService {
     if (order != null) updateMap['order'] = order;
     if (updateMap.isEmpty) return true;
     final res = await supabase.from('sections').update(updateMap).eq('id', sectionId).select().maybeSingle();
+    
+    if (res != null && title != null) {
+      TeacherDashboardService.logActivity(
+        type: 'section_updated',
+        message: 'You edited the lesson "$title"',
+        refId: sectionId,
+      );
+    }
+    
     return res != null;
   }
 
@@ -76,8 +106,18 @@ class EditCourseService {
     if (storagePath != null) updateMap['storage_path'] = storagePath;
     if (updateMap.isEmpty) return true;
     final res = await supabase.from('contents').update(updateMap).eq('id', contentId).select().maybeSingle();
+    
+    if (res != null && title != null) {
+      TeacherDashboardService.logActivity(
+        type: 'content_updated',
+        message: 'You edited the content "$title"',
+        refId: contentId,
+      );
+    }
+    
     return res != null;
   }
+
 
   /// Fetch detailed course information (course + modules -> sections -> contents)
   Future<Map<String, dynamic>?> fetchCourseDetail(String courseId) async {

@@ -1,16 +1,14 @@
-
-
-
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'teacher_dashboard.dart';
 
 class CourseService {
   /// Upload course banner image to Supabase Storage (bucket: course-banner)
   Future<String?> uploadBannerToStorage({String? filePath, Uint8List? bytes, required String fileName}) async {
     // Sanitize filename: replace spaces and special chars with underscores
-    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
     safeFileName = safeFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
     dynamic response;
     if (kIsWeb) {
@@ -62,6 +60,12 @@ class CourseService {
       if (bannerUrl != null) 'banner': bannerUrl,
     }).select('id').single();
     if (response['id'] == null) return null;
+
+    TeacherDashboardService.logActivity(
+      type: 'course_created',
+      message: 'You added a new course "${courseData['title']}"',
+      refId: courseId,
+    );
 
     // Insert tag if provided
     if (courseData['tag'] != null && (courseData['tag'] as String).trim().isNotEmpty) {
@@ -120,11 +124,11 @@ class CourseService {
           // Use the actual filename only, no unique suffix
           String actualFileName = pdf['fileName'];
           // Sanitize filename
-          uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+          uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
           uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           // Append sectionId to ensure uniqueness
           uniqueFileName = uniqueFileName.replaceAll('.pdf', '_$sectionId.pdf');
-          actualFileName = actualFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+          actualFileName = actualFileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
           actualFileName = actualFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           String? publicUrl;
           if (kIsWeb && pdf['bytes'] != null) {
@@ -185,7 +189,7 @@ class CourseService {
 
   Future<String?> uploadPdfToStorage({String? filePath, Uint8List? bytes, required String fileName}) async {
     // Sanitize filename: replace spaces and special chars with underscores
-    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
     safeFileName = safeFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
 
     // Check if file already exists in Supabase Storage
@@ -246,6 +250,12 @@ class CourseService {
       if (bannerUrl != null) 'banner': bannerUrl,
     }).select('id').single();
     if (response['id'] == null) return null;
+
+    TeacherDashboardService.logActivity(
+      type: 'course_created',
+      message: 'You added a new course "$title"',
+      refId: courseId,
+    );
 
     // Insert tag if provided
     if (tag != null && tag.trim().isNotEmpty) {
