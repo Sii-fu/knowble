@@ -437,7 +437,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           lesson.manualQuizzes.clear();
           lesson.generatedAssessmentId = result['assessment_id'] as String?;
         });
-        _showSuccessDialog('Quizzes saved. Assessment id: ${lesson.generatedAssessmentId}');
+        _showSuccessDialog('Quizzes saved. ');
       }
     }
   }
@@ -1185,7 +1185,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                                               SizedBox(
                                                 width: double.infinity,
                                                 child: ElevatedButton.icon(
-                                                  onPressed: () => _navigateToManualQuizPage(chapterIndex, lessonIndex),
+                                                  onPressed: () {
+                                                    // If the course hasn't been created yet, prompt the user
+                                                    if (_currentCourseId == null) {
+                                                      _showSuccessDialog('Please create and save the course first before generating AI quizzes.');
+                                                      return;
+                                                    }
+                                                    _navigateToManualQuizPage(chapterIndex, lessonIndex);
+                                                  },
                                                   icon: const Icon(Icons.quiz_outlined, size: 18),
                                                   label: const Text('Add Quizzes Manually'),
                                                   style: ElevatedButton.styleFrom(
