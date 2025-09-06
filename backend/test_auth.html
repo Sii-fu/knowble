@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google OAuth Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background-color: #4285f4;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .button:hover {
+            background-color: #3367d6;
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test Google OAuth Authentication</h1>
+        <p>Use this page to test your Google OAuth setup for the Knowble YouTube API backend.</p>
+        
+        <div class="info">
+            <h3>Current Configuration:</h3>
+            <p><strong>Server:</strong> http://localhost:3000</p>
+            <p><strong>Redirect URI:</strong> http://localhost:3000/api/auth/google/callback</p>
+            <p><strong>Client ID:</strong> 822087544643-ghbi7ms7n7a3r1ikind4c9if1g3lbugf.apps.googleusercontent.com</p>
+        </div>
+
+        <div id="status"></div>
+
+        <h3>Test Authentication Flow:</h3>
+        <button class="button" onclick="checkServerStatus()">1. Check Server Status</button>
+        <button class="button" onclick="checkAuthStatus()">2. Check Auth Status</button>
+        <button class="button" onclick="startAuth()">3. Start Authentication</button>
+        <button class="button" onclick="logout()">4. Logout</button>
+
+        <h3>Response:</h3>
+        <pre id="response">Click a button above to test the authentication flow...</pre>
+
+        <h3>Instructions to Fix Redirect URI Error:</h3>
+        <div class="info">
+            <ol>
+                <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+                <li>Navigate to "APIs & Services" → "Credentials"</li>
+                <li>Find your OAuth 2.0 client ID and click to edit it</li>
+                <li>In "Authorized redirect URIs", add these URIs:
+                    <ul>
+                        <li><code>http://localhost:3000/api/auth/google/callback</code></li>
+                        <li><code>http://127.0.0.1:3000/api/auth/google/callback</code></li>
+                    </ul>
+                </li>
+                <li>Save the changes</li>
+                <li>Wait a few minutes for the changes to propagate</li>
+                <li>Test authentication again</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+        
+        function updateResponse(data, isError = false) {
+            const responseEl = document.getElementById('response');
+            responseEl.textContent = JSON.stringify(data, null, 2);
+            responseEl.style.color = isError ? '#dc3545' : '#28a745';
+        }
+
+        function updateStatus(message, isError = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = isError ? 'error' : 'success';
+            statusEl.textContent = message;
+        }
+
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                updateResponse(data);
+                updateStatus('✅ Server is running!');
+            } catch (error) {
+                updateResponse({error: error.message}, true);
+                updateStatus('❌ Server is not running. Make sure to start the backend server.', true);
+            }
+        }
+
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/status`);
+                const data = await response.json();
+                updateResponse(data);
+                
+                if (data.authenticated) {
+                    updateStatus('✅ You are authenticated!');
+                } else {
+                    updateStatus('ℹ️ Not authenticated. Click "Start Authentication" to begin.');
+                }
+            } catch (error) {
+                updateResponse({error: error.message}, true);
+                updateStatus('❌ Failed to check authentication status', true);
+            }
+        }
+
+        async function startAuth() {
+            try {
+                // Get auth URL
+                const response = await fetch(`${API_BASE}/api/auth/google?format=json`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateResponse(data);
+                    updateStatus('🔄 Opening Google authentication...');
+                    
+                    // Open auth URL in new window
+                    window.open(data.authUrl, 'google-auth', 'width=500,height=600');
+                } else {
+                    updateResponse(data, true);
+                    updateStatus('❌ Failed to get authentication URL', true);
+                }
+            } catch (error) {
+                updateResponse({error: error.message}, true);
+                updateStatus('❌ Failed to start authentication', true);
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/logout`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                updateResponse(data);
+                updateStatus('✅ Logged out successfully!');
+            } catch (error) {
+                updateResponse({error: error.message}, true);
+                updateStatus('❌ Failed to logout', true);
+            }
+        }
+
+        // Auto-check server status on page load
+        window.addEventListener('load', () => {
+            checkServerStatus();
+        });
+    </script>
+</body>
+</html>

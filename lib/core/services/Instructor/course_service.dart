@@ -29,9 +29,9 @@ class CourseService {
     return publicUrl;
   }
 
-  /// Batch create a course with multiple chapters (modules), lessons (sections), and PDFs (contents)
+  /// Batch create a course with multiple chapters (modules), lessons (sections), PDFs and Videos (contents)
   /// [courseData] contains: title, description, price, durationDays, tag
-  /// [chapters] is a list of maps: { 'title': chapterName, 'lessons': [ { 'title': ..., 'description': ..., 'pdf': { 'fileName': ..., 'filePath' or 'bytes': ... } } ] }
+  /// [chapters] is a list of maps: { 'title': chapterName, 'lessons': [ { 'title': ..., 'description': ..., 'pdf': { 'fileName': ..., 'filePath' or 'bytes': ... }, 'video': { 'fileName': ..., 'youtubeUrl': ... } } ] }
   Future<Map<String, dynamic>?> createFullCourse({
     required Map<String, dynamic> courseData,
     required List<Map<String, dynamic>> chapters,
@@ -87,31 +87,31 @@ class CourseService {
     // Insert chapters (modules)
     for (int c = 0; c < chapters.length; c++) {
       final chapter = chapters[c];
-  final moduleId = uuid.v4();
-  await supabase.from('modules').insert({
+      final moduleId = uuid.v4();
+      await supabase.from('modules').insert({
         'id': moduleId,
         'course_id': courseId,
         'title': chapter['title'],
         'order': c + 1,
-  }).select('id').single();
-      // Remove null check: always continue to insert sections
+      }).select('id').single();
 
       // Insert lessons (sections)
       final lessons = chapter['lessons'] as List<Map<String, dynamic>>;
       final List<String> sectionIdsForThisChapter = [];
       for (int l = 0; l < lessons.length; l++) {
         final lesson = lessons[l];
-  final sectionId = uuid.v4();
-  await supabase.from('sections').insert({
+        final sectionId = uuid.v4();
+        await supabase.from('sections').insert({
           'id': sectionId,
           'module_id': moduleId,
           'title': lesson['title'],
           'description': lesson['description'],
           'order': l + 1,
-  }).select('id').single();
+        }).select('id').single();
         sectionIdsForThisChapter.add(sectionId);
-        // Remove null check: always continue to insert PDF content
 
+        int contentOrder = 1;
+        
         // Insert PDF content if provided
         if (lesson['pdf'] != null) {
           final pdf = lesson['pdf'] as Map<String, dynamic>;
@@ -128,10 +128,8 @@ class CourseService {
           actualFileName = actualFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           String? publicUrl;
           if (kIsWeb && pdf['bytes'] != null) {
-            publicUrl = await uploadPdfToStorage(bytes: pdf['bytes'], fileName: uniqueFileName);
             publicUrl = await uploadPdfToStorage(bytes: pdf['bytes'], fileName: actualFileName);
           } else if (!kIsWeb && pdf['filePath'] != null) {
-            publicUrl = await uploadPdfToStorage(filePath: pdf['filePath'], fileName: uniqueFileName);
             publicUrl = await uploadPdfToStorage(filePath: pdf['filePath'], fileName: actualFileName);
           }
           // Always insert, even if publicUrl is the same as another section
@@ -142,7 +140,24 @@ class CourseService {
               'type': 'pdf',
               'title': pdf['fileName'],
               'url': publicUrl,
-              'order': 1,
+              'order': contentOrder++,
+            }).select('id').single();
+          }
+        }
+
+        // Insert Video content if provided
+        if (lesson['video'] != null) {
+          final video = lesson['video'] as Map<String, dynamic>;
+          String? youtubeUrl = video['youtubeUrl'] as String?;
+          
+          if (youtubeUrl != null && youtubeUrl.isNotEmpty) {
+            await supabase.from('contents').insert({
+              'id': uuid.v4(),
+              'section_id': sectionId,
+              'type': 'video',
+              'title': video['fileName'] ?? 'Video Content',
+              'url': youtubeUrl,
+              'order': contentOrder++,
             }).select('id').single();
           }
         }
@@ -284,18 +299,51 @@ class CourseService {
     required String type, // 'pdf', 'video', 'link'
     required String url,
     required int order,
+    String? title,
   }) async {
     final contentId = uuid.v4();
     final response = await supabase.from('contents').insert({
       'id': contentId,
       'section_id': sectionId,
       'type': type,
+      'title': title,
       'url': url,
       'order': order,
       'created_at': DateTime.now().toIso8601String(),
     }).select('id').single();
     if (response['id'] == null) return null;
     return contentId;
+  }
+
+  /// Create video content entry with YouTube URL
+  Future<String?> createVideoContent({
+    required String sectionId,
+    required String youtubeUrl,
+    required String title,
+    required int order,
+  }) async {
+    return await createContent(
+      sectionId: sectionId,
+      type: 'video',
+      url: youtubeUrl,
+      order: order,
+      title: title,
+    );
+  }
+
+  /// Update existing content with new URL (useful for updating video URLs after upload)
+  Future<bool> updateContentUrl({
+    required String contentId,
+    required String newUrl,
+  }) async {
+    try {
+      await supabase.from('contents').update({
+        'url': newUrl,
+      }).eq('id', contentId);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<String?> createModule({

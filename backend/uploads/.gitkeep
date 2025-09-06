@@ -1,0 +1,13 @@
+# Uploads Directory
+
+This directory stores temporary video files during upload processing.
+
+- Files are automatically cleaned up after successful upload to YouTube
+- Maximum file size: 2GB
+- Supported formats: mp4, mpeg, mov, avi, wmv, webm, 3gp, flv, mkv
+- Files older than 24 hours should be manually cleaned if needed
+
+## Security Note
+
+This directory should not be publicly accessible and files should not be served directly.
+All uploaded files are temporary and are deleted after processing.

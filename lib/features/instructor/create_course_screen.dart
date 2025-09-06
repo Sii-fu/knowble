@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:Knowble/core/services/Instructor/questionai_service.dart';
 import 'package:Knowble/core/services/Instructor/course_service.dart';
+import 'package:Knowble/core/services/youtube_service.dart';
 import 'package:flutter/foundation.dart';
 import '../../config/theme_instructor.dart';
 import 'manual_quiz_creation.dart';
@@ -51,6 +52,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   // Course service and other services
   final CourseService _courseService = CourseService();
+  final YouTubeService _youtubeService = YouTubeService();
   String? _currentCourseId;
   
 
@@ -245,6 +247,14 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     );
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.single;
+      
+      // Check file size (2GB limit)
+      const maxSize = 2 * 1024 * 1024 * 1024; // 2GB in bytes
+      if (file.size > maxSize) {
+        _showErrorDialog('File too large', 'Video file must be smaller than 2GB');
+        return;
+      }
+      
       Map<String, dynamic> videoInfo = {
         'name': file.name,
       };
@@ -253,11 +263,351 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       } else {
         videoInfo['path'] = file.path;
       }
+      
+      // Store file info locally first
       setState(() {
         _chapters[chapterIndex].lessons[lessonIndex].videoFile = videoInfo;
+        _chapters[chapterIndex].lessons[lessonIndex].uploadStatus = 'selected';
       });
-      _showSuccessDialog('Video uploaded successfully!');
+      
+      // Show upload options dialog
+      _showVideoUploadDialog(chapterIndex, lessonIndex, videoInfo);
     }
+  }
+
+  void _showVideoUploadDialog(int chapterIndex, int lessonIndex, Map<String, dynamic> videoInfo) {
+    final lesson = _chapters[chapterIndex].lessons[lessonIndex];
+    final lessonTitle = lesson.titleController.text.isEmpty 
+        ? 'Lesson ${lessonIndex + 1}' 
+        : lesson.titleController.text;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppThemeInstructor.surfaceWhite,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.video_library,
+                  size: 48,
+                  color: AppThemeInstructor.primaryBlue,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Upload Video to YouTube',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppThemeInstructor.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'File: ${videoInfo['name']}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppThemeInstructor.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                
+                // Upload options
+                if (lesson.uploadStatus == 'selected') ...[
+                  Text(
+                    'Choose an option:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppThemeInstructor.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Upload to YouTube button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _uploadVideoToYouTube(chapterIndex, lessonIndex, videoInfo, lessonTitle);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppThemeInstructor.primaryBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.cloud_upload, color: Colors.white),
+                      label: const Text(
+                        'Upload to YouTube',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // Keep local only button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showSuccessDialog('Video file saved locally. You can upload to YouTube later.');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: AppThemeInstructor.primaryBlue),
+                      ),
+                      icon: Icon(Icons.save, color: AppThemeInstructor.primaryBlue),
+                      label: Text(
+                        'Keep Local Only',
+                        style: TextStyle(
+                          color: AppThemeInstructor.primaryBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ] else if (lesson.uploadStatus == 'uploading') ...[
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    lesson.uploadMessage ?? 'Uploading video...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppThemeInstructor.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ] else if (lesson.uploadStatus == 'success') ...[
+                  Icon(
+                    Icons.check_circle,
+                    size: 48,
+                    color: AppThemeInstructor.successGreen,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Upload Successful!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppThemeInstructor.successGreen,
+                    ),
+                  ),
+                  if (lesson.youtubeVideoId != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Video ID: ${lesson.youtubeVideoId}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppThemeInstructor.textSecondary,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppThemeInstructor.primaryBlue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Continue',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ] else if (lesson.uploadStatus == 'error') ...[
+                  Icon(
+                    Icons.error,
+                    size: 48,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Upload Failed',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    lesson.uploadMessage ?? 'Unknown error occurred',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppThemeInstructor.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _uploadVideoToYouTube(chapterIndex, lessonIndex, videoInfo, lessonTitle);
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppThemeInstructor.primaryBlue,
+                          ),
+                          child: const Text(
+                            'Close',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                
+                const SizedBox(height: 12),
+                
+                // Cancel button (only show if not uploading)
+                if (lesson.uploadStatus != 'uploading')
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: AppThemeInstructor.textSecondary),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _uploadVideoToYouTube(
+    int chapterIndex, 
+    int lessonIndex, 
+    Map<String, dynamic> videoFile,
+    String lessonTitle,
+  ) async {
+    final lesson = _chapters[chapterIndex].lessons[lessonIndex];
+    
+    // Update UI to show uploading state
+    setState(() {
+      lesson.uploadStatus = 'uploading';
+      lesson.uploadMessage = 'Preparing upload...';
+    });
+
+    try {
+      // Check if backend is ready (fixed account authentication)
+      setState(() {
+        lesson.uploadMessage = 'Checking backend authentication...';
+      });
+      
+      final authStatus = await _youtubeService.checkAuthenticationStatus();
+      
+      if (!authStatus['authenticated']) {
+        // Backend authentication failed
+        setState(() {
+          lesson.uploadStatus = 'error';
+          lesson.uploadMessage = authStatus['error'] ?? 'Backend authentication not configured';
+        });
+        _showErrorDialog('Backend Error', 'YouTube backend authentication is not properly configured. Please check the server logs.');
+        return;
+      }
+
+      // Authentication successful, proceed with upload
+      setState(() {
+        lesson.uploadMessage = 'Uploading video to YouTube...';
+      });
+
+      print('📤 Starting upload for lesson: $lessonTitle');
+      print('📁 Video file: ${videoFile['name']}');
+
+      final result = await _youtubeService.uploadVideo(
+        videoFile: videoFile,
+        title: lessonTitle,
+        description: 'Uploaded from Knowble course: ${_courseNameController.text}',
+        tags: 'knowble,education,${_tagController.text}',
+        privacy: 'unlisted', // Unlisted so videos are accessible via link but not publicly discoverable
+        onProgress: (progress) {
+          setState(() {
+            lesson.uploadMessage = 'Uploading... ${(progress * 100).toInt()}%';
+          });
+        },
+      );
+
+      print('📤 Upload result: ${result['success']}');
+      if (result['success']) {
+        print('✅ Upload successful - Video ID: ${result['videoId']}');
+        final videoId = result['videoId'] as String;
+        final youtubeUrl = 'https://www.youtube.com/watch?v=$videoId';
+        
+        setState(() {
+          lesson.uploadStatus = 'success';
+          lesson.youtubeVideoId = videoId;
+          lesson.youtubeVideoUrl = youtubeUrl;
+          lesson.uploadMessage = 'Video uploaded successfully!';
+        });
+        
+        _showSuccessDialog('Video uploaded to YouTube successfully!\nVideo ID: $videoId');
+      } else {
+        print('❌ Upload failed: ${result['error']}');
+        setState(() {
+          lesson.uploadStatus = 'error';
+          lesson.uploadMessage = result['error'] ?? 'Upload failed';
+        });
+        _showErrorDialog('Upload Failed', result['message'] ?? result['error'] ?? 'Unknown error occurred');
+      }
+    } catch (e) {
+      print('❌ Upload exception: $e');
+      setState(() {
+        lesson.uploadStatus = 'error';
+        lesson.uploadMessage = 'Error: $e';
+      });
+      _showErrorDialog('Upload Error', 'An unexpected error occurred: $e');
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSuccessDialog(String message) {
@@ -488,12 +838,11 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
             };
           }
           
-          // Add Video if exists
-          if (lesson.videoFile != null) {
+          // Add Video if exists and has YouTube URL
+          if (lesson.videoFile != null && lesson.youtubeVideoUrl != null) {
             lessonData['video'] = {
               'fileName': lesson.videoFile!['name'],
-              if (kIsWeb && lesson.videoFile!['bytes'] != null) 'bytes': lesson.videoFile!['bytes'],
-              if (!kIsWeb && lesson.videoFile!['path'] != null) 'filePath': lesson.videoFile!['path'],
+              'youtubeUrl': lesson.youtubeVideoUrl!,
             };
           }
           
@@ -1638,6 +1987,12 @@ class LessonData {
   // DB section id (nullable) — populated when course/sections are persisted and IDs are known
   String? sectionId;
 
+  // YouTube upload status and data
+  String? uploadStatus; // 'selected', 'uploading', 'success', 'error'
+  String? uploadMessage;
+  String? youtubeVideoId;
+  String? youtubeVideoUrl;
+
   // Assessment related
   bool aiAssessmentEnabled;
   List<ManualQuestion> manualQuestions;
@@ -1657,6 +2012,10 @@ class LessonData {
     List<ManualQuestion>? manualQuestions,
     List<ManualQuiz>? manualQuizzes,
     this.aiQuizCount = 5,
+    this.uploadStatus,
+    this.uploadMessage,
+    this.youtubeVideoId,
+    this.youtubeVideoUrl,
   }) : manualQuestions = manualQuestions ?? [],
        manualQuizzes = manualQuizzes ?? [];
 
