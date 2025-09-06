@@ -33,8 +33,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   @override
   void initState() {
     super.initState();
-    TeacherDashboardService.initializeSession();
-    _sessionStart = DateTime.now();
+  // no session initialization; fetch server activities directly
     _loadDashboard();
   }
 
@@ -63,15 +62,17 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   _loadRevenue();
 
   // Load recent activities scoped to this session
-  _loadRecentActivities();
+    try {
+      final acts = await _dashboardService.fetchAllActivities(limit: 6);
+      setState(() {
+        _recentActivities = acts;
+      });
+    } catch (e) {
+      print('loadDashboard: failed to load activities: $e');
+    }
   }
 
-  Future<void> _loadRecentActivities() async {
-    final acts = await _dashboardService.fetchRecentActivity(sessionStart: _sessionStart, limit: 6);
-    setState(() {
-      _recentActivities = List<Map<String, dynamic>>.from(acts);
-    });
-  }
+  
 
   Future<void> _loadRevenue({int? year}) async {
     final rev = await _dashboardService.fetchAnnualRevenue(year: year);
@@ -787,7 +788,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 IconButton(
                   icon: Icon(Icons.refresh, color: AppThemeInstructor.primaryBlue),
                   onPressed: () async {
-                    await _loadRecentActivities();
+                    final acts = await _dashboardService.fetchAllActivities(limit: 6);
+                    setState(() {
+                      _recentActivities = acts;
+                    });
                   },
                 ),
                 TextButton(
