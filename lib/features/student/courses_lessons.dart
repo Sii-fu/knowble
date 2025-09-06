@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
@@ -8,6 +10,7 @@ import '../../data/models/content.dart';
 import '../../data/models/course.dart';
 import 'chat/chat_detail_page.dart';
 import '../course/quiz_page.dart';
+import 'course_review.dart';
 
 class CourseLessonsPage extends StatefulWidget {
   final String courseId;
@@ -27,6 +30,7 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
   List<Map<String, dynamic>> _lessons = [];
   Set<String> _passedSectionIds = {};
   bool _showExtendedFAB = true;
+  bool _allQuizzesPassed = false; // New flag
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
 
@@ -81,7 +85,7 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
         allContents.addAll(contents);
 
         sectionList.add({
-          'id': section.id, // ✅ section id for quiz
+          'id': section.id, 
           'number': (i + 1).toString(),
           'title': section.title,
           'contents': contents.map((content) => {
@@ -102,7 +106,6 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     final enrollments = await _service.fetchUserEnrollments(userId);
     final enrolled = enrollments.any((e) => e.courseId == widget.courseId);
 
-    // Fetch passed quizzes for this user using quiz_results table
     final quizResultsRes = await Supabase.instance.client
         .from('quiz_results')
         .select('section_id, status')
@@ -116,6 +119,12 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
       }
     }
 
+    // Check if all sections are passed
+    bool allPassed = lessons.every((module) {
+      final sections = module['sections'] as List<dynamic>;
+      return sections.every((s) => passedSections.contains(s['id']));
+    });
+
     setState(() {
       _course = course;
       _contents = allContents;
@@ -123,7 +132,78 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
       _enrolled = enrolled;
       _passedSectionIds = passedSections;
       _isLoading = false;
+      _allQuizzesPassed = allPassed;
     });
+  }
+
+  Future<void> _generateCertificate() async {
+    if (_course == null) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text('Certificate of Completion',
+                    style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 20),
+                pw.Text(user.email ?? 'Student',
+                    style: pw.TextStyle(fontSize: 24)),
+                pw.Text('has completed the course', style: pw.TextStyle(fontSize: 18)),
+                pw.Text(_course!.title,
+                    style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    final pdfBytes = await pdf.save();
+
+    final fileName = '${user.id}_${widget.courseId}.pdf';
+    await Supabase.instance.client.storage.from('certificates').uploadBinary(
+  fileName,
+  pdfBytes,
+  fileOptions: const FileOptions(
+    cacheControl: '3600',
+    upsert: true, // 👈 this allows overwriting if file exists
+  ),
+);
+
+
+    final publicUrl = Supabase.instance.client.storage.from('certificates').getPublicUrl(fileName);
+
+    await Supabase.instance.client.from('certificates').upsert({
+  'id': '${user.id}_${widget.courseId}',
+  'student_id': user.id,
+  'course_id': widget.courseId,
+  'issued_at': DateTime.now().toIso8601String(),
+  'certificate_url': publicUrl,
+  'cert_number': fileName,
+  'status': 'issued',
+});
+
+
+    // Open PDF
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PDFViewerPage(
+          pdfUrl: publicUrl,
+          title: 'Your Certificate',
+          contentId: '', 
+          courseId: widget.courseId,
+        ),
+      ),
+    );
   }
 
   Future<void> _startInstructorChat() async {
@@ -342,7 +422,7 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                                                   ),
                                                   child: Text(
                                                     isPassed ? 'Quiz Passed' : 'Quiz',
-                                                    style: TextStyle(
+                                                    style: const TextStyle(
                                                       color: Colors.white,
                                                       fontWeight: FontWeight.w600,
                                                     ),
@@ -433,6 +513,55 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                       },
                     ),
                   ),
+if (_allQuizzesPassed)
+  Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton.icon(
+          onPressed: _generateCertificate,
+          icon: const Icon(Icons.badge),
+          label: const Text('Generate Certificate'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.successGreen,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+                vertical: 14, horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12), // space between buttons
+        ElevatedButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CourseReviewPage(
+                  courseId: widget.courseId,
+                  courseName: _course?.title ?? '',
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.rate_review),
+          label: const Text('Review Course'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blueGrey,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(
+                vertical: 14, horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+
                 ],
               ),
             ),
