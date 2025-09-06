@@ -61,6 +61,7 @@ class QuizService {
               'options': options,
               'answer_id': correctOption['id'],
               'answer': correctOption['option_text'],
+              'assessment_id': assessmentId,
             });
           }
         }
