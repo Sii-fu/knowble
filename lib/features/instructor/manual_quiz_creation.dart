@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/theme_instructor.dart';
+import '../../core/services/Instructor/manual_quiz_service.dart';
 
 class QuizOption {
   final TextEditingController textController = TextEditingController();
@@ -83,11 +84,15 @@ class ManualQuiz {
 class ManualQuizCreationPage extends StatefulWidget {
   final String lessonTitle;
   final List<ManualQuiz> existingQuizzes;
+  // Optional: sectionId from the DB. If provided, confirmed quizzes will be
+  // persisted to the DB and linked to this section.
+  final String? sectionId;
 
   const ManualQuizCreationPage({
     Key? key,
     required this.lessonTitle,
     required this.existingQuizzes,
+    this.sectionId,
   }) : super(key: key);
 
   @override
@@ -96,6 +101,8 @@ class ManualQuizCreationPage extends StatefulWidget {
 
 class _ManualQuizCreationPageState extends State<ManualQuizCreationPage> {
   late List<ManualQuiz> quizzes;
+  bool _isSaving = false;
+  final ManualQuizService _quizService = ManualQuizService();
 
   @override
   void initState() {
@@ -120,8 +127,48 @@ class _ManualQuizCreationPageState extends State<ManualQuizCreationPage> {
     }
   }
 
-  void _confirmQuizzes() {
+  Future<void> _confirmQuizzes() async {
     final validQuizzes = quizzes.where((quiz) => quiz.isValid).toList();
+    if (validQuizzes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please create at least one valid quiz before confirming.')),
+      );
+      return;
+    }
+
+    // If sectionId is provided, persist to DB and return created assessment info
+    final sectionId = widget.sectionId;
+    if (sectionId != null && sectionId.isNotEmpty) {
+      setState(() => _isSaving = true);
+      try {
+        final quizzesPayload = validQuizzes.map((q) => q.toJson()).toList();
+        final title = widget.lessonTitle.isNotEmpty ? widget.lessonTitle : 'Manual Quiz';
+        final res = await _quizService.createAssessmentWithQuizzes(
+          sectionId: sectionId,
+          title: title,
+          quizzes: quizzesPayload.cast<Map<String, dynamic>>(),
+        );
+        setState(() => _isSaving = false);
+        if (res == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to save quizzes. Please try again.')),
+          );
+          return;
+        }
+
+        // Return the created assessment info to the caller
+        Navigator.of(context).pop(res);
+        return;
+      } catch (e) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving quizzes: ${e.toString()}')),
+        );
+        return;
+      }
+    }
+
+    // Fallback: no sectionId provided — return the quizzes to the caller (in-memory)
     Navigator.of(context).pop(validQuizzes);
   }
 
@@ -292,24 +339,20 @@ class _ManualQuizCreationPageState extends State<ManualQuizCreationPage> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: quizzes.any((quiz) => quiz.isValid) ? _confirmQuizzes : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppThemeInstructor.primaryBlue,
-                      foregroundColor: AppThemeInstructor.surfaceWhite,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    ElevatedButton(
+                      onPressed: (_isSaving || !quizzes.any((quiz) => quiz.isValid)) ? null : _confirmQuizzes,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppThemeInstructor.primaryBlue,
+                        foregroundColor: AppThemeInstructor.surfaceWhite,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      child: _isSaving
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Confirm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
-                    child: const Text(
-                      'Confirm',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
