@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/student/generate_course_specific_quiz.dart';
 import '../../core/services/student/quiz_submission_service.dart';
+import '../../core/services/student/quiz_result_service.dart';
 import '../../config/theme.dart';
 
 class QuizPage extends StatefulWidget {
@@ -46,7 +47,6 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
           if (opt is Map<String, dynamic>) {
             return opt;
           } else {
-            // If option is just a string, fallback to text only
             return {'id': opt, 'text': opt};
           }
         }).toList();
@@ -105,7 +105,6 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     if (selectedOptionId == null) return;
 
     final currentQuestion = quizData[currentQuestionIndex];
-  // No need to find selectedOptionObj, just use selectedOptionId
     final isCorrect = selectedOptionId == currentQuestion['answer_id'];
     final marks = isCorrect ? 1 : 0;
 
@@ -115,7 +114,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       if (isCorrect) score++;
     });
 
-    // Save submission to Supabase
+    // Save submission
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
     try {
       await _submissionService.submitAnswer(
@@ -143,6 +142,20 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
       _slideController.reset();
       _slideController.forward();
     } else {
+      // Quiz finished, save result
+      final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      final sectionId = widget.sectionId;
+      final assessmentId = quizData.isNotEmpty ? quizData[0]['assessment_id'] ?? '' : '';
+      final percentage = (score / quizData.length * 100).round();
+      final status = percentage >= 60 ? 'pass' : 'fail';
+      final resultService = QuizResultService();
+      resultService.saveQuizResult(
+        studentId: userId,
+        assessmentId: assessmentId,
+        sectionId: sectionId,
+        status: status,
+        score: score,
+      );
       setState(() => quizCompleted = true);
     }
   }
@@ -161,6 +174,36 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     _slideController.forward();
     _fetchQuizData();
   }
+
+  // ---------------- NEW: update progress if passed ----------------
+  Future<void> _incrementProgress() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    if (userId.isEmpty) return;
+
+    try {
+      final enrollmentRes = await Supabase.instance.client
+          .from('enrollments')
+          .select()
+          .eq('student_id', userId)
+          .eq('course_id', widget.sectionId) // ⚠️ replace with real courseId if different
+          .maybeSingle();
+
+      if (enrollmentRes == null) return;
+
+      final enrollmentId = enrollmentRes['id'] as String;
+      final currentProgress = (enrollmentRes['progress'] as num).toDouble();
+      final newProgress = (currentProgress + 1.0).clamp(0.0, 100.0);
+
+      await Supabase.instance.client
+          .from('enrollments')
+          .update({'progress': newProgress})
+          .eq('id', enrollmentId);
+    } catch (e) {
+      print("❌ Failed to update progress: $e");
+    }
+  }
+
+  // ---------------- UI Builders ----------------
 
   @override
   Widget build(BuildContext context) {
@@ -187,87 +230,79 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     );
   }
 
-  // ---------------- UI Builders ----------------
-
-  Widget _buildLoadingScreen() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: AppTheme.primaryTeal),
-          SizedBox(height: 16),
-          Text(
-            'Loading Quiz...',
-            style: TextStyle(
-              fontFamily: 'Jost',
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorScreen() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
+  Widget _buildLoadingScreen() => const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: AppTheme.errorRed),
-            const SizedBox(height: 16),
-            const Text(
-              'No Quiz Available',
-              style: TextStyle(
-                fontFamily: 'Jost',
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'There are no quiz questions available for this section yet.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Jost',
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryTeal,
-                foregroundColor: AppTheme.surfaceWhite,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Back to Lessons',
+            CircularProgressIndicator(color: AppTheme.primaryTeal),
+            SizedBox(height: 16),
+            Text('Loading Quiz...',
                 style: TextStyle(
                   fontFamily: 'Jost',
+                  fontSize: 18,
                   fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
+                  color: AppTheme.textSecondary,
+                )),
           ],
         ),
-      ),
-    );
-  }
+      );
+
+  Widget _buildErrorScreen() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline,
+                  size: 64, color: AppTheme.errorRed),
+              const SizedBox(height: 16),
+              const Text(
+                'No Quiz Available',
+                style: TextStyle(
+                  fontFamily: 'Jost',
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'There are no quiz questions available for this section yet.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'Jost',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryTeal,
+                  foregroundColor: AppTheme.surfaceWhite,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Back to Lessons',
+                  style: TextStyle(
+                    fontFamily: 'Jost',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
   Widget _buildQuizScreen() {
     final currentQuestion = quizData[currentQuestionIndex];
-
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Padding(
@@ -289,7 +324,8 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                   final option = currentQuestion['options'][index];
                   return SlideTransition(
                     position: _slideAnimation,
-                    child: _buildOptionCard(option as Map<String, dynamic>, index),
+                    child: _buildOptionCard(
+                        option as Map<String, dynamic>, index),
                   );
                 },
               ),
@@ -304,7 +340,6 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   Widget _buildProgressIndicator() {
     final progress = (currentQuestionIndex + 1) / quizData.length;
-
     return Column(
       children: [
         Row(
@@ -342,63 +377,60 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildQuestionCard(Map<String, dynamic> question) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.quiz_rounded,
-                  color: AppTheme.primaryTeal, size: 24),
-              SizedBox(width: 8),
-              Text(
-                'Question',
-                style: TextStyle(
-                  fontFamily: 'Jost',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            question['question'],
-            style: const TextStyle(
-              fontFamily: 'Jost',
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-              height: 1.4,
+  Widget _buildQuestionCard(Map<String, dynamic> question) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceWhite,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.shadowLight,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.quiz_rounded,
+                    color: AppTheme.primaryTeal, size: 24),
+                SizedBox(width: 8),
+                Text(
+                  'Question',
+                  style: TextStyle(
+                    fontFamily: 'Jost',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              question['question'],
+              style: const TextStyle(
+                fontFamily: 'Jost',
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildOptionCard(Map<String, dynamic> option, int index) {
-  final currentQuestion = quizData[currentQuestionIndex];
-  // option is a Map<String, dynamic> with 'id' and 'text'
+    final currentQuestion = quizData[currentQuestionIndex];
     final optionId = option['id'];
     final optionText = option['text'];
-  final correctAnswerId = currentQuestion['answer_id'];
-  final isSelected = selectedOptionId == optionId;
-  final isCorrect = optionId == correctAnswerId;
+    final correctAnswerId = currentQuestion['answer_id'];
+    final isSelected = selectedOptionId == optionId;
+    final isCorrect = optionId == correctAnswerId;
 
     Color cardColor = AppTheme.surfaceWhite;
     Color borderColor = AppTheme.borderSubtle;
@@ -535,6 +567,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
 
   Widget _buildCompletionScreen() {
     final percentage = (score / quizData.length * 100).round();
+    final passed = percentage >= 60;
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -559,17 +592,15 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
               child: Column(
                 children: [
                   Icon(
-                    percentage >= 70
-                        ? Icons.celebration
-                        : Icons.psychology,
+                    passed ? Icons.celebration : Icons.psychology,
                     size: 80,
-                    color: percentage >= 70
+                    color: passed
                         ? const Color(0xFF22C55E)
                         : const Color(0xFFF59E0B),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    percentage >= 70 ? 'Excellent!' : 'Good Effort!',
+                    passed ? 'Great Job!' : 'Try Again!',
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -629,7 +660,7 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: percentage >= 70
+                                color: passed
                                     ? const Color(0xFF22C55E)
                                     : const Color(0xFFF59E0B),
                               ),
@@ -643,28 +674,57 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _restartQuiz,
-                icon: const Icon(Icons.refresh),
-                label: const Text(
-                  'Restart Quiz',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+
+            // ---------- BUTTONS ----------
+            if (passed)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await _incrementProgress();
+                    Navigator.pop(context); // back to lessons
+                  },
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text(
+                    'Mark as Completed',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF22C55E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0EA5E9),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 2,
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _restartQuiz,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text(
+                    'Retry Quiz',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0EA5E9),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
