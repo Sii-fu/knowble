@@ -72,8 +72,8 @@ class CourseFetchService {
   Future<List<Map<String, dynamic>>> fetchInstructorCoursesFull() async {
     final user = supabase.auth.currentUser;
     if (user == null) return [];
-    // Fetch all courses for this instructor (with duration_days)
-    final courses = await supabase
+    // Fetch all courses for the authenticated instructor (with duration_days)
+    final coursesResp = await supabase
       .from('courses')
       .select('''
         id,
@@ -89,10 +89,11 @@ class CourseFetchService {
           id
         )
       ''')
-      .eq('instructor_id', 'c2e56f95-6eb7-40fe-90c4-f0a36e428a39')
+      .eq('instructor_id', user.id)
       .order('created_at', ascending: false);
 
-    return List<Map<String, dynamic>>.from(courses);
+    // Defensive cast: ensure we return an empty list if the response is null
+    return List<Map<String, dynamic>>.from(coursesResp as List? ?? []);
   }
 
   /// Fetches full details for a single course (modules, sections, contents)

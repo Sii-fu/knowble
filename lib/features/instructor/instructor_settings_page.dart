@@ -16,7 +16,7 @@ class InstructorSettingsPage extends StatefulWidget {
 }
 
 class _InstructorSettingsPageState extends State<InstructorSettingsPage> {
-  bool _notificationsEnabled = true;
+  // ...existing state
 
   @override
   Widget build(BuildContext context) {
@@ -79,57 +79,7 @@ class _InstructorSettingsPageState extends State<InstructorSettingsPage> {
               ],
               theme,
             ),
-            const SizedBox(height: 16),
-            _buildSectionCard(
-              'Notifications',
-              [
-                // Replace the navigation tile with a toggle switch
-                ListTile(
-                  leading: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentLight,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.notifications_outlined,
-                      color: AppTheme.primaryTeal,
-                      size: 22,
-                    ),
-                  ),
-                  title: Text(
-                    'Notifications',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: AppTheme.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Manage push notifications and alerts',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  trailing: Switch(
-                    value: _notificationsEnabled,
-                    onChanged: (val) {
-                      setState(() {
-                        _notificationsEnabled = val;
-                      });
-                      // TODO: persist this setting to user preferences
-                    },
-                    activeColor: AppTheme.primaryTeal,
-                  ),
-                  onTap: () {
-                    setState(() => _notificationsEnabled = !_notificationsEnabled);
-                    // TODO: optionally open a detailed notifications settings page
-                  },
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                ),
-              ],
-              theme,
-            ),
+            
             const SizedBox(height: 16),
             _buildSectionCard(
               'Account & Privacy',
