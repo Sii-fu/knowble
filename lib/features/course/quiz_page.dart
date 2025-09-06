@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/student/generate_course_specific_quiz.dart';
@@ -14,6 +15,106 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
+  Future<void> updateEnrollmentProgress(String userId) async {
+    // Get moduleId from sectionId
+    print('Fetching section for sectionId: ${widget.sectionId}');
+    final sectionRes = await Supabase.instance.client
+        .from('sections')
+        .select('id, module_id')
+        .eq('id', widget.sectionId)
+        .maybeSingle();
+    print('Section result:');
+    print(sectionRes);
+    if (sectionRes == null) {
+      print('No section found for sectionId: ${widget.sectionId}');
+      return;
+    }
+    final moduleId = sectionRes['module_id'] as String;
+    print('Fetched moduleId: $moduleId');
+
+    // Get courseId from moduleId
+    print('Fetching module for moduleId: $moduleId');
+    final moduleRes = await Supabase.instance.client
+        .from('modules')
+        .select('id, course_id')
+        .eq('id', moduleId)
+        .maybeSingle();
+    print('Module result:');
+    print(moduleRes);
+    if (moduleRes == null) {
+      print('No module found for moduleId: $moduleId');
+      return;
+    }
+    final courseId = moduleRes['course_id'] as String;
+    print('Fetched courseId: $courseId');
+
+  // Get all module IDs for this course
+  print('Fetching modules for courseId: $courseId');
+  final allModulesRes = await Supabase.instance.client
+    .from('modules')
+    .select('id')
+    .eq('course_id', courseId);
+  print('All modules for courseId $courseId:');
+  print(allModulesRes);
+  final moduleIds = (allModulesRes as List).map((m) => m['id'] as String).toList();
+
+  // Get all section IDs for these modules
+  print('Fetching sections for moduleIds: $moduleIds');
+  final allSectionsRes = await Supabase.instance.client
+    .from('sections')
+    .select('id')
+    .inFilter('module_id', moduleIds);
+  print('All sections for moduleIds $moduleIds:');
+  print(allSectionsRes);
+  final sectionIds = (allSectionsRes as List).map((s) => s['id'] as String).toList();
+
+    // Get all assessments for these sections
+    final assessmentsRes = await Supabase.instance.client
+        .from('assessments')
+        .select('id, section_id')
+        .eq('type', 'quiz')
+        .inFilter('section_id', sectionIds);
+    print('Assessments for sectionIds:');
+    print(assessmentsRes);
+    final assessmentIds = (assessmentsRes as List).map((a) => a['id'] as String).toList();
+    final totalAssessments = assessmentIds.length;
+
+    // Get passed assessments for this user
+    final passedRes = await Supabase.instance.client
+        .from('quiz_results')
+        .select('assessment_id, status')
+        .eq('student_id', userId)
+        .inFilter('assessment_id', assessmentIds);
+    print('Passed quiz results for user $userId:');
+    print(passedRes);
+    final passedCount = (passedRes as List)
+        .where((r) => r['status'] == 'pass')
+        .length;
+
+    final progress = totalAssessments > 0 ? (passedCount / totalAssessments) * 100.0 : 0.0;
+    print('Calculated progress: $progress');
+
+    // Update enrollment progress
+    final enrollmentRes = await Supabase.instance.client
+        .from('enrollments')
+        .select('id')
+        .eq('student_id', userId)
+        .eq('course_id', courseId)
+        .maybeSingle();
+    print('Enrollment result:');
+    print(enrollmentRes);
+    if (enrollmentRes == null) {
+      print('No enrollment found for userId: $userId and courseId: $courseId');
+      return;
+    }
+    final enrollmentId = enrollmentRes['id'] as String;
+    final updateRes = await Supabase.instance.client
+        .from('enrollments')
+        .update({'progress': progress})
+        .eq('id', enrollmentId);
+    print('Update response:');
+    print(updateRes);
+  }
   final QuizSubmissionService _submissionService = QuizSubmissionService();
 
   List<Map<String, dynamic>> quizData = [];
@@ -156,6 +257,9 @@ class _QuizPageState extends State<QuizPage> with TickerProviderStateMixin {
         status: status,
         score: score,
       );
+      if (status == 'pass') {
+        updateEnrollmentProgress(userId);
+      }
       setState(() => quizCompleted = true);
     }
   }
