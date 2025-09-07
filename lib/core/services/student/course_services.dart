@@ -9,16 +9,23 @@ import '../../../data/models/enrollment.dart';
 class CourseServices {
   final _client = Supabase.instance.client;
 
-  Future<List<Course>> fetchAllCourses() async {
+  Future<List<Course>> fetchAllCourses({int batchSize = 10}) async {
     try {
-      final response = await _client
-          .from('courses')
-          .select()
-          .order('created_at', ascending: false);
-      final data = response as List<dynamic>? ?? [];
-      return data
-          .map((course) => Course.fromMap(course as Map<String, dynamic>))
-          .toList();
+      int offset = 0;
+      final List<Course> all = [];
+      while (true) {
+        final response = await _client
+            .from('courses')
+            .select()
+            .order('created_at', ascending: false)
+            .range(offset, offset + batchSize - 1);
+        final data = response as List<dynamic>? ?? [];
+        if (data.isEmpty) break;
+        all.addAll(data.map((c) => Course.fromMap(c as Map<String, dynamic>)));
+        offset += batchSize;
+        if (data.length < batchSize) break;
+      }
+      return all;
     } catch (e) {
       print('Error fetching courses: $e');
       return [];
@@ -33,13 +40,15 @@ class CourseServices {
           .eq('student_id', studentId);
       final data = response as List<dynamic>? ?? [];
       return data
-          .map((e) => Enrollment(
-                id: e['id'],
-                studentId: e['student_id'],
-                courseId: e['course_id'],
-                enrolledAt: DateTime.parse(e['enrolled_at']),
-                progress: (e['progress'] as num?)?.toDouble() ?? 0.0,
-              ))
+          .map(
+            (e) => Enrollment(
+              id: e['id'],
+              studentId: e['student_id'],
+              courseId: e['course_id'],
+              enrolledAt: DateTime.parse(e['enrolled_at']),
+              progress: (e['progress'] as num?)?.toDouble() ?? 0.0,
+            ),
+          )
           .toList();
     } catch (e) {
       print('Error fetching enrollments: $e');
@@ -79,7 +88,10 @@ class CourseServices {
   Future<List<Course>> fetchAllStudentCourses(String studentId) async {
     final enrolled = await fetchUserEnrollments(studentId);
     final completed = await fetchCompletedCourseIds(studentId);
-    final ids = enrolled.map((e) => e.courseId).toSet().union(completed.toSet());
+    final ids = enrolled
+        .map((e) => e.courseId)
+        .toSet()
+        .union(completed.toSet());
     final allCourses = await fetchAllCourses();
     return allCourses.where((c) => ids.contains(c.id)).toList();
   }
@@ -175,10 +187,11 @@ class CourseServices {
       final enrollments = await fetchUserEnrollments(studentId);
       final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
 
-      final sortedCourseIds = courseMatchCount.entries
-          .where((e) => !enrolledCourseIds.contains(e.key))
-          .toList()
-        ..sort((a, b) => b.value.compareTo(a.value)); // Desc by match count
+      final sortedCourseIds =
+          courseMatchCount.entries
+              .where((e) => !enrolledCourseIds.contains(e.key))
+              .toList()
+            ..sort((a, b) => b.value.compareTo(a.value)); // Desc by match count
 
       // Step 4: Fetch course details
       final courseIds = sortedCourseIds.map((e) => e.key).toList();
@@ -194,8 +207,11 @@ class CourseServices {
           .toList();
 
       // Order by match count
-      allCourses.sort((a, b) =>
-          (courseMatchCount[b.id] ?? 0).compareTo(courseMatchCount[a.id] ?? 0));
+      allCourses.sort(
+        (a, b) => (courseMatchCount[b.id] ?? 0).compareTo(
+          courseMatchCount[a.id] ?? 0,
+        ),
+      );
 
       return allCourses;
     } catch (e) {

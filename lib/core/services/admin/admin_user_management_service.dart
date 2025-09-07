@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/models/user.dart' as AppUser;
 import '../feedback_notification_service.dart';
+import '../notification_data_service.dart';
 
 /// AdminUserManagementService handles all user management operations for admin
 /// Manages users data retrieval and feedback information for admin dashboard
@@ -795,5 +796,188 @@ class AdminUserManagementService {
         'closed',
       ],
     };
+  }
+
+  /// Get users pending verification
+  /// Returns list of users who have submitted documents for verification
+  Future<List<Map<String, dynamic>>> getUsersPendingVerification({
+    int? limit,
+    int offset = 0,
+  }) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        print('❌ User not authenticated');
+        return [];
+      }
+
+      // Check if user is admin
+      final currentUserRole = await _getCurrentUserRole();
+      if (currentUserRole != 'admin') {
+        print('❌ Only administrators can view pending verifications');
+        return [];
+      }
+
+      print('🔄 Fetching users pending verification...');
+
+      var query = _supabase
+          .from('users')
+          .select(
+            'id, name, email, role, profile_pic, user_documents, document_type, verification_status, verification_submitted_at, created_at',
+          )
+          .eq('role', 'student')
+          .eq('verification_status', 'pending')
+          .not('user_documents', 'is', null)
+          .order('verification_submitted_at', ascending: false);
+
+      if (offset > 0) {
+        query = query.range(offset, offset + (limit ?? 50) - 1);
+      } else if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final response = await query;
+
+      if (response.isEmpty) {
+        print('📭 No users pending verification found');
+        return [];
+      }
+
+      print('✅ Found ${response.length} users pending verification');
+
+      // Process users data
+      final users = response.map((userData) {
+        return {
+          'id': userData['id'],
+          'name': userData['name'] ?? 'Unknown User',
+          'email': userData['email'] ?? '',
+          'role': _formatRole(userData['role']),
+          'profileImage': userData['profile_pic'],
+          'documentType': userData['document_type'] ?? 'Unknown',
+          'documentPath': userData['user_documents'],
+          'verificationStatus': userData['verification_status'] ?? 'pending',
+          'submittedAt': userData['verification_submitted_at'] != null
+              ? DateTime.parse(userData['verification_submitted_at'])
+              : null,
+          'registrationDate': userData['created_at'] != null
+              ? DateTime.parse(userData['created_at'])
+              : DateTime.now(),
+        };
+      }).toList();
+
+      return users;
+    } on PostgrestException catch (e) {
+      print(
+        '❌ Database error while fetching pending verifications: ${e.message}',
+      );
+      return [];
+    } catch (e) {
+      print('❌ Unexpected error while fetching pending verifications: $e');
+      return [];
+    }
+  }
+
+  /// Approve user verification
+  Future<bool> approveUserVerification(String userId) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        print('❌ User not authenticated');
+        return false;
+      }
+
+      // Check if user is admin
+      final currentUserRole = await _getCurrentUserRole();
+      if (currentUserRole != 'admin') {
+        print('❌ Only administrators can approve verifications');
+        return false;
+      }
+
+      print('🔄 Approving user verification for: $userId');
+
+      await _supabase
+          .from('users')
+          .update({
+            'is_verified': true,
+            'verification_status': 'approved',
+            'verification_approved_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      // Send notification to user about approval
+      await NotificationDataService.createUserVerificationApprovedNotification(
+        userId,
+      );
+
+      print('✅ User verification approved successfully');
+      return true;
+    } on PostgrestException catch (e) {
+      print('❌ Database error while approving verification: ${e.message}');
+      return false;
+    } catch (e) {
+      print('❌ Unexpected error while approving verification: $e');
+      return false;
+    }
+  }
+
+  /// Reject user verification
+  Future<bool> rejectUserVerification(String userId, String reason) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        print('❌ User not authenticated');
+        return false;
+      }
+
+      // Check if user is admin
+      final currentUserRole = await _getCurrentUserRole();
+      if (currentUserRole != 'admin') {
+        print('❌ Only administrators can reject verifications');
+        return false;
+      }
+
+      print('🔄 Rejecting user verification for: $userId');
+
+      await _supabase
+          .from('users')
+          .update({
+            'verification_status': 'rejected',
+            'verification_rejection_reason': reason,
+            'verification_rejected_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      // Send notification to user about rejection
+      await NotificationDataService.createUserVerificationRejectedNotification(
+        userId,
+        reason,
+      );
+
+      print('✅ User verification rejected successfully');
+      return true;
+    } on PostgrestException catch (e) {
+      print('❌ Database error while rejecting verification: ${e.message}');
+      return false;
+    } catch (e) {
+      print('❌ Unexpected error while rejecting verification: $e');
+      return false;
+    }
+  }
+
+  /// Get document download URL for user verification
+  Future<String?> getUserDocumentUrl(String documentPath) async {
+    try {
+      print('🔄 Getting document URL for: $documentPath');
+
+      final url = await _supabase.storage
+          .from('user-info')
+          .createSignedUrl(documentPath, 3600); // 1 hour expiry
+
+      print('✅ Document URL generated successfully');
+      return url;
+    } catch (e) {
+      print('❌ Failed to get document URL: $e');
+      return null;
+    }
   }
 }

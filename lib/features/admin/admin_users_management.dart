@@ -142,10 +142,7 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
   void _onBottomNavTap(int index) {
     if (index == _currentIndex) return;
 
-    setState(() {
-      _currentIndex = index;
-    });
-
+    // Don't update _currentIndex when navigating away since page will be replaced
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/admin/dashboard');
@@ -158,6 +155,9 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
         break;
       case 3:
         // Already on users screen
+        break;
+      case 4:
+        Navigator.pushReplacementNamed(context, '/admin/user-verification');
         break;
     }
   }
@@ -382,6 +382,16 @@ class _AdminUsersManagementState extends State<AdminUsersManagement>
               size: 24,
             ),
             label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: CustomIconWidget(
+              iconName: 'verified_user',
+              color: _currentIndex == 4
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
+              size: 24,
+            ),
+            label: 'Verification',
           ),
         ],
       ),

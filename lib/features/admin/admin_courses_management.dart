@@ -260,10 +260,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   void _onBottomNavTap(int index) {
     if (index == _currentIndex) return;
 
-    setState(() {
-      _currentIndex = index;
-    });
-
+    // Don't update _currentIndex when navigating away since page will be replaced
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/admin/dashboard');
@@ -276,6 +273,9 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
         break;
       case 3:
         Navigator.pushReplacementNamed(context, '/admin/users');
+        break;
+      case 4:
+        Navigator.pushReplacementNamed(context, '/admin/user-verification');
         break;
     }
   }
@@ -512,6 +512,16 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
               size: 24,
             ),
             label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: CustomIconWidget(
+              iconName: 'verified_user',
+              color: _currentIndex == 4
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
+              size: 24,
+            ),
+            label: 'Verification',
           ),
         ],
       ),

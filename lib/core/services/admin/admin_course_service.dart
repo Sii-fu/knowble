@@ -4,72 +4,87 @@ class AdminCourseService {
   final _client = Supabase.instance.client;
 
   // Fetch all courses with instructor information for admin management
-  Future<List<Map<String, dynamic>>> fetchAllCoursesForAdmin() async {
+  Future<List<Map<String, dynamic>>> fetchAllCoursesForAdmin({
+    int batchSize = 10,
+  }) async {
     try {
-      print(' AdminCourseService: Starting to fetch all courses...');
+      print(
+        ' AdminCourseService: Starting batched fetch (batchSize=$batchSize)...',
+      );
 
-      final response = await _client
-          .from('courses')
-          .select('''
-            *,
-            instructor:users!instructor_id(id, name, email)
-          ''')
-          .order('created_at', ascending: false);
-
-      final data = response as List<dynamic>? ?? [];
-      print(' AdminCourseService: Raw response length: ${data.length}');
-
+      int offset = 0;
       List<Map<String, dynamic>> courses = [];
-      for (var courseData in data) {
-        final course = courseData as Map<String, dynamic>;
-        print(' Processing course: ${course['title']} (ID: ${course['id']})');
 
-        // Get enrollment count
-        final enrollmentCount = await _getEnrollmentCount(course['id']);
+      while (true) {
+        final response = await _client
+            .from('courses')
+            .select('''
+              *,
+              instructor:users!instructor_id(id, name, email)
+            ''')
+            .order('created_at', ascending: false)
+            .range(offset, offset + batchSize - 1);
 
-        // Get instructor information
-        final instructor = course['instructor'] as Map<String, dynamic>?;
-        final instructorName = instructor?['name'] ?? 'Unknown Instructor';
+        // Explicitly cast to List and then convert to List<Map<String, dynamic>>
+        final rawData = response as List;
+        final data = rawData.cast<Map<String, dynamic>>();
+        print('  Fetched batch offset=$offset size=${data.length}');
+        if (data.isEmpty) break;
 
-        // Calculate course duration in hours from modules/sections
-        final duration = await _calculateCourseDuration(course['id']);
+        for (var courseData in data) {
+          final course = courseData;
+          print(' Processing course: ${course['title']} (ID: ${course['id']})');
 
-        // Determine status based on is_verified column
-        String status;
-        final isVerified = course['is_verified'];
-        if (isVerified == null) {
-          status = 'pending';
-        } else if (isVerified == true) {
-          status = 'approved';
-        } else {
-          status = 'rejected';
+          // Get enrollment count
+          final enrollmentCount = await _getEnrollmentCount(course['id']);
+
+          // Get instructor information
+          final instructor = course['instructor'] as Map<String, dynamic>?;
+          final instructorName = instructor?['name'] ?? 'Unknown Instructor';
+
+          // Calculate course duration in hours from modules/sections
+          final duration = await _calculateCourseDuration(course['id']);
+
+          // Determine status based on is_verified column
+          String status;
+          final isVerified = course['is_verified'];
+          if (isVerified == null) {
+            status = 'pending';
+          } else if (isVerified == true) {
+            status = 'approved';
+          } else {
+            status = 'rejected';
+          }
+
+          print(
+            ' Course ${course['title']}: status=$status, isVerified=$isVerified',
+          );
+
+          courses.add({
+            'id': course['id'],
+            'title': course['title'],
+            'description': course['description'],
+            'instructor': instructorName,
+            'instructorId': course['instructor_id'],
+            'thumbnail': course['banner'] ?? '',
+            'enrollmentCount': enrollmentCount,
+            'status': status,
+            'category': 'General', // Default category
+            'createdAt': DateTime.parse(course['created_at']),
+            'reportCount': 0, // Simplified - can be added later if needed
+            'duration': duration,
+            'rating': 0.0, // Simplified - can be added later if needed
+            'price': course['price'] ?? 0.0,
+            'isPaid': course['is_paid'] ?? false,
+            'durationDays': course['duration_days'] ?? 0,
+          });
         }
 
-        print(
-          ' Course ${course['title']}: status=$status, isVerified=$isVerified',
-        );
-
-        courses.add({
-          'id': course['id'],
-          'title': course['title'],
-          'description': course['description'],
-          'instructor': instructorName,
-          'instructorId': course['instructor_id'],
-          'thumbnail': course['banner'] ?? '',
-          'enrollmentCount': enrollmentCount,
-          'status': status,
-          'category': 'General', // Default category
-          'createdAt': DateTime.parse(course['created_at']),
-          'reportCount': 0, // Simplified - can be added later if needed
-          'duration': duration,
-          'rating': 0.0, // Simplified - can be added later if needed
-          'price': course['price'] ?? 0.0,
-          'isPaid': course['is_paid'] ?? false,
-          'durationDays': course['duration_days'] ?? 0,
-        });
+        offset += batchSize;
+        if (data.length < batchSize) break; // last batch
       }
 
-      print(' AdminCourseService: Processed ${courses.length} courses');
+      print(' AdminCourseService: Total processed courses: ${courses.length}');
       return courses;
     } catch (e) {
       print(' Error fetching courses for admin: $e');
