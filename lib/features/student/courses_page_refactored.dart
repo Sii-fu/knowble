@@ -6,7 +6,26 @@ import 'course_layout.dart';
 import 'courses_lessons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-Widget buildCourseCard(BuildContext context, Course course, ThemeData theme, bool isCompleted) {
+Widget buildCourseCard(
+  BuildContext context,
+  Course course,
+  ThemeData theme,
+  bool isCompleted, {
+  int? progress, // 👈 Pass enrollment progress here
+}) {
+  final double progressValue =
+      progress != null ? (progress.clamp(0, 100) / 100.0) : 0.0;
+
+  // Decide color
+  Color progressColor;
+  if (progress == null) {
+    progressColor = Colors.grey; // null -> grey
+  } else if (progress == 100) {
+    progressColor = Colors.green; // completed -> green
+  } else {
+    progressColor = Colors.teal; // ongoing -> teal
+  }
+
   return Container(
     decoration: BoxDecoration(
       color: theme.colorScheme.surface,
@@ -22,12 +41,15 @@ Widget buildCourseCard(BuildContext context, Course course, ThemeData theme, boo
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Course banner
         ClipRRect(
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(18),
             bottomLeft: Radius.circular(18),
           ),
-          child: course.banner.isNotEmpty && (course.banner.startsWith('http://') || course.banner.startsWith('https://'))
+          child: course.banner.isNotEmpty &&
+                  (course.banner.startsWith('http://') ||
+                      course.banner.startsWith('https://'))
               ? Image.network(
                   course.banner,
                   height: 100,
@@ -47,6 +69,8 @@ Widget buildCourseCard(BuildContext context, Course course, ThemeData theme, boo
                   fit: BoxFit.cover,
                 ),
         ),
+
+        // Course details
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -55,22 +79,27 @@ Widget buildCourseCard(BuildContext context, Course course, ThemeData theme, boo
               children: [
                 Text(
                   course.title,
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: Colors.orange),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   course.title,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
+
+                // If course is completed
                 if (isCompleted) ...[
                   Row(
                     children: [
                       const Icon(Icons.star, size: 14, color: Colors.amber),
                       const SizedBox(width: 4),
-                      Text('4.2', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                      Text('4.2',
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(width: 12),
-                      Text('', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -81,28 +110,36 @@ Widget buildCourseCard(BuildContext context, Course course, ThemeData theme, boo
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ] else ...[
-                  Text('', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                ]
+                // If course is ongoing
+                else ...[
                   const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
                       minHeight: 6,
                       backgroundColor: Colors.grey.shade200,
-                      value: 0.5, // Replace with actual progress
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+                      value: progressValue,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(progressColor),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Text('0/100', style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    child: Text(
+                      progress == null ? "0%" : "$progress%",
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: Colors.grey),
+                    ),
                   ),
                 ],
               ],
             ),
           ),
         ),
+
+        // Green check for completed courses
         if (isCompleted)
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -120,32 +157,35 @@ Widget buildCourseCard(BuildContext context, Course course, ThemeData theme, boo
   );
 }
 
+
 class CompletedCoursesTab extends StatelessWidget {
   const CompletedCoursesTab({super.key});
 
-  Future<List<Course>> _fetchCompletedCourses(String userId) async {
+  Future<List<Map<String, dynamic>>> _fetchCompletedCourses(String userId) async {
     final client = Supabase.instance.client;
     final courseServices = CourseServices();
 
     // 1. Get all enrollments for this student with progress = 100
     final response = await client
         .from('enrollments')
-        .select('course_id')
+        .select('course_id, progress')
         .eq('student_id', userId)
         .eq('progress', 100);
 
-    // 2. Extract course_ids
-    final completedCourseIds = (response as List<dynamic>)
-        .map((row) => row['course_id'] as String)
-        .toSet();
+    final enrollments = response as List<dynamic>;
+    final completedCourseIds = enrollments.map((row) => row['course_id'] as String).toSet();
 
-    // 3. Fetch all courses
+    // 2. Fetch all courses
     final allCourses = await courseServices.fetchAllCourses();
 
-    // 4. Filter only completed courses
+    // 3. Return course + progress map
     return allCourses
         .where((course) => completedCourseIds.contains(course.id))
-        .toList();
+        .map((course) {
+          final progress = enrollments
+              .firstWhere((row) => row['course_id'] == course.id)['progress'] as int?;
+          return {'course': course, 'progress': progress};
+        }).toList();
   }
 
   @override
@@ -153,7 +193,7 @@ class CompletedCoursesTab extends StatelessWidget {
     final theme = Theme.of(context);
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
-    return FutureBuilder<List<Course>>(
+    return FutureBuilder<List<Map<String, dynamic>>>(
       future: _fetchCompletedCourses(userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -162,15 +202,16 @@ class CompletedCoursesTab extends StatelessWidget {
         if (snapshot.hasError) {
           return Center(child: Text('Error loading courses'));
         }
-        final courses = snapshot.data ?? [];
-        if (courses.isEmpty) {
+        final data = snapshot.data ?? [];
+        if (data.isEmpty) {
           return const Center(child: Text('No finished courses yet.'));
         }
         return ListView.separated(
-          itemCount: courses.length,
+          itemCount: data.length,
           separatorBuilder: (context, index) => const SizedBox(height: 18),
           itemBuilder: (context, index) {
-            final course = courses[index];
+            final course = data[index]['course'] as Course;
+            final progress = data[index]['progress'] as int?;
             return GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -180,7 +221,13 @@ class CompletedCoursesTab extends StatelessWidget {
                   ),
                 );
               },
-              child: buildCourseCard(context, course, theme, true),
+              child: buildCourseCard(
+                context,
+                course,
+                theme,
+                true,
+                progress: progress,
+              ),
             );
           },
         );
@@ -192,18 +239,20 @@ class CompletedCoursesTab extends StatelessWidget {
 class OngoingCoursesTab extends StatelessWidget {
   const OngoingCoursesTab({super.key});
 
-  Future<List<Course>> _fetchOngoingCourses(String userId) async {
+  Future<List<Map<String, dynamic>>> _fetchOngoingCourses(String userId) async {
     final client = Supabase.instance.client;
     final courseServices = CourseServices();
 
-    // 1. Fetch enrollments where progress < 100 OR progress IS NULL
+    // 1. Fetch enrollments for this student
     final response = await client
         .from('enrollments')
         .select('course_id, progress')
         .eq('student_id', userId);
 
+    final enrollments = response as List<dynamic>;
+
     // 2. Extract course IDs where progress is NULL or < 100
-    final ongoingCourseIds = (response as List<dynamic>)
+    final ongoingCourseIds = enrollments
         .where((row) => row['progress'] == null || (row['progress'] as int) < 100)
         .map((row) => row['course_id'] as String)
         .toSet();
@@ -211,10 +260,14 @@ class OngoingCoursesTab extends StatelessWidget {
     // 3. Fetch all courses
     final allCourses = await courseServices.fetchAllCourses();
 
-    // 4. Filter only ongoing courses
+    // 4. Return course + progress map
     return allCourses
         .where((course) => ongoingCourseIds.contains(course.id))
-        .toList();
+        .map((course) {
+          final progress = enrollments
+              .firstWhere((row) => row['course_id'] == course.id)['progress'] as int?;
+          return {'course': course, 'progress': progress};
+        }).toList();
   }
 
   @override
@@ -222,24 +275,25 @@ class OngoingCoursesTab extends StatelessWidget {
     final theme = Theme.of(context);
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
-    return FutureBuilder<List<Course>>(
+    return FutureBuilder<List<Map<String, dynamic>>>(
       future: _fetchOngoingCourses(userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return const Center(child: Text('Error loading courses'));
+          return Center(child: Text('Error loading courses'));
         }
-        final courses = snapshot.data ?? [];
-        if (courses.isEmpty) {
+        final data = snapshot.data ?? [];
+        if (data.isEmpty) {
           return const Center(child: Text('No ongoing courses.'));
         }
         return ListView.separated(
-          itemCount: courses.length,
+          itemCount: data.length,
           separatorBuilder: (context, index) => const SizedBox(height: 18),
           itemBuilder: (context, index) {
-            final course = courses[index];
+            final course = data[index]['course'] as Course;
+            final progress = data[index]['progress'] as int?;
             return GestureDetector(
               onTap: () {
                 Navigator.push(
@@ -249,7 +303,13 @@ class OngoingCoursesTab extends StatelessWidget {
                   ),
                 );
               },
-              child: buildCourseCard(context, course, theme, false),
+              child: buildCourseCard(
+                context,
+                course,
+                theme,
+                false,
+                progress: progress,
+              ),
             );
           },
         );
