@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class WriteReviewPage extends StatefulWidget {
-  const WriteReviewPage({super.key});
+class CourseReviewPage extends StatefulWidget {
+  final String courseId;
+  final String courseName;
+
+  const CourseReviewPage({
+    super.key,
+    required this.courseId,
+    required this.courseName,
+  });
 
   @override
-  State<WriteReviewPage> createState() => _WriteReviewPageState();
+  State<CourseReviewPage> createState() => _CourseReviewPageState();
 }
 
-class _WriteReviewPageState extends State<WriteReviewPage> {
+class _CourseReviewPageState extends State<CourseReviewPage> {
   final TextEditingController _reviewController = TextEditingController();
   int _rating = 0;
-  int _maxChars = 250;
+  final int _maxChars = 250;
 
   Widget _buildStar(int index) {
     return IconButton(
@@ -27,6 +35,49 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
     );
   }
 
+Future<void> _submitReview() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("You must be logged in to submit a review.")),
+    );
+    return;
+  }
+
+  final review = _reviewController.text.trim();
+  if (_rating == 0 || review.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please give a rating and write a review.")),
+    );
+    return;
+  }
+
+  try {
+    await Supabase.instance.client
+        .from('course_reviews')
+        .insert({
+      'course_id': widget.courseId,
+      'student_id': user.id,
+      'rating': _rating,
+      'review_text': review,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Review submitted successfully!")),
+    );
+
+    Navigator.pop(context);
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error submitting review: $e")),
+    );
+  }
+}
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,9 +89,9 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Write a Review",
-          style: TextStyle(
+        title: Text(
+          "Review ${widget.courseName}",
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 18,
             color: Colors.black87,
@@ -52,7 +103,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product card
+            // Course card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -71,31 +122,17 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
                   Container(
                     height: 60,
                     width: 60,
-                    color: Colors.black,
+                    color: Colors.teal,
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Graphic Design",
-                          style: TextStyle(
-                            color: Colors.teal,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Setup your Graphic Design..",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                  Expanded(
+                    child: Text(
+                      widget.courseName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -135,7 +172,7 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
               maxLines: 5,
               maxLength: _maxChars,
               decoration: InputDecoration(
-                hintText: "Would you like to write anything about this Product?",
+                hintText: "What did you think about this course?",
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -148,16 +185,9 @@ class _WriteReviewPageState extends State<WriteReviewPage> {
 
             const Spacer(),
 
-            // Submit button with gradient
+            // Submit button
             GestureDetector(
-              onTap: () {
-                String review = _reviewController.text;
-                print("Rating: $_rating");
-                print("Review: $review");
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Review submitted!")),
-                );
-              },
+              onTap: _submitReview,
               child: Container(
                 width: double.infinity,
                 height: 56,
