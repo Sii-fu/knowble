@@ -126,21 +126,33 @@ class CompletedCoursesTab extends StatelessWidget {
   Future<List<Course>> _fetchCompletedCourses(String userId) async {
     final client = Supabase.instance.client;
     final courseServices = CourseServices();
+
+    // 1. Get all enrollments for this student with progress = 100
     final response = await client
-        .from('certificates')
+        .from('enrollments')
         .select('course_id')
-        .eq('student_id', userId);
+        .eq('student_id', userId)
+        .eq('progress', 100);
+
+    // 2. Extract course_ids
     final completedCourseIds = (response as List<dynamic>)
         .map((row) => row['course_id'] as String)
         .toSet();
+
+    // 3. Fetch all courses
     final allCourses = await courseServices.fetchAllCourses();
-    return allCourses.where((course) => completedCourseIds.contains(course.id)).toList();
+
+    // 4. Filter only completed courses
+    return allCourses
+        .where((course) => completedCourseIds.contains(course.id))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+
     return FutureBuilder<List<Course>>(
       future: _fetchCompletedCourses(userId),
       builder: (context, snapshot) {
@@ -152,7 +164,7 @@ class CompletedCoursesTab extends StatelessWidget {
         }
         final courses = snapshot.data ?? [];
         if (courses.isEmpty) {
-          return Center(child: Text('No finished courses yet.'));
+          return const Center(child: Text('No finished courses yet.'));
         }
         return ListView.separated(
           itemCount: courses.length,
@@ -184,25 +196,32 @@ class OngoingCoursesTab extends StatelessWidget {
     final client = Supabase.instance.client;
     final courseServices = CourseServices();
 
-    final enrollments = await courseServices.fetchUserEnrollments(userId);
-    final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
-
+    // 1. Fetch enrollments where progress < 100 OR progress IS NULL
     final response = await client
-        .from('certificates')
-        .select('course_id')
+        .from('enrollments')
+        .select('course_id, progress')
         .eq('student_id', userId);
-    final completedCourseIds = (response as List<dynamic>)
+
+    // 2. Extract course IDs where progress is NULL or < 100
+    final ongoingCourseIds = (response as List<dynamic>)
+        .where((row) => row['progress'] == null || (row['progress'] as int) < 100)
         .map((row) => row['course_id'] as String)
         .toSet();
 
+    // 3. Fetch all courses
     final allCourses = await courseServices.fetchAllCourses();
-    return allCourses.where((course) => enrolledCourseIds.contains(course.id) && !completedCourseIds.contains(course.id)).toList();
+
+    // 4. Filter only ongoing courses
+    return allCourses
+        .where((course) => ongoingCourseIds.contains(course.id))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+
     return FutureBuilder<List<Course>>(
       future: _fetchOngoingCourses(userId),
       builder: (context, snapshot) {
@@ -210,11 +229,11 @@ class OngoingCoursesTab extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error loading courses'));
+          return const Center(child: Text('Error loading courses'));
         }
         final courses = snapshot.data ?? [];
         if (courses.isEmpty) {
-          return Center(child: Text('No ongoing courses.'));
+          return const Center(child: Text('No ongoing courses.'));
         }
         return ListView.separated(
           itemCount: courses.length,
@@ -238,6 +257,7 @@ class OngoingCoursesTab extends StatelessWidget {
     );
   }
 }
+
 
 class StudentCoursesPageRefactored extends StatelessWidget {
   const StudentCoursesPageRefactored({super.key});
