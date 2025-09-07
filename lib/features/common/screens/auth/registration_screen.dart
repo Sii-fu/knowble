@@ -432,7 +432,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
             // Route based on user type
             if (_selectedUserType?.toLowerCase() == 'student') {
-              Navigator.pushReplacementNamed(context, '/student-interest');
+              Navigator.pushReplacementNamed(context, '/document-verification');
             } else {
               Navigator.pushReplacementNamed(context, '/login');
             }

@@ -22,12 +22,14 @@ import '../features/admin/admin_dashboard.dart';
 import '../features/admin/admin_users_management.dart';
 import '../features/admin/admin_courses_management.dart';
 import '../features/admin/admin_instructors_management.dart';
+import '../features/admin/admin_user_verification_management.dart';
 
 import '../features/common/screens/splash_screen.dart';
 import '../features/common/screens/settings_page.dart';
 import '../features/common/screens/onboarding/onboarding_screens.dart';
 import '../features/common/screens/auth/login_screen.dart';
 import '../features/common/screens/auth/registration_screen.dart';
+import '../features/student/document_verification_screen.dart';
 import '../features/common/screens/auth/profile_completion/student_interest_selection_screen.dart';
 import '../features/common/screens/auth/profile_completion/teacher_profile_completion_screen.dart';
 import '../features/instructor/verification/teacher_verification_pending_screen.dart';
@@ -69,6 +71,7 @@ class AppRoutes {
     '/onboarding': (context) => const OnboardingScreen(),
     '/login': (context) => const LoginScreen(),
     '/registration': (context) => const RegistrationScreen(),
+    '/document-verification': (context) => const DocumentVerificationScreen(),
     '/student-interest': (context) => const StudentInterestSelectionScreen(),
     '/teacher-profile': (context) => const TeacherProfileCompletionScreen(),
     '/teacher-verification': (context) =>
@@ -78,9 +81,10 @@ class AppRoutes {
     '/course_detail': (context) => const CourseDetailPage(),
     '/course_content': (context) => const CourseContentPage(),
     '/quiz': (context) {
-  final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-  return QuizPage(sectionId: args['sectionId']);
-},
+      final args =
+          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+      return QuizPage(sectionId: args['sectionId']);
+    },
 
     '/chats': (context) => const ChatListPage(),
     '/student_dashboard': (context) => const StudentDashboardPage(),
@@ -96,6 +100,8 @@ class AppRoutes {
     '/admin/users': (context) => const AdminUsersManagement(),
     '/admin/courses': (context) => const AdminCoursesManagement(),
     '/admin/instructors': (context) => const AdminInstructorsManagement(),
+    '/admin/user-verification': (context) =>
+        const AdminUserVerificationManagement(),
 
     '/student_courses': (context) => const StudentCoursesPageRefactored(),
     '/student_profile': (context) => const StudentProfilePage(),
