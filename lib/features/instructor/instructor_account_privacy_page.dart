@@ -52,7 +52,9 @@ class _InstructorAccountPrivacyPageState extends State<InstructorAccountPrivacyP
                     // Current
                     TextField(
                       controller: currentController,
-                      obscureText: true,
+                      obscureText: false,
+                      cursorColor: Colors.black,
+                      style: const TextStyle(color: Colors.black),
                       decoration: InputDecoration(
                         labelText: 'Current password',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -63,7 +65,9 @@ class _InstructorAccountPrivacyPageState extends State<InstructorAccountPrivacyP
                     // New
                     TextField(
                       controller: newController,
-                      obscureText: true,
+                      obscureText: false,
+                      cursorColor: Colors.black,
+                      style: const TextStyle(color: Colors.black),
                       decoration: InputDecoration(
                         labelText: 'New password',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -74,7 +78,9 @@ class _InstructorAccountPrivacyPageState extends State<InstructorAccountPrivacyP
                     // Confirm
                     TextField(
                       controller: confirmController,
-                      obscureText: true,
+                      obscureText: false,
+                      cursorColor: Colors.black,
+                      style: const TextStyle(color: Colors.black),
                       decoration: InputDecoration(
                         labelText: 'Confirm new password',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
