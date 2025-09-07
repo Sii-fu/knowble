@@ -104,7 +104,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppThemeInstructor.lightTheme;
+  final theme = AppThemeInstructor.lightTheme;
+  // Show only the name part of an email (e.g. 'sifat@gmail.com' -> 'Sifat')
+  final rawName = _teacherName;
+  final namePart = rawName.contains('@') ? rawName.split('@')[0] : rawName;
+  final displayName = namePart.isNotEmpty ? '${namePart[0].toUpperCase()}${namePart.substring(1)}' : namePart;
 
     return Theme(
       data: theme,
@@ -125,7 +129,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 ),
               ),
               Text(
-                _teacherName,
+                displayName,
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: AppThemeInstructor.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -320,32 +324,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppThemeInstructor.accentLight,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: AppThemeInstructor.primaryBlue,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'This Month',
-                    style: TextStyle(
-                      color: AppThemeInstructor.primaryBlue,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // 'This Month' removed per design request
+            const SizedBox.shrink(),
           ],
         ),
         const SizedBox(height: 16),
@@ -515,7 +495,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 160,
+          height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _recentCourses.length,
@@ -547,6 +527,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   }) {
     return Container(
       width: 280,
+      height: 180,
       margin: const EdgeInsets.only(right: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -585,7 +566,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               Icon(Icons.more_horiz, color: AppThemeInstructor.textSecondary),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             title,
             style: AppThemeInstructor.lightTheme.textTheme.titleMedium
@@ -593,10 +574,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   color: AppThemeInstructor.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
-            maxLines: 2,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Row(
             children: [
               Icon(
