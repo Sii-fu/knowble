@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'auto_notification_service.dart';
 
 class AuthManager {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -134,6 +135,9 @@ class AuthManager {
 
   /// Logs out the user and navigates to login
   static Future<void> logout(BuildContext context) async {
+    // Clear notification tracking before logout
+    AutoNotificationService.clearTracking();
+
     await _client.auth.signOut();
     Navigator.pushReplacementNamed(context, '/login');
   }

@@ -110,7 +110,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   final namePart = rawName.contains('@') ? rawName.split('@')[0] : rawName;
   final displayName = namePart.isNotEmpty ? '${namePart[0].toUpperCase()}${namePart.substring(1)}' : namePart;
 
-    return Theme(
+  return Theme(
       data: theme,
       child: Scaffold(
         backgroundColor: AppThemeInstructor.backgroundLight,
@@ -324,7 +324,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            // 'This Month' removed per design request
+            // 'This Month' removed per request
             const SizedBox.shrink(),
           ],
         ),
@@ -527,9 +527,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   }) {
     return Container(
       width: 280,
-      height: 180,
+      height: 200,
       margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppThemeInstructor.surfaceWhite,
         borderRadius: BorderRadius.circular(16),
@@ -566,7 +566,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               Icon(Icons.more_horiz, color: AppThemeInstructor.textSecondary),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             title,
             style: AppThemeInstructor.lightTheme.textTheme.titleMedium

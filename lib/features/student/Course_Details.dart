@@ -38,6 +38,8 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
     _loadCourseDetails();
   }
 
+  
+
   Future<void> _loadCourseDetails() async {
     final course = await _service.fetchCourseById(widget.courseId);
     List<Module> modules = [];
@@ -67,6 +69,62 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
       _isLoading = false;
     });
   }
+
+  /// Call this when user taps "Start Course"
+Future<void> _handleEnrollment() async {
+  final client = Supabase.instance.client;
+  final userId = client.auth.currentUser?.id;
+
+  if (userId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please log in first')),
+    );
+    return;
+  }
+
+  // 1) If user already enrolled, short-circuit
+  final already = await client
+      .from('enrollments')
+      .select('id')
+      .eq('course_id', widget.courseId)
+      .eq('student_id', userId);
+
+  if (already is List && already.isNotEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('You are already enrolled in this course.')),
+    );
+    return;
+  }
+
+  // 2) Count current enrollments for that course
+  final res = await client
+      .from('enrollments')
+      .select('id') // we just fetch rows and take length
+      .eq('course_id', widget.courseId);
+
+  final enrolledCount = (res is List) ? res.length : 0;
+
+  if (enrolledCount >= 2) {
+    // Seat limit reached
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Alas — seat filled up!'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
+
+  // OK — proceed to TransactionPage (or if you want to auto-enroll without payment,
+  // insert into enrollments table here instead)
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => TransactionPage(courseId: widget.courseId),
+    ),
+  );
+}
+
 
   Future<void> _startInstructorChat() async {
     try {
@@ -813,14 +871,7 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                   const SizedBox(height: 20),
                   Center(
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TransactionPage(courseId: widget.courseId),
-                          ),
-                        );
-                      },
+                     onTap: _handleEnrollment,
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: AppTheme.gradient,

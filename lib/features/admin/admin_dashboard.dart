@@ -39,13 +39,17 @@ class _AdminDashboardState extends State<AdminDashboard>
       "icon": "verified_user",
       "route": "/admin/instructors",
     },
+    {
+      "title": "User Verification",
+      "icon": "person_add",
+      "route": "/admin/user-verification",
+    },
     {"title": "Review Courses", "icon": "school", "route": "/admin/courses"},
     {
       "title": "Manage Users",
       "icon": "manage_accounts",
       "route": "/admin/users",
     },
-    {"title": "View Reports", "icon": "analytics", "route": "/admin/dashboard"},
   ];
 
   @override
@@ -126,9 +130,8 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   void _onBottomNavTap(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    // Don't update _currentIndex when navigating away since page will be replaced
+    if (_currentIndex == index) return;
 
     switch (index) {
       case 0:
@@ -142,6 +145,9 @@ class _AdminDashboardState extends State<AdminDashboard>
         break;
       case 3:
         Navigator.pushNamed(context, '/admin/users');
+        break;
+      case 4:
+        Navigator.pushNamed(context, '/admin/user-verification');
         break;
     }
   }
@@ -603,6 +609,16 @@ class _AdminDashboardState extends State<AdminDashboard>
               size: 24,
             ),
             label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: CustomIconWidget(
+              iconName: 'verified_user',
+              color: _currentIndex == 4
+                  ? AppTheme.primaryTeal
+                  : AppTheme.textSecondary,
+              size: 24,
+            ),
+            label: 'Verification',
           ),
         ],
       ),

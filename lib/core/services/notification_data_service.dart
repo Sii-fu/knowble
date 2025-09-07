@@ -208,6 +208,80 @@ class NotificationDataService {
 
     return grouped;
   }
+
+  /// Create user verification approved notification
+  static Future<bool> createUserVerificationApprovedNotification(
+    String userId,
+  ) async {
+    try {
+      await _supabase.from('notification').insert({
+        'user_id': userId,
+        'title': 'Account Verified Successfully! 🎉',
+        'content':
+            'Congratulations! Your account has been verified. You can now enroll in courses and access all features.',
+        'type': 'account',
+        'priority': 'high',
+        'is_read': false,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      print('✅ User verification approved notification created');
+      return true;
+    } catch (e) {
+      print('❌ Error creating verification approved notification: $e');
+      return false;
+    }
+  }
+
+  /// Create user verification rejected notification
+  static Future<bool> createUserVerificationRejectedNotification(
+    String userId,
+    String reason,
+  ) async {
+    try {
+      await _supabase.from('notification').insert({
+        'user_id': userId,
+        'title': 'Account Verification Requires Attention',
+        'content':
+            'Your verification request was not approved. Reason: $reason. Please resubmit with a clearer document.',
+        'type': 'account',
+        'priority': 'high',
+        'is_read': false,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      print('✅ User verification rejected notification created');
+      return true;
+    } catch (e) {
+      print('❌ Error creating verification rejected notification: $e');
+      return false;
+    }
+  }
+
+  /// Create user verification pending notification (for admin)
+  static Future<bool> createUserVerificationPendingNotification(
+    String adminUserId,
+    String userName,
+  ) async {
+    try {
+      await _supabase.from('notification').insert({
+        'user_id': adminUserId,
+        'title': 'New User Verification Request',
+        'content':
+            '$userName has submitted documents for account verification. Please review in the admin panel.',
+        'type': 'system',
+        'priority': 'medium',
+        'is_read': false,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      print('✅ User verification pending notification created for admin');
+      return true;
+    } catch (e) {
+      print('❌ Error creating verification pending notification: $e');
+      return false;
+    }
+  }
 }
 
 /// Data model for notifications from the database

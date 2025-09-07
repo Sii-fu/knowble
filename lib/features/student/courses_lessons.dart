@@ -141,6 +141,16 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
+     // Fetch user name from Supabase
+  final userData = await Supabase.instance.client
+      .from('users')
+      .select('name')
+      .eq('id', user.id)
+      .maybeSingle();
+
+  final userName = userData?['name'] ?? 'Student';
+
+
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -154,8 +164,7 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                 pw.Text('Certificate of Completion',
                     style: pw.TextStyle(fontSize: 32, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 20),
-                pw.Text(user.email ?? 'Student',
-                    style: pw.TextStyle(fontSize: 24)),
+                pw.Text(userName, style: pw.TextStyle(fontSize: 24)),
                 pw.Text('has completed the course', style: pw.TextStyle(fontSize: 18)),
                 pw.Text(_course!.title,
                     style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
@@ -182,7 +191,6 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     final publicUrl = Supabase.instance.client.storage.from('certificates').getPublicUrl(fileName);
 
     await Supabase.instance.client.from('certificates').upsert({
-  'id': '${user.id}_${widget.courseId}',
   'student_id': user.id,
   'course_id': widget.courseId,
   'issued_at': DateTime.now().toIso8601String(),

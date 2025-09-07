@@ -67,6 +67,7 @@ dependencies:
     # Certificate generation
   pdf: ^3.11.0
   printing: ^5.11.0
+  dotted_border: ^2.1.0
 
 dev_dependencies:
   flutter_test:
