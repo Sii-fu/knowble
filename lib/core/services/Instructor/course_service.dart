@@ -1,6 +1,3 @@
-
-
-
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,7 +7,7 @@ class CourseService {
   /// Upload course banner image to Supabase Storage (bucket: course-banner)
   Future<String?> uploadBannerToStorage({String? filePath, Uint8List? bytes, required String fileName}) async {
     // Sanitize filename: replace spaces and special chars with underscores
-    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
     safeFileName = safeFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
     dynamic response;
     if (kIsWeb) {
@@ -62,6 +59,34 @@ class CourseService {
       if (bannerUrl != null) 'banner': bannerUrl,
     }).select('id').single();
     if (response['id'] == null) return null;
+
+    // Best-effort: insert an activity row into `activites` noting the new course
+    try {
+      final courseTitle = courseData['title'] ?? 'Untitled Course';
+      await supabase.from('activites').insert({
+        'id': uuid.v4(),
+        'user_id': instructorId,
+        'text': 'You added a new course ($courseTitle)',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      // Better diagnostics: if this is a PostgrestException expose code/details
+      print('createFullCourse: activites insert failed: $e');
+      try {
+        // If activites endpoint not found (404), fall back to 'activities' table
+        await supabase.from('activities').insert({
+          'id': uuid.v4(),
+          'user_id': instructorId,
+          'text': 'You added a new course (${courseData['title'] ?? 'Untitled Course'})',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        print('createFullCourse: fallback insert to activities succeeded');
+      } catch (e2) {
+        print('createFullCourse: fallback activities insert failed: $e2');
+      }
+    }
+
+    
 
     // Insert tag if provided
     if (courseData['tag'] != null && (courseData['tag'] as String).trim().isNotEmpty) {
@@ -120,11 +145,11 @@ class CourseService {
           // Use the actual filename only, no unique suffix
           String actualFileName = pdf['fileName'];
           // Sanitize filename
-          uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+          uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
           uniqueFileName = uniqueFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           // Append sectionId to ensure uniqueness
           uniqueFileName = uniqueFileName.replaceAll('.pdf', '_$sectionId.pdf');
-          actualFileName = actualFileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+          actualFileName = actualFileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
           actualFileName = actualFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
           String? publicUrl;
           if (kIsWeb && pdf['bytes'] != null) {
@@ -185,7 +210,7 @@ class CourseService {
 
   Future<String?> uploadPdfToStorage({String? filePath, Uint8List? bytes, required String fileName}) async {
     // Sanitize filename: replace spaces and special chars with underscores
-    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]\(\)]+'), '_');
+    String safeFileName = fileName.replaceAll(RegExp(r'[\s\[\]$$$$]+'), '_');
     safeFileName = safeFileName.replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '');
 
     // Check if file already exists in Supabase Storage
@@ -247,6 +272,7 @@ class CourseService {
     }).select('id').single();
     if (response['id'] == null) return null;
 
+    
     // Insert tag if provided
     if (tag != null && tag.trim().isNotEmpty) {
       // Try to find existing tag
@@ -270,6 +296,29 @@ class CourseService {
         'note': null,
       });
     }
+    // Best-effort: insert an activity row into `activites` noting the new course
+    try {
+      await supabase.from('activites').insert({
+        'id': uuid.v4(),
+        'user_id': instructorId,
+        'text': 'You added a new course ($title)',
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('createCourse: activites insert failed: $e');
+      try {
+        await supabase.from('activities').insert({
+          'id': uuid.v4(),
+          'user_id': instructorId,
+          'text': 'You added a new course ($title)',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        print('createCourse: fallback insert to activities succeeded');
+      } catch (e2) {
+        print('createCourse: fallback activities insert failed: $e2');
+      }
+    }
+
     return courseId;
   }
   

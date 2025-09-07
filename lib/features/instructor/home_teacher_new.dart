@@ -22,6 +22,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   int _totalStudents = 0;
   int _totalDays = 0;
   List<Map<String, dynamic>> _recentCourses = [];
+  // Session start timestamp used to scope recent activity to the current login/session
+  DateTime? _sessionStart;
+  // Dynamic recent activities (created from activity_logs or synthesized)
+  List<Map<String, dynamic>> _recentActivities = [];
   String _teacherName = 'Instructor';
   List<double> _monthlyRevenue = List.filled(12, 0.0);
   double _totalRevenue = 0.0;
@@ -29,7 +33,15 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   @override
   void initState() {
     super.initState();
+  // no session initialization; fetch server activities directly
     _loadDashboard();
+  }
+
+  @override
+  void dispose() {
+    // Note: Don't clear session here as user might navigate back
+    // Session should only be cleared on actual logout
+    super.dispose();
   }
 
   Future<void> _loadDashboard() async {
@@ -48,7 +60,19 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 
   // Load revenue for selected year (default to current year)
   _loadRevenue();
+
+  // Load recent activities scoped to this session
+    try {
+      final acts = await _dashboardService.fetchAllActivities(limit: 6);
+      setState(() {
+        _recentActivities = acts;
+      });
+    } catch (e) {
+      print('loadDashboard: failed to load activities: $e');
+    }
   }
+
+  
 
   Future<void> _loadRevenue({int? year}) async {
     final rev = await _dashboardService.fetchAnnualRevenue(year: year);
@@ -80,7 +104,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppThemeInstructor.lightTheme;
+  final theme = AppThemeInstructor.lightTheme;
+  // Show only the name part of an email (e.g. 'sifat@gmail.com' -> 'Sifat')
+  final rawName = _teacherName;
+  final namePart = rawName.contains('@') ? rawName.split('@')[0] : rawName;
+  final displayName = namePart.isNotEmpty ? '${namePart[0].toUpperCase()}${namePart.substring(1)}' : namePart;
 
     return Theme(
       data: theme,
@@ -101,7 +129,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                 ),
               ),
               Text(
-                _teacherName,
+                displayName,
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: AppThemeInstructor.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -164,6 +192,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       ),
     );
   }
+
 
   Widget _buildQuickActions() {
     return Container(
@@ -295,32 +324,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppThemeInstructor.accentLight,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: AppThemeInstructor.primaryBlue,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'This Month',
-                    style: TextStyle(
-                      color: AppThemeInstructor.primaryBlue,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // 'This Month' removed per design request
+            const SizedBox.shrink(),
           ],
         ),
         const SizedBox(height: 16),
@@ -490,7 +495,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 160,
+          height: 200,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _recentCourses.length,
@@ -522,6 +527,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   }) {
     return Container(
       width: 280,
+      height: 180,
       margin: const EdgeInsets.only(right: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -560,7 +566,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               Icon(Icons.more_horiz, color: AppThemeInstructor.textSecondary),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             title,
             style: AppThemeInstructor.lightTheme.textTheme.titleMedium
@@ -568,10 +574,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                   color: AppThemeInstructor.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
-            maxLines: 2,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Row(
             children: [
               Icon(
@@ -758,17 +764,30 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            TextButton(
-              onPressed: () {
-                // Handle view all
-              },
-              child: Text(
-                'View All',
-                style: TextStyle(
-                  color: AppThemeInstructor.primaryBlue,
-                  fontWeight: FontWeight.w600,
+            Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.refresh, color: AppThemeInstructor.primaryBlue),
+                  onPressed: () async {
+                    final acts = await _dashboardService.fetchAllActivities(limit: 6);
+                    setState(() {
+                      _recentActivities = acts;
+                    });
+                  },
                 ),
-              ),
+                TextButton(
+                  onPressed: () {
+                    // Handle view all
+                  },
+                  child: Text(
+                    'View All',
+                    style: TextStyle(
+                      color: AppThemeInstructor.primaryBlue,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -787,31 +806,63 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             ],
           ),
           child: Column(
-            children: [
-              _buildActivityItem(
-                icon: Icons.person_add_outlined,
-                title: 'New student enrolled',
-                subtitle: 'Sarah Johnson joined "Advanced Flutter Development"',
-                time: '2 hours ago',
-                color: AppThemeInstructor.successGreen,
-              ),
-              Divider(color: AppThemeInstructor.borderSubtle, height: 1),
-              _buildActivityItem(
-                icon: Icons.star_outline,
-                title: 'New 5-star review',
-                subtitle: 'Michael rated "UI/UX Design Fundamentals"',
-                time: '4 hours ago',
-                color: Colors.amber,
-              ),
-              Divider(color: AppThemeInstructor.borderSubtle, height: 1),
-              _buildActivityItem(
-                icon: Icons.quiz_outlined,
-                title: 'Quiz completed',
-                subtitle: '23 students completed Module 3 quiz',
-                time: '6 hours ago',
-                color: AppThemeInstructor.primaryBlue,
-              ),
-            ],
+            children: _recentActivities.isEmpty
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'No recent activity for this session.',
+                        style: TextStyle(color: AppThemeInstructor.textSecondary),
+                      ),
+                    )
+                  ]
+                : List.generate(_recentActivities.length * 2 - 1, (i) {
+                    // interleave items with Dividers
+                    if (i.isOdd) return Divider(color: AppThemeInstructor.borderSubtle, height: 1);
+                    final idx = i ~/ 2;
+                    final a = _recentActivities[idx];
+                    final title = a['message']?.toString() ?? a['type']?.toString() ?? 'Activity';
+                    final createdRaw = a['created_at'] as String? ?? '';
+                    String timeText = '';
+                    try {
+                      final dt = DateTime.tryParse(createdRaw);
+                      if (dt != null) {
+                        final diff = DateTime.now().difference(dt);
+                        if (diff.inMinutes < 60) timeText = '${diff.inMinutes}m ago';
+                        else if (diff.inHours < 24) timeText = '${diff.inHours}h ago';
+                        else timeText = '${diff.inDays}d ago';
+                      }
+                    } catch (_) {}
+                    
+                    IconData activityIcon = Icons.info_outline;
+                    Color activityColor = AppThemeInstructor.primaryBlue;
+                    
+                    final type = a['type']?.toString() ?? '';
+                    if (type.contains('course_created')) {
+                      activityIcon = Icons.add_circle_outline;
+                      activityColor = AppThemeInstructor.successGreen;
+                    } else if (type.contains('course_updated') || type.contains('updated')) {
+                      activityIcon = Icons.edit_outlined;
+                      activityColor = Colors.orange;
+                    } else if (type.contains('module')) {
+                      activityIcon = Icons.folder_outlined;
+                      activityColor = AppThemeInstructor.primaryBlue;
+                    } else if (type.contains('section') || type.contains('lesson')) {
+                      activityIcon = Icons.article_outlined;
+                      activityColor = Colors.purple;
+                    } else if (type.contains('content')) {
+                      activityIcon = Icons.attachment_outlined;
+                      activityColor = Colors.teal;
+                    }
+                    
+                    return _buildActivityItem(
+                      icon: activityIcon,
+                      title: title,
+                      subtitle: '',
+                      time: timeText,
+                      color: activityColor,
+                    );
+                  }),
           ),
         ),
       ],

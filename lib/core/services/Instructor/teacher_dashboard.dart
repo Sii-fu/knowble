@@ -1,3 +1,4 @@
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class TeacherDashboardService {
@@ -57,12 +58,14 @@ class TeacherDashboardService {
     // If there are courses, fetch enrollments for those course ids to compute student counts
     int totalStudents = 0;
     final studentsPerCourse = <String, int>{};
+    
     final courseIds = courses.map((c) => c['id']).where((e) => e != null).map((e) => e.toString()).toList();
     if (courseIds.isNotEmpty) {
     final inList = '(${courseIds.map((id) => '"$id"').join(',')})';
     final enrollResp = await supabase
       .from('enrollments')
       .select('id, course_id')
+      
       .filter('course_id', 'in', inList);
       final enrolls = List.from(enrollResp as List? ?? []);
       for (final e in enrolls) {
@@ -191,4 +194,27 @@ class TeacherDashboardService {
       }
     };
   }
+
+  /// Simple fetch: return all rows from the server table `activites`.
+  /// If [limit] is provided, limit the number of returned rows.
+  Future<List<Map<String, dynamic>>> fetchAllActivities({int? limit}) async {
+    try {
+      // Query the correctly-named table `activities` and map the DB `text`
+      // column to `message` so the UI sees a consistent field.
+      dynamic q = supabase.from('activities').select('id, user_id, text, created_at').order('created_at', ascending: false);
+      if (limit != null) q = q.limit(limit);
+      final resp = await q;
+      final rows = List.from(resp as List? ?? []).cast<Map<String, dynamic>>();
+      return rows.map((r) => {
+            'id': r['id'],
+            'user_id': r['user_id'],
+            'message': r['text'] ?? r['message'] ?? '',
+            'created_at': r['created_at']?.toString() ?? '',
+          }).toList();
+    } catch (e) {
+      print('fetchAllActivities: failed to fetch activities: $e');
+      return [];
+    }
+  }
+
 }
