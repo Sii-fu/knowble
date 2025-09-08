@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'edit_course_screen.dart';
+import 'view_quiz_page.dart';
+import 'edit_quiz_page.dart';
 import '../../config/theme_instructor.dart';
 import '../../core/services/Instructor/course_fetch.dart';
 import 'dart:io';
@@ -601,6 +603,67 @@ class ModernSectionWidget extends StatelessWidget {
           if (contents.isNotEmpty) ...[
             const SizedBox(height: 12),
             ...contents.map((content) => ModernContentWidget(content: content)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppThemeInstructor.primaryBlue,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ViewQuizPage(
+                            sectionId: section['id'] ?? '',
+                            lessonTitle: section['title'] ?? 'Lesson ${index}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'View Quizes',
+                      style: TextStyle(
+                        color: AppThemeInstructor.surfaceWhite,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppThemeInstructor.primaryBlue,
+                      side: BorderSide(color: AppThemeInstructor.primaryBlue),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditQuizPage(
+                            sectionId: section['id'] ?? '',
+                            lessonTitle: section['title'] ?? 'Lesson ${index}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Edit Quiz',
+                      style: TextStyle(
+                        color: AppThemeInstructor.primaryBlue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ],
       ),

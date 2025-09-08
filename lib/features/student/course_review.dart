@@ -35,48 +35,74 @@ class _CourseReviewPageState extends State<CourseReviewPage> {
     );
   }
 
-Future<void> _submitReview() async {
-  final user = Supabase.instance.client.auth.currentUser;
-  if (user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("You must be logged in to submit a review.")),
-    );
-    return;
-  }
+  Future<void> _submitReview() async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You must be logged in to submit a review.")),
+      );
+      return;
+    }
 
-  final review = _reviewController.text.trim();
-  if (_rating == 0 || review.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Please give a rating and write a review.")),
-    );
-    return;
-  }
+    final review = _reviewController.text.trim();
+    if (_rating == 0 || review.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please give a rating and write a review.")),
+      );
+      return;
+    }
 
-  try {
-    await Supabase.instance.client
-        .from('course_reviews')
-        .insert({
-      'course_id': widget.courseId,
-      'student_id': user.id,
-      'rating': _rating,
-      'review_text': review,
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    try {
+      // Insert review
+      await client.from('course_reviews').insert({
+        'course_id': widget.courseId,
+        'student_id': user.id,
+        'rating': _rating,
+        'review_text': review,
+        'created_at': DateTime.now().toIso8601String(),
+      });
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Review submitted successfully!")),
-    );
+// Fetch instructor_id from courses table
+final courseData = await client
+    .from('courses')
+    .select('instructor_id')
+    .eq('id', widget.courseId)
+    .single(); // no .execute()
 
-    Navigator.pop(context);
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error submitting review: $e")),
-    );
-  }
+if (courseData == null || courseData['instructor_id'] == null) {
+  print("Error fetching instructor");
+} else {
+  final instructorId = courseData['instructor_id'] as String;
+
+  // Insert notification for instructor
+  await client.from('notification').insert({
+    'user_id': instructorId,
+    'title': 'New Course Review',
+    'description':
+        '${user.userMetadata?['name'] ?? "A student"} reviewed ${widget.courseName}',
+    'priority': 'normal',
+    'type': 'course_review',
+    'is_read': false,
+    'created_at': DateTime.now().toIso8601String(),
+    'navigate': widget.courseId,
+  });
 }
 
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Review submitted successfully!")),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error submitting review: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +219,7 @@ Future<void> _submitReview() async {
                 height: 56,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF0EA5E9), Color(0xFF0D9488)], // Blue → Teal
+                    colors: [Color(0xFF0EA5E9), Color(0xFF0D9488)],
                   ),
                   borderRadius: BorderRadius.circular(30),
                 ),
