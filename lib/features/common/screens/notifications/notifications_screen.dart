@@ -6,6 +6,7 @@ import '../../widgets/notifications/notification_list_widget.dart';
 import '../../../../core/services/notification_data_service.dart';
 import '../../../../core/services/local_notification_service.dart';
 import '../../../../data/models/reminder.dart';
+import '../../../../core/services/Instructor/notification_instructor.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -108,43 +109,142 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   // Handle notification tap to navigate first, then mark as read
   void _onNotificationTap(String notificationId) async {
     try {
-      // Find the notification data to get the navigate field
-      final notification = _allNotifications.firstWhere(
-        (notif) => notif.id == notificationId,
-        orElse: () => throw Exception('Notification not found'),
-      );
+      // Only fetch review matching notification.navigate == course_reviews.course_id
+      final svc = NotificationInstructorService();
+      final details = await svc.resolveNotificationToClosestReview(notificationId);
 
-      bool navigationSuccess = false;
+      if (details != null && details['review'] != null) {
+        final course = details['course'] as Map<String, dynamic>?;
+        final student = details['student'] as Map<String, dynamic>?;
+        final review = details['review'] as Map<String, dynamic>?;
 
-      // Check navigation type and handle accordingly
-      if (notification.navigate != null && notification.navigate!.isNotEmpty) {
-        // Check if it's a feedback notification by looking at navigate_type or navigate content
-        if (notification.navigate == '/admin/users') {
-          // Admin feedback notification - navigate to admin users page
-          navigationSuccess = await _navigateToAdminUsers();
-        } else if (notification.navigate!.startsWith('/')) {
-          // Route-based navigation
-          navigationSuccess = await _navigateToRoute(notification.navigate!);
-        } else {
-          // Reminder notification - navigate to reminder details
-          navigationSuccess = await _navigateToReminderDetails(
-            notification.navigate!,
-          );
-        }
+        await showDialog<void>(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: AppTheme.primaryTeal,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 420, maxHeight: 320),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              (course?['title'] as String? ?? 'C').substring(0, 1).toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                course?['title'] ?? 'Course Review',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'From ${student?['full_name'] ?? student?['email'] ?? 'Student'}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Rating row
+                    if (review != null) ...[
+                      Row(
+                        children: [
+                          for (int i = 0; i < 5; i++)
+                            Icon(
+                              i < ((review['rating'] as int?) ?? 0) ? Icons.star : Icons.star_border,
+                              size: 16,
+                              color: Colors.amber,
+                            ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${review['rating'] ?? '-'} / 5',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    // Review text (scrollable)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          review?['review_text'] ?? 'No review text available.',
+                          style: const TextStyle(fontSize: 14, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
 
-        // SECONDARY ACTION: Mark as read only if navigation was successful
-        if (navigationSuccess) {
-          await _markNotificationAsRead(notificationId);
-        }
-      } else {
-        // If no navigation target, just mark as read (fallback behavior)
+        // mark as read after showing
         await _markNotificationAsRead(notificationId);
-        _showErrorSnackBar('No details available for this notification');
+      } else {
+        _showErrorSnackBar('Review not found for this notification');
       }
     } catch (e) {
       print('Error handling notification tap: $e');
       _showErrorSnackBar('Failed to open notification');
     }
+  }
+
+  // Very small heuristic to check for UUID-like strings: 36 chars with hyphens
+  // Note: kept for backward-compatibility but currently unused by the simplified handler
+  // ignore: unused_element
+  bool _looksLikeUuid(String s) {
+    return RegExp(r'^[0-9a-fA-F-]{36,36}\$').hasMatch(s);
   }
 
   /// Mark a single notification as read
@@ -177,6 +277,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   /// Navigate to admin users page
+  // ignore: unused_element
   Future<bool> _navigateToAdminUsers() async {
     try {
       print('📱 Attempting to navigate to admin users page');
@@ -208,6 +309,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   /// Navigate to a specific route
+  // ignore: unused_element
   Future<bool> _navigateToRoute(String route) async {
     try {
       print('📱 Attempting to navigate to route: $route');
@@ -239,6 +341,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   /// Navigate to reminder details page
+  // ignore: unused_element
   Future<bool> _navigateToReminderDetails(String reminderId) async {
     try {
       print('📱 Attempting to navigate to reminder: $reminderId');
