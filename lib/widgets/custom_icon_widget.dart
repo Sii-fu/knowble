@@ -239,6 +239,18 @@ class CustomIconWidget extends StatelessWidget {
       case 'help':
         iconData = Icons.help;
         break;
+      case 'instructor':
+        iconData = Icons.school;
+        break;
+      case 'course':
+        iconData = Icons.book;
+        break;
+      case 'users':
+        iconData = Icons.people;
+        break;
+      case 'verification':
+        iconData = Icons.verified_user;
+        break;
       default:
         iconData = Icons.help_outline; // Default icon
     }
