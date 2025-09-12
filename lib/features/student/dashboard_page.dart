@@ -9,6 +9,7 @@ import 'Course_Details.dart';
 import 'search/search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'courses_lessons.dart';
+import 'unenrolled_courses_page.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -140,7 +141,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                     const SizedBox(height: 16),
                     _RecentLearning(courses: _recentLearningCourses),
                     const SizedBox(height: 32),
-                    const _SectionTitle(title: 'Recommended'),
+                    _RecommendedSectionHeader(),
                     const SizedBox(height: 16),
                     _isLoading
                         ? Center(
@@ -471,6 +472,57 @@ class _SectionTitle extends StatelessWidget {
               color: const Color(0xFF1E293B),
               letterSpacing: -0.5,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendedSectionHeader extends StatelessWidget {
+  const _RecommendedSectionHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 4, 
+            height: 24,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Recommended',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 22,
+              color: const Color(0xFF1E293B),
+              letterSpacing: -0.5,
+            ),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const UnenrolledCoursesPage(),
+                ),  
+              );
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primaryTeal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              textStyle: theme.textTheme.labelMedium,
+            ),
+            child: const Text('See more'),
           ),
         ],
       ),

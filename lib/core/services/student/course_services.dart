@@ -229,4 +229,152 @@ class CourseServices {
         .where((course) => !enrolledCourseIds.contains(course.id))
         .toList();
   }
+
+  /// Dedicated method to fetch all unenrolled courses for browse/discovery
+  Future<List<Map<String, dynamic>>> fetchUnenrolledCoursesWithDetails(String studentId) async {
+    try {
+      // Get unenrolled courses
+      final unenrolledCourses = await _fallbackRecommendations(studentId);
+      
+      // Fetch additional details for each course including instructor and tags
+      final List<Map<String, dynamic>> coursesWithDetails = [];
+      
+      for (final course in unenrolledCourses) {
+        // Get instructor details
+        final instructorResponse = await _client
+            .from('users')
+            .select('name, profile_pic')
+            .eq('id', course.instructorId)
+            .maybeSingle();
+        
+        // Get course tags
+        final tagsResponse = await _client
+            .from('course_tags')
+            .select('tags:tag_id(name)')
+            .eq('course_id', course.id);
+        
+        final tags = (tagsResponse as List<dynamic>)
+            .map((tag) => tag['tags']?['name'] as String?)
+            .where((name) => name != null)
+            .cast<String>()
+            .toList();
+        
+        // Get enrollment count for popularity
+        final enrollmentResponse = await _client
+            .from('enrollments')
+            .select('id')
+            .eq('course_id', course.id);
+        
+        final enrollmentCount = (enrollmentResponse as List<dynamic>).length;
+        
+        coursesWithDetails.add({
+          'course': course,
+          'instructorName': instructorResponse?['name'] ?? 'Unknown Instructor',
+          'instructorProfilePic': instructorResponse?['profile_pic'],
+          'tags': tags,
+          'enrollmentCount': enrollmentCount,
+        });
+      }
+      
+      // Sort by enrollment count (popularity) descending
+      coursesWithDetails.sort((a, b) => 
+          (b['enrollmentCount'] as int).compareTo(a['enrollmentCount'] as int));
+      
+      return coursesWithDetails;
+    } catch (e) {
+      print('Error fetching unenrolled courses with details: $e');
+      return [];
+    }
+  }
+
+  /// Fetch related courses based on tags and instructor
+  Future<List<Map<String, dynamic>>> fetchRelatedCourses(String courseId, {int limit = 6}) async {
+    try {
+      // Get current course details first
+      final currentCourse = await fetchCourseById(courseId);
+      if (currentCourse == null) return [];
+
+      // Get tags for the current course
+      final courseTagsResponse = await _client
+          .from('course_tags')
+          .select('tag_id')
+          .eq('course_id', courseId);
+      
+      final currentCourseTags = (courseTagsResponse as List<dynamic>)
+          .map((ct) => ct['tag_id'] as String)
+          .toList();
+
+      // Get all courses with similar tags or same instructor
+      final relatedCoursesResponse = await _client
+          .from('courses')
+          .select('*, course_tags!inner(tag_id)')
+          .neq('id', courseId) // Exclude current course
+          .limit(limit * 2); // Get more than needed to filter later
+
+      final relatedCourses = relatedCoursesResponse as List<dynamic>;
+
+      // Calculate relevance score for each course
+      final List<Map<String, dynamic>> scoredCourses = [];
+
+      for (final courseData in relatedCourses) {
+        final course = Course.fromMap(courseData);
+        int score = 0;
+
+        // Score based on shared tags
+        final courseTags = (courseData['course_tags'] as List<dynamic>?)
+            ?.map((ct) => ct['tag_id'] as String)
+            .toList() ?? [];
+        
+        final sharedTags = currentCourseTags.where((tag) => courseTags.contains(tag)).length;
+        score += sharedTags * 3; // Weight shared tags highly
+
+        // Score based on same instructor
+        if (course.instructorId == currentCourse.instructorId) {
+          score += 2;
+        }
+
+        if (score > 0) {
+          // Get instructor info
+          final instructorResponse = await _client
+              .from('users')
+              .select('name, profile_pic')
+              .eq('id', course.instructorId)
+              .maybeSingle();
+
+          // Get enrollment count
+          final enrollmentResponse = await _client
+              .from('enrollments')
+              .select('id')
+              .eq('course_id', course.id);
+
+          // Get course tags for display
+          final tagResponse = await _client
+              .from('course_tags')
+              .select('tags(name)')
+              .eq('course_id', course.id);
+
+          final tags = (tagResponse as List<dynamic>)
+              .map((ct) => ct['tags']['name'] as String)
+              .toList();
+
+          scoredCourses.add({
+            'course': course,
+            'instructorName': instructorResponse?['name'] ?? 'Unknown',
+            'instructorProfilePic': instructorResponse?['profile_pic'],
+            'enrollmentCount': (enrollmentResponse as List<dynamic>).length,
+            'tags': tags,
+            'relevanceScore': score,
+          });
+        }
+      }
+
+      // Sort by relevance score and take the top results
+      scoredCourses.sort((a, b) => (b['relevanceScore'] as int).compareTo(a['relevanceScore'] as int));
+      return scoredCourses.take(limit).toList();
+
+    } catch (e) {
+      print('Error fetching related courses: $e');
+      return [];
+    }
+  }
 }
