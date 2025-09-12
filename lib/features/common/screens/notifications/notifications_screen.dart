@@ -120,27 +120,112 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
         await showDialog<void>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: Text(course?['title'] ?? 'Course Review'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('From: ${student?['full_name'] ?? student?['email'] ?? 'Student'}'),
-                const SizedBox(height: 8),
-                if (review != null) ...[
-                  Text(review['review_text'] ?? ''),
-                  const SizedBox(height: 8),
-                  Text('Rating: ${review['rating'] ?? '-'}'),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
+          builder: (context) => Dialog(
+            backgroundColor: AppTheme.primaryTeal,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 80),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 420, maxHeight: 320),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              (course?['title'] as String? ?? 'C').substring(0, 1).toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                course?['title'] ?? 'Course Review',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'From ${student?['full_name'] ?? student?['email'] ?? 'Student'}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // Rating row
+                    if (review != null) ...[
+                      Row(
+                        children: [
+                          for (int i = 0; i < 5; i++)
+                            Icon(
+                              i < ((review['rating'] as int?) ?? 0) ? Icons.star : Icons.star_border,
+                              size: 16,
+                              color: Colors.amber,
+                            ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${review['rating'] ?? '-'} / 5',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    // Review text (scrollable)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          review?['review_text'] ?? 'No review text available.',
+                          style: const TextStyle(fontSize: 14, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         );
 
