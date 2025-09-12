@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../config/theme_instructor.dart';
 import 'course_screen.dart';
-import 'create_course_screen.dart';
-
-import 'package:Knowble/features/instructor/chat/chat_list_page.dart';
 import '../../core/services/Instructor/teacher_dashboard.dart';
 
 class TeacherHomePage extends StatefulWidget {
@@ -15,7 +12,6 @@ class TeacherHomePage extends StatefulWidget {
 }
 
 class _TeacherHomePageState extends State<TeacherHomePage> {
-  int _selectedIndex = 0;
   String _selectedRevenueYear = '${DateTime.now().year}';
   final _dashboardService = TeacherDashboardService();
   int _totalCourses = 0;
@@ -23,7 +19,6 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   int _totalDays = 0;
   List<Map<String, dynamic>> _recentCourses = [];
   // Session start timestamp used to scope recent activity to the current login/session
-  DateTime? _sessionStart;
   // Dynamic recent activities (created from activity_logs or synthesized)
   List<Map<String, dynamic>> _recentActivities = [];
   String _teacherName = 'Instructor';
@@ -92,15 +87,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     }
   }
 
-  void _onTabSelected(int index) {
-    // kept for backward-compat but no bottom nav is shown anymore
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const CourseScreen()),
-      );
-    }
-  }
+  // No bottom navigation is shown in the current design.
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +97,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
   final namePart = rawName.contains('@') ? rawName.split('@')[0] : rawName;
   final displayName = namePart.isNotEmpty ? '${namePart[0].toUpperCase()}${namePart.substring(1)}' : namePart;
 
-    return Theme(
+  return Theme(
       data: theme,
       child: Scaffold(
         backgroundColor: AppThemeInstructor.backgroundLight,
@@ -195,8 +182,11 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
 
 
   Widget _buildQuickActions() {
+    // Simple quick actions placeholder used offstage in the current UI.
+    // Keep this widget self-contained (no external variables) so it compiles
+    // even when not displayed.
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -206,105 +196,42 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             AppThemeInstructor.primaryBlue.withOpacity(0.8),
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppThemeInstructor.primaryBlue.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Quick Actions',
-            style: AppThemeInstructor.lightTheme.textTheme.titleMedium
-                ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: _buildActionButton(
-                  icon: Icons.add_circle_outline,
-                  label: 'New Course',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CreateCourseScreen(),
-                      ),
-                    );
-                  },
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Quick Action',
+                  style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  icon: Icons.chat_outlined,
-                  label: 'Messages',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ChatListPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  icon: Icons.analytics_outlined,
-                  label: 'Analytics',
-                  onTap: () {
-                    // Handle analytics
-                  },
-                ),
-              ),
+              const Spacer(),
+              Icon(Icons.more_horiz, color: Colors.white70),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 96,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              'Create a new course or share an update',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: Colors.white, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -324,7 +251,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            // 'This Month' removed per design request
+            // 'This Month' removed per request
             const SizedBox.shrink(),
           ],
         ),
@@ -495,7 +422,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 200,
+          height: 260,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: _recentCourses.length,
@@ -503,13 +430,17 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
               final c = _recentCourses[index];
               final title = c['title'] as String? ?? 'Untitled';
               final students = c['students'] as int? ?? 0;
+              final banner = c['banner'] as String?;
               // Placeholder subject and progress — you can enhance if more data is available
               return _buildCourseCard(
                 title: title,
                 subject: '',
                 progress: 0.0,
                 students: students,
+                imageUrl: banner,
                 color: AppThemeInstructor.primaryBlue,
+                // mark final card so we can slightly reduce vertical spacings to avoid overflow
+                isLast: index == _recentCourses.length - 1,
               );
             },
           ),
@@ -524,12 +455,18 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     required double progress,
     required int students,
     required Color color,
+  String? imageUrl,
+  bool isLast = false,
   }) {
+  final cardPadding = isLast ? 8.0 : 12.0;
+  final bannerHeight = isLast ? 96.0 : 110.0;
+
     return Container(
-      width: 280,
-      height: 180,
+      width: 320,
+      height: 260,
       margin: const EdgeInsets.only(right: 16),
-      padding: const EdgeInsets.all(20),
+      // slightly reduced padding to save a few pixels vertically and avoid overflow
+      padding: EdgeInsets.all(cardPadding),
       decoration: BoxDecoration(
         color: AppThemeInstructor.surfaceWhite,
         borderRadius: BorderRadius.circular(16),
@@ -567,66 +504,106 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            title,
-            style: AppThemeInstructor.lightTheme.textTheme.titleMedium
-                ?.copyWith(
-                  color: AppThemeInstructor.textPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(
-                Icons.people_outline,
-                size: 16,
-                color: AppThemeInstructor.textSecondary,
+
+          // Banner (if provided) - reduced height to save vertical space
+          if (imageUrl != null && imageUrl.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                // slightly reduced banner height to prevent vertical overflow
+                height: bannerHeight,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (ctx, err, stack) => Container(height: bannerHeight, color: Colors.grey.shade200),
               ),
-              const SizedBox(width: 4),
-              Text(
-                '$students students',
-                style: TextStyle(
-                  color: AppThemeInstructor.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Progress',
-                    style: TextStyle(
-                      color: AppThemeInstructor.textSecondary,
-                      fontSize: 12,
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // Make the remaining content flexible so it won't overflow the card
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Title + metadata
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppThemeInstructor.lightTheme.textTheme.titleMedium
+                          ?.copyWith(
+                            color: AppThemeInstructor.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Text(
-                    '${(progress * 100).toInt()}%',
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 16,
+                          color: AppThemeInstructor.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$students students',
+                          style: TextStyle(
+                            color: AppThemeInstructor.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              LinearProgressIndicator(
-                value: progress,
-                backgroundColor: AppThemeInstructor.borderSubtle,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ],
+                  ],
+                ),
+
+                // Progress anchored to bottom of the card
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Progress',
+                          style: TextStyle(
+                            color: AppThemeInstructor.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    // Rounded progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: SizedBox(
+                        height: 8,
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: AppThemeInstructor.borderSubtle,
+                          valueColor: AlwaysStoppedAnimation<Color>(color),
+                          minHeight: 8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -482,6 +482,22 @@ class _RecentLearning extends StatelessWidget {
   final List<Course> courses;
   const _RecentLearning({required this.courses});
 
+  Future<int?> _fetchProgress(String courseId) async {
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    final response = await client
+        .from('enrollments')
+        .select('progress')
+        .eq('student_id', userId)
+        .eq('course_id', courseId)
+        .maybeSingle(); // gets single row or null
+
+    if (response == null || response['progress'] == null) return null;
+    return response['progress'] as int?;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (courses.isEmpty) {
@@ -510,14 +526,15 @@ class _RecentLearning extends StatelessWidget {
             Text(
               'No recent learning courses.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ],
         ),
       );
     }
+
     return SizedBox(
       height: 180,
       child: ListView.separated(
@@ -528,18 +545,24 @@ class _RecentLearning extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final course = courses[index];
-          return FutureBuilder<List<Module>>(
-            future: CourseServices().fetchModules(course.id),
+
+          return FutureBuilder<int?>(
+            future: _fetchProgress(course.id),
             builder: (context, snapshot) {
-              final modules = snapshot.data ?? [];
-              final totalModules = modules.length;
-              // For demo, assume completedModules = half of totalModules (replace with real quiz logic)
-              final completedModules = totalModules > 0
-                  ? (totalModules / 2).floor()
-                  : 0;
-              final progress = totalModules > 0
-                  ? completedModules / totalModules
-                  : 0.0;
+              final progress = snapshot.data; // int? nullable
+              final double progressValue =
+                  progress != null ? (progress.clamp(0, 100) / 100.0) : 0.0;
+
+              // Decide progress color
+              Color progressColor;
+              if (progress == null) {
+                progressColor = Colors.grey;
+              } else if (progress == 100) {
+                progressColor = Colors.green;
+              } else {
+                progressColor = Colors.teal;
+              }
+
               return GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -566,6 +589,7 @@ class _RecentLearning extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Banner
                       ClipRRect(
                         borderRadius: BorderRadius.circular(14),
                         child: Container(
@@ -588,11 +612,11 @@ class _RecentLearning extends StatelessWidget {
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Image.asset(
-                                        'assets/images/default_course.jpg',
-                                        width: double.infinity,
-                                        height: 70,
-                                        fit: BoxFit.cover,
-                                      ),
+                                    'assets/images/default_course.jpg',
+                                    width: double.infinity,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                  ),
                                 )
                               : Image.asset(
                                   course.banner.isNotEmpty
@@ -609,16 +633,16 @@ class _RecentLearning extends StatelessWidget {
                         child: Text(
                           course.title,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: const Color(0xFF1E293B),
-                          ),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: const Color(0xFF1E293B),
+                              ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(height: 10),
-                      // Progress bar always shown under the name
+                      // Progress bar
                       Row(
                         children: [
                           Expanded(
@@ -630,15 +654,10 @@ class _RecentLearning extends StatelessWidget {
                               ),
                               child: FractionallySizedBox(
                                 alignment: Alignment.centerLeft,
-                                widthFactor: progress,
+                                widthFactor: progressValue,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Theme.of(context).colorScheme.primary,
-                                        Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                                      ],
-                                    ),
+                                    color: progressColor,
                                     borderRadius: BorderRadius.circular(3),
                                   ),
                                 ),
@@ -652,16 +671,19 @@ class _RecentLearning extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              '$completedModules/$totalModules',
+                              progress == null ? "0%" : "$progress%",
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 10,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 10,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
                             ),
                           ),
                         ],
@@ -677,6 +699,7 @@ class _RecentLearning extends StatelessWidget {
     );
   }
 }
+
 
 class _RecommendedCard extends StatelessWidget {
   final String title;
