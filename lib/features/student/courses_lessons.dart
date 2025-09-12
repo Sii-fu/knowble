@@ -30,7 +30,11 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
   List<Map<String, dynamic>> _lessons = [];
   Set<String> _passedSectionIds = {};
   bool _showExtendedFAB = true;
-  bool _allQuizzesPassed = false; // New flag
+  bool _allQuizzesPassed = false;
+  String? _nextLessonId;
+  double _progressPercentage = 0.0;
+  int _totalSections = 0;
+  int _completedSections = 0;
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
 
@@ -69,12 +73,33 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     super.dispose();
   }
 
+  Future<int?> _fetchProgress(String courseId) async {
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    final response = await client
+        .from('enrollments')
+        .select('progress')
+        .eq('student_id', userId)
+        .eq('course_id', courseId)
+        .maybeSingle(); // gets single row or null
+
+    if (response == null || response['progress'] == null) return null;
+    return response['progress'] as int?;
+  }
+
   Future<void> _loadCourseLessons() async {
     final course = await _service.fetchCourseById(widget.courseId);
     final modules = await _service.fetchModules(widget.courseId);
 
     List<Content> allContents = [];
     List<Map<String, dynamic>> lessons = [];
+    // Use a counter to track total sections accurately across modules
+    int totalSectionsCount = 0;
+    // Track section IDs for this course to filter quiz results
+    Set<String> courseSectionIds = {};
+    String? nextLessonId;
 
     for (final module in modules) {
       final sections = await _service.fetchSections(module.id);
@@ -83,6 +108,10 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
         final section = sections[i];
         final contents = await _service.fetchContents(section.id);
         allContents.addAll(contents);
+        // Count each section to compute total sections correctly
+        totalSectionsCount++;
+        // Track section IDs for this course
+        courseSectionIds.add(section.id);
 
         sectionList.add({
           'id': section.id, 
@@ -97,8 +126,8 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
         });
       }
       lessons.add({
-        'module': module.title,
-        'sections': sectionList,
+        'chapter': module.title,
+        'lessons': sectionList,
       });
     }
 
@@ -106,24 +135,44 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     final enrollments = await _service.fetchUserEnrollments(userId);
     final enrolled = enrollments.any((e) => e.courseId == widget.courseId);
 
+    // Get quiz results for completion tracking
     final quizResultsRes = await Supabase.instance.client
         .from('quiz_results')
         .select('section_id, status')
         .eq('student_id', userId);
+    
     final passedSections = <String>{};
-    if (quizResultsRes is List) {
-      for (final r in quizResultsRes) {
-        if (r['status'] == 'pass') {
-          passedSections.add(r['section_id'] as String);
+    for (final r in quizResultsRes) {
+      if (r['status'] == 'pass') {
+        final sectionId = r['section_id'] as String;
+        // Only count sections that belong to this course
+        if (courseSectionIds.contains(sectionId)) {
+          passedSections.add(sectionId);
         }
       }
     }
 
-    // Check if all sections are passed
-    bool allPassed = lessons.every((module) {
-      final sections = module['sections'] as List<dynamic>;
-      return sections.every((s) => passedSections.contains(s['id']));
-    });
+    // Find next lesson (first section that's not passed)
+    for (final module in lessons) {
+      final sections = module['lessons'] as List<dynamic>;
+      for (final section in sections) {
+        if (!passedSections.contains(section['id'])) {
+          nextLessonId = section['id'] as String;
+          break;
+        }
+      }
+      if (nextLessonId != null) break;
+    }
+
+    // Get progress from enrollments table
+    final progress = await _fetchProgress(widget.courseId);
+    final progressPercentage = progress != null ? (progress / 100.0) : 0.0;
+    
+    final totalSections = totalSectionsCount;
+    final completedSections = passedSections.length;
+
+    // Check if all sections are passed (all quizzes completed)
+    bool allPassed = completedSections == totalSections && totalSections > 0;
 
     setState(() {
       _course = course;
@@ -133,6 +182,10 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
       _passedSectionIds = passedSections;
       _isLoading = false;
       _allQuizzesPassed = allPassed;
+      _nextLessonId = nextLessonId;
+      _progressPercentage = progressPercentage;
+      _totalSections = totalSections;
+      _completedSections = completedSections;
     });
   }
 
@@ -141,15 +194,14 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
-     // Fetch user name from Supabase
-  final userData = await Supabase.instance.client
-      .from('users')
-      .select('name')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Fetch user name from Supabase
+    final userData = await Supabase.instance.client
+        .from('users')
+        .select('name')
+        .eq('id', user.id)
+        .maybeSingle();
 
-  final userName = userData?['name'] ?? 'Student';
-
+    final userName = userData?['name'] ?? 'Student';
 
     final pdf = pw.Document();
 
@@ -179,26 +231,24 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
 
     final fileName = '${user.id}_${widget.courseId}.pdf';
     await Supabase.instance.client.storage.from('certificates').uploadBinary(
-  fileName,
-  pdfBytes,
-  fileOptions: const FileOptions(
-    cacheControl: '3600',
-    upsert: true, // 👈 this allows overwriting if file exists
-  ),
-);
-
+      fileName,
+      pdfBytes,
+      fileOptions: const FileOptions(
+        cacheControl: '3600',
+        upsert: true,
+      ),
+    );
 
     final publicUrl = Supabase.instance.client.storage.from('certificates').getPublicUrl(fileName);
 
     await Supabase.instance.client.from('certificates').upsert({
-  'student_id': user.id,
-  'course_id': widget.courseId,
-  'issued_at': DateTime.now().toIso8601String(),
-  'certificate_url': publicUrl,
-  'cert_number': fileName,
-  'status': 'issued',
-});
-
+      'student_id': user.id,
+      'course_id': widget.courseId,
+      'issued_at': DateTime.now().toIso8601String(),
+      'certificate_url': publicUrl,
+      'cert_number': fileName,
+      'status': 'issued',
+    });
 
     // Open PDF
     Navigator.push(
@@ -274,306 +324,438 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryTeal))
           : SafeArea(
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
-                    child: Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back_ios,
-                                color: AppTheme.primaryTeal),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Course Lessons',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryTeal,
-                                  letterSpacing: 0.5,
-                                ),
-                          ),
-                        ),
-                        if (_enrolled)
-                          _buildAIAssistantButton(),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  // Header with back button and title
+                  _buildHeader(),
+                  
+                  // Progress section
+                  if (_enrolled) _buildProgressSection(),
+                  
+                  // Main content area
                   Expanded(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 8),
-                      itemCount: _lessons.length,
-                      separatorBuilder: (_, index) => const SizedBox(height: 18),
-                      itemBuilder: (_, index) {
-                        final module = _lessons[index];
-                        final sections = module['sections'] as List<dynamic>;
-                        return Card(
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          color: Colors.white,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 18, vertical: 18),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryTeal
-                                            .withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 6),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.menu_book,
-                                              color: AppTheme.primaryTeal,
-                                              size: 18),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            module['module'] as String,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppTheme.primaryTeal,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                ...sections.asMap().entries.map((entry) {
-                                  final section =
-                                      entry.value as Map<String, dynamic>;
-                                  final contents =
-                                      section['contents'] as List<dynamic>;
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              CircleAvatar(
-                                                radius: 15,
-                                                backgroundColor:
-                                                    AppTheme.accentLight,
-                                                child: Text(
-                                                  section['number'],
-                                                  style: const TextStyle(
-                                                    color: AppTheme.textPrimary,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Text(
-                                                section['title'],
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyLarge
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: AppTheme.textPrimary,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (_enrolled)
-                                            Builder(builder: (context) {
-                                              final isPassed = _passedSectionIds.contains(section['id']);
-                                              return AbsorbPointer(
-                                                absorbing: isPassed,
-                                                child: ElevatedButton(
-                                                  onPressed: isPassed
-                                                      ? null
-                                                      : () {
-                                                          Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (_) => QuizPage(
-                                                                  sectionId: section['id']),
-                                                            ),
-                                                          );
-                                                        },
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: isPassed
-                                                        ? Colors.grey.shade400
-                                                        : AppTheme.primaryTeal,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(12),
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    isPassed ? 'Quiz Passed' : 'Quiz',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            }),
-                                        ],
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                            left: 40, top: 4, bottom: 10),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: contents.map<Widget>((content) {
-                                            IconData icon;
-                                            Color iconColor;
-                                            VoidCallback? onTap;
-                                            if (content['type'] == 'pdf') {
-                                              icon = Icons.picture_as_pdf_outlined;
-                                              iconColor = AppTheme.errorRed;
-                                              onTap = () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        PDFViewerPage(
-                                                      pdfUrl: content['url'],
-                                                      title: content['title'],
-                                                      contentId: content['id'],
-                                                      courseId:
-                                                          widget.courseId,
-                                                    ),
-                                                  ),
-                                                );
-                                              };
-                                            } else {
-                                              icon = Icons.insert_drive_file;
-                                              iconColor = AppTheme.primaryTeal;
-                                              onTap = null;
-                                            }
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                  bottom: 2.5),
-                                              child: InkWell(
-                                                onTap: onTap,
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                child: Row(
-                                                  children: [
-                                                    Icon(icon,
-                                                        color: iconColor,
-                                                        size: 18),
-                                                    const SizedBox(width: 6),
-                                                    Flexible(
-                                                      child: Text(
-                                                        content['title'],
-                                                        style: Theme.of(context)
-                                                            .textTheme
-                                                            .bodySmall
-                                                            ?.copyWith(
-                                                              color: AppTheme
-                                                                  .textSecondary,
-                                                            ),
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                      const Divider(
-                                          height: 18,
-                                          thickness: 0.7,
-                                          color: Color(0xFFE0E0E0)),
-                                    ],
-                                  );
-                                }).toList(),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                    child: _buildLessonsContent(),
                   ),
-if (_allQuizzesPassed)
-  Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ElevatedButton.icon(
-          onPressed: _generateCertificate,
-          icon: const Icon(Icons.badge),
-          label: const Text('Generate Certificate'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.successGreen,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-                vertical: 14, horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12), // space between buttons
-        ElevatedButton.icon(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => CourseReviewPage(
-                  courseId: widget.courseId,
-                  courseName: _course?.title ?? '',
-                ),
-              ),
-            );
-          },
-          icon: const Icon(Icons.rate_review),
-          label: const Text('Review Course'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueGrey,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-                vertical: 14, horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
 
+                  // Certificate and review buttons (when all quizzes passed)
+                  if (_allQuizzesPassed) _buildCompletionActions(),
                 ],
               ),
             ),
       floatingActionButton: _enrolled ? _buildInstructorFAB() : null,
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 24, 16, 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: AppTheme.primaryTeal),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              _course?.title ?? 'Course Lessons',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryTeal,
+                letterSpacing: 0.5,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (_enrolled) _buildAIAssistantButton(),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Progress',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              Text(
+                '${(_progressPercentage * 100).round()}%',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryTeal,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: _progressPercentage,
+              backgroundColor: AppTheme.borderSubtle,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryTeal),
+              minHeight: 8,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$_completedSections of $_totalSections lessons completed',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          if (_nextLessonId != null && _completedSections < _totalSections) ...[
+            const SizedBox(height: 12),
+            // Container(
+            //   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //   decoration: BoxDecoration(
+            //     color: AppTheme.primaryTeal.withOpacity(0.1),
+            //     borderRadius: BorderRadius.circular(20),
+            //   ),
+            //   // child: Row(
+            //   //   mainAxisSize: MainAxisSize.min,
+            //   //   children: [
+            //   //     const Icon(Icons.play_arrow, size: 16, color: AppTheme.primaryTeal),
+            //   //     const SizedBox(width: 6),
+            //   //     Text(
+            //   //       'Continue Learning',
+            //   //       style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            //   //         color: AppTheme.primaryTeal,
+            //   //         fontWeight: FontWeight.w600,
+            //   //       ),
+            //   //     ),
+            //   //   ],
+            //   // ),
+            // ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLessonsContent() {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: _lessons.length,
+      separatorBuilder: (_, index) => const SizedBox(height: 16),
+      itemBuilder: (context, moduleIndex) {
+        final module = _lessons[moduleIndex];
+        final lessons = module['lessons'] as List<dynamic>;
+        
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Module header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryTeal.withOpacity(0.05),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryTeal,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Module ${moduleIndex + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Chapter: ${module['chapter'] as String}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Lessons list
+              ...lessons.asMap().entries.map((entry) {
+                final sectionIndex = entry.key;
+                final section = entry.value as Map<String, dynamic>;
+                return _buildLessonTile(section, moduleIndex, sectionIndex);
+              }).toList(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLessonTile(Map<String, dynamic> section, int moduleIndex, int sectionIndex) {
+    final sectionId = section['id'] as String;
+    final isCompleted = _passedSectionIds.contains(sectionId);
+    final isNext = sectionId == _nextLessonId;
+    final contents = section['contents'] as List<dynamic>;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: isNext ? AppTheme.primaryTeal.withOpacity(0.3) : AppTheme.borderSubtle,
+          width: isNext ? 2 : 1,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        color: isNext ? AppTheme.primaryTeal.withOpacity(0.02) : Colors.transparent,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Status indicator
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isCompleted 
+                        ? AppTheme.successGreen 
+                        : isNext 
+                            ? AppTheme.primaryTeal 
+                            : AppTheme.borderSubtle,
+                  ),
+                  child: Icon(
+                    isCompleted 
+                        ? Icons.check 
+                        : isNext 
+                            ? Icons.play_arrow 
+                            : Icons.circle_outlined,
+                    size: 16,
+                    color: isCompleted || isNext ? Colors.white : AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // Section title
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        section['title'] as String,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'Lesson ${section['number']} • ${contents.length} ${contents.length == 1 ? 'item' : 'items'}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Quiz button
+                if (_enrolled)
+                  ElevatedButton.icon(
+                    onPressed: isCompleted ? null : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => QuizPage(sectionId: sectionId),
+                        ),
+                      );
+                    },
+                    icon: Icon(
+                      isCompleted ? Icons.check_circle : Icons.quiz,
+                      size: 16,
+                    ),
+                    label: Text(
+                      isCompleted ? 'Passed' : 'Quiz',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isCompleted 
+                          ? AppTheme.successGreen 
+                          : isNext 
+                              ? AppTheme.primaryTeal 
+                              : AppTheme.textSecondary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          
+          // Content list
+          if (contents.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 52, right: 16, bottom: 16),
+              child: Column(
+                children: contents.map<Widget>((content) {
+                  return _buildContentItem(content);
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContentItem(Map<String, dynamic> content) {
+    IconData icon;
+    Color iconColor;
+    VoidCallback? onTap;
+    
+    if (content['type'] == 'pdf') {
+      icon = Icons.picture_as_pdf_outlined;
+      iconColor = AppTheme.errorRed;
+      onTap = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PDFViewerPage(
+              pdfUrl: content['url'],
+              title: content['title'],
+              contentId: content['id'],
+              courseId: widget.courseId,
+            ),
+          ),
+        );
+      };
+    } else {
+      icon = Icons.insert_drive_file;
+      iconColor = AppTheme.primaryTeal;
+      onTap = null;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  content['title'],
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (onTap != null)
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: AppTheme.textSecondary,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompletionActions() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ElevatedButton.icon(
+            onPressed: _generateCertificate,
+            icon: const Icon(Icons.badge),
+            label: const Text('Generate Certificate'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.successGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CourseReviewPage(
+                    courseId: widget.courseId,
+                    courseName: _course?.title ?? '',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.rate_review),
+            label: const Text('Review Course'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueGrey,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -583,7 +765,7 @@ if (_allQuizzesPassed)
         .map((c) => {'id': c.id, 'title': c.title, 'url': c.url})
         .toList();
     return Container(
-      margin: const EdgeInsets.only(right: 16),
+      margin: const EdgeInsets.only(right: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -615,17 +797,17 @@ if (_allQuizzesPassed)
             );
           },
           borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.smart_toy_outlined,
+                Icon(Icons.smart_toy_outlined,
                     size: 16, color: AppTheme.primaryTeal),
-                const SizedBox(width: 8),
+                SizedBox(width: 6),
                 Text(
-                  'AI Assistant',
-                  style: const TextStyle(
+                  'AI',
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.primaryTeal,
