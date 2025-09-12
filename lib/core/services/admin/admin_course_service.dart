@@ -92,6 +92,123 @@ class AdminCourseService {
     }
   }
 
+  // Fetch courses in a single batch with pagination support
+  Future<Map<String, dynamic>> fetchCoursesForAdminPaginated({
+    int offset = 0,
+    int batchSize = 20,
+    String searchQuery = '',
+  }) async {
+    try {
+      print(
+        ' AdminCourseService: Fetching paginated batch (offset=$offset, batchSize=$batchSize, search="$searchQuery")...',
+      );
+
+      // For now, let's get all courses and implement client-side search + pagination
+      // This is a temporary solution until we figure out the correct Supabase query syntax
+      final allCoursesResponse = await _client
+          .from('courses')
+          .select('''
+            *,
+            instructor:users!instructor_id(id, name, email)
+          ''')
+          .order('created_at', ascending: false);
+
+      final rawData = allCoursesResponse as List;
+      final allData = rawData.cast<Map<String, dynamic>>();
+
+      // Apply search filter if provided
+      List<Map<String, dynamic>> filteredData = allData;
+      if (searchQuery.isNotEmpty) {
+        filteredData = allData.where((course) {
+          final title = (course['title'] as String? ?? '').toLowerCase();
+          final description = (course['description'] as String? ?? '')
+              .toLowerCase();
+          final query = searchQuery.toLowerCase();
+
+          return title.contains(query) || description.contains(query);
+        }).toList();
+      }
+
+      // Apply pagination to filtered results
+      final startIndex = offset;
+      final endIndex = (offset + batchSize).clamp(0, filteredData.length);
+      final paginatedData = startIndex < filteredData.length
+          ? filteredData.sublist(startIndex, endIndex)
+          : <Map<String, dynamic>>[];
+
+      print(
+        'AdminCourseService: Fetched ${paginatedData.length} courses in this batch',
+      );
+
+      List<Map<String, dynamic>> courses = [];
+
+      for (var courseData in paginatedData) {
+        final course = courseData;
+        print('Processing course: ${course['title']} (ID: ${course['id']})');
+
+        // Get enrollment count
+        final enrollmentCount = await _getEnrollmentCount(course['id']);
+
+        // Get instructor information
+        final instructor = course['instructor'] as Map<String, dynamic>?;
+        final instructorName = instructor?['name'] ?? 'Unknown Instructor';
+
+        // Calculate course duration in hours from modules/sections
+        final duration = await _calculateCourseDuration(course['id']);
+
+        // Determine status based on is_verified column
+        String status;
+        final isVerified = course['is_verified'];
+        if (isVerified == null) {
+          status = 'pending';
+        } else if (isVerified == true) {
+          status = 'approved';
+        } else {
+          status = 'rejected';
+        }
+
+        courses.add({
+          'id': course['id'],
+          'title': course['title'],
+          'description': course['description'],
+          'instructor': instructorName,
+          'instructorId': course['instructor_id'],
+          'thumbnail': course['banner'] ?? '',
+          'enrollmentCount': enrollmentCount,
+          'status': status,
+          'category': 'General', // Default category
+          'createdAt': DateTime.parse(course['created_at']),
+          'reportCount': 0, // Simplified - can be added later if needed
+          'duration': duration,
+          'rating': 0.0, // Simplified - can be added later if needed
+          'price': course['price'] ?? 0.0,
+          'isPaid': course['is_paid'] ?? false,
+          'durationDays': course['duration_days'] ?? 0,
+        });
+      }
+
+      // Check if there are more courses
+      final hasMore = endIndex < filteredData.length;
+
+      print('AdminCourseService: Batch complete. hasMore=$hasMore');
+
+      return {
+        'courses': courses,
+        'hasMore': hasMore,
+        'currentOffset': offset,
+        'nextOffset': endIndex,
+      };
+    } catch (e) {
+      print(' Error fetching paginated courses for admin: $e');
+      return {
+        'courses': <Map<String, dynamic>>[],
+        'hasMore': false,
+        'currentOffset': offset,
+        'nextOffset': offset,
+      };
+    }
+  }
+
   // Get enrollment count for a specific course
   Future<int> _getEnrollmentCount(String courseId) async {
     try {

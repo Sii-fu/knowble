@@ -27,11 +27,12 @@ class TeacherDashboardService {
     } catch (_) {}
 
     // Fetch courses for this instructor with required fields
-    final coursesResp = await supabase
-        .from('courses')
-        .select('id, title, duration_days, created_at')
-        .eq('instructor_id', user.id)
-        .order('created_at', ascending: false);
+  final coursesResp = await supabase
+    .from('courses')
+    // include banner column (may contain a storage path or a full URL)
+    .select('id, title, duration_days, created_at, banner')
+    .eq('instructor_id', user.id)
+    .order('created_at', ascending: false);
 
     final courses = List.from(coursesResp as List? ?? []);
     final totalCourses = courses.length;
@@ -47,12 +48,34 @@ class TeacherDashboardService {
       }
     }
 
-    // Build recent courses (limit)
-    final recent = courses.take(recentLimit).map((c) => {
-      'id': c['id'],
-      'title': c['title'],
-      'duration_days': c['duration_days'],
-      'created_at': c['created_at'],
+    // Build recent courses (limit) and convert banner storage paths to public URLs
+    final recent = courses.take(recentLimit).map((c) {
+      String? bannerUrl;
+      try {
+        final rawBanner = c['banner'] as String?;
+        if (rawBanner != null && rawBanner.isNotEmpty) {
+          // If it's already a URL, use it. Otherwise ask Supabase Storage for a public URL.
+          if (rawBanner.startsWith('http')) {
+            bannerUrl = rawBanner;
+          } else {
+            try {
+              // supabase.storage.from(...).getPublicUrl returns a String url
+              final publicUrl = supabase.storage.from('course-banner').getPublicUrl(rawBanner);
+              if (publicUrl.isNotEmpty) bannerUrl = publicUrl;
+            } catch (_) {
+              // ignore storage lookup failures; leave bannerUrl null
+            }
+          }
+        }
+      } catch (_) {}
+
+      return {
+        'id': c['id'],
+        'title': c['title'],
+        'duration_days': c['duration_days'],
+        'created_at': c['created_at'],
+        'banner': bannerUrl,
+      };
     }).toList();
 
     // If there are courses, fetch enrollments for those course ids to compute student counts

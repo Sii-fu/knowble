@@ -26,7 +26,7 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMoreCourses = true;
-  static const int _batchSize = 20;
+  static const int _batchSize = 5;
   int _currentOffset = 0;
 
   @override
@@ -57,40 +57,21 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
 
     try {
       print(
-        '🔍 AdminCoursesManagement: Loading courses with batch approach...',
+        '🔍 AdminCoursesManagement: Loading courses batch (offset=$_currentOffset, batchSize=$_batchSize, search="$_searchQuery")...',
       );
 
-      // For now, load all courses and implement client-side pagination
-      // TODO: Update AdminCourseService to support server-side pagination
-      final allCourses = await _adminCourseService.fetchAllCoursesForAdmin();
+      final result = await _adminCourseService.fetchCoursesForAdminPaginated(
+        offset: _currentOffset,
+        batchSize: _batchSize,
+        searchQuery: _searchQuery,
+      );
 
-      // Apply search filter if needed
-      List<Map<String, dynamic>> filteredCourses = allCourses;
-      if (_searchQuery.isNotEmpty) {
-        filteredCourses = allCourses.where((course) {
-          final title = (course['title'] as String).toLowerCase();
-          final instructor = (course['instructor'] as String).toLowerCase();
-          final category = (course['category'] as String).toLowerCase();
-          final query = _searchQuery.toLowerCase();
-
-          return title.contains(query) ||
-              instructor.contains(query) ||
-              category.contains(query);
-        }).toList();
-      }
-
-      // Implement client-side pagination
-      List<Map<String, dynamic>> batchCourses = [];
-      int endIndex = _currentOffset + _batchSize;
-      if (_currentOffset < filteredCourses.length) {
-        endIndex = endIndex > filteredCourses.length
-            ? filteredCourses.length
-            : endIndex;
-        batchCourses = filteredCourses.sublist(_currentOffset, endIndex);
-      }
+      final batchCourses = result['courses'] as List<Map<String, dynamic>>;
+      final hasMore = result['hasMore'] as bool;
+      final nextOffset = result['nextOffset'] as int;
 
       print(
-        '🔍 AdminCoursesManagement: Received ${batchCourses.length} courses in batch',
+        '🔍 AdminCoursesManagement: Received ${batchCourses.length} courses in batch, hasMore=$hasMore',
       );
 
       setState(() {
@@ -100,8 +81,8 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
           _courses.addAll(batchCourses);
         }
         _isLoading = false;
-        _currentOffset = endIndex;
-        _hasMoreCourses = endIndex < filteredCourses.length;
+        _currentOffset = nextOffset;
+        _hasMoreCourses = hasMore;
       });
     } catch (e) {
       print('❌ AdminCoursesManagement: Error loading courses: $e');
@@ -126,43 +107,32 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
     });
 
     try {
-      // Load all courses again for client-side pagination
-      // TODO: Optimize this when server-side pagination is available
-      final allCourses = await _adminCourseService.fetchAllCoursesForAdmin();
+      print(
+        '🔍 AdminCoursesManagement: Loading more courses (offset=$_currentOffset, batchSize=$_batchSize)...',
+      );
 
-      // Apply search filter if needed
-      List<Map<String, dynamic>> filteredCourses = allCourses;
-      if (_searchQuery.isNotEmpty) {
-        filteredCourses = allCourses.where((course) {
-          final title = (course['title'] as String).toLowerCase();
-          final instructor = (course['instructor'] as String).toLowerCase();
-          final category = (course['category'] as String).toLowerCase();
-          final query = _searchQuery.toLowerCase();
+      final result = await _adminCourseService.fetchCoursesForAdminPaginated(
+        offset: _currentOffset,
+        batchSize: _batchSize,
+        searchQuery: _searchQuery,
+      );
 
-          return title.contains(query) ||
-              instructor.contains(query) ||
-              category.contains(query);
-        }).toList();
-      }
+      final moreCourses = result['courses'] as List<Map<String, dynamic>>;
+      final hasMore = result['hasMore'] as bool;
+      final nextOffset = result['nextOffset'] as int;
 
-      // Get next batch
-      List<Map<String, dynamic>> moreCourses = [];
-      int endIndex = _currentOffset + _batchSize;
-      if (_currentOffset < filteredCourses.length) {
-        endIndex = endIndex > filteredCourses.length
-            ? filteredCourses.length
-            : endIndex;
-        moreCourses = filteredCourses.sublist(_currentOffset, endIndex);
-      }
+      print(
+        '🔍 AdminCoursesManagement: Loaded ${moreCourses.length} more courses, hasMore=$hasMore',
+      );
 
       setState(() {
         _courses.addAll(moreCourses);
         _isLoadingMore = false;
-        _currentOffset = endIndex;
-        _hasMoreCourses = endIndex < filteredCourses.length;
+        _currentOffset = nextOffset;
+        _hasMoreCourses = hasMore;
       });
     } catch (e) {
-      print('Error loading more courses: $e');
+      print('❌ Error loading more courses: $e');
       setState(() {
         _isLoadingMore = false;
       });
@@ -172,11 +142,11 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   void _onSearchChanged(String value) {
     setState(() {
       _searchQuery = value;
+      _currentOffset = 0;
+      _hasMoreCourses = true;
     });
 
     // Reset and reload with search query
-    _currentOffset = 0;
-    _hasMoreCourses = true;
     _loadCourses(isRefresh: true);
   }
 
