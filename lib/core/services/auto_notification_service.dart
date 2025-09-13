@@ -107,33 +107,59 @@ class AutoNotificationService {
           notificationData['description'] ?? 'You have a new notification';
       final id = notificationData['id']?.toString() ?? '';
       final createdAt = notificationData['created_at'];
+      final alertTime = notificationData['alert_time'];
 
-      // Additional check: Only send notifications for recent items (within last 5 minutes)
-      // This prevents old notifications from being sent when app restarts
-      if (createdAt != null) {
-        final notificationTime = DateTime.parse(createdAt);
-        final timeDiff = DateTime.now().difference(notificationTime);
-
-        if (timeDiff.inMinutes > 5) {
-          print(
-            '⏰ Skipping old notification (${timeDiff.inMinutes} minutes old): $title',
-          );
-          return;
+      // Check if this notification should be triggered immediately
+      bool shouldTriggerImmediately = false;
+      
+      if (alertTime != null) {
+        try {
+          final alertDateTime = DateTime.parse(alertTime);
+          final now = DateTime.now();
+          final timeDiff = now.difference(alertDateTime).abs();
+          
+          // If alert time is within 1 minute of current time, trigger immediately
+          if (timeDiff.inMinutes <= 1) {
+            shouldTriggerImmediately = true;
+            print('⏰ Alert time matches current time, triggering immediately: $title');
+          }
+        } catch (e) {
+          print('❌ Error parsing alert time: $e');
         }
       }
 
-      print('📱 Sending device notification: $title');
+      // For new notifications (within 5 minutes) or immediate triggers
+      if (shouldTriggerImmediately || (createdAt != null && _isRecentNotification(createdAt))) {
+        print('📱 Sending device notification: $title');
 
-      await LocalNotificationService.showNotification(
-        title: title,
-        body: description,
-        payload: 'notification_$id',
-        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      );
+        await LocalNotificationService.showNotification(
+          title: title,
+          body: description,
+          payload: 'notification_$id',
+          id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        );
 
-      print('✅ Device notification sent for: $title');
+        print('✅ Device notification sent for: $title');
+      } else if (createdAt != null) {
+        final notificationTime = DateTime.parse(createdAt);
+        final timeDiff = DateTime.now().difference(notificationTime);
+        print(
+          '⏰ Skipping old notification (${timeDiff.inMinutes} minutes old): $title',
+        );
+      }
     } catch (e) {
       print('❌ Error sending device notification: $e');
+    }
+  }
+
+  /// Check if notification is recent (within 5 minutes)
+  static bool _isRecentNotification(String createdAt) {
+    try {
+      final notificationTime = DateTime.parse(createdAt);
+      final timeDiff = DateTime.now().difference(notificationTime);
+      return timeDiff.inMinutes <= 5;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -187,6 +213,51 @@ class AutoNotificationService {
     if (!_isListening) {
       clearTracking();
       await initialize();
+    }
+    
+    // Check for notifications that should have been triggered while app was in background
+    await _checkMissedNotifications();
+  }
+
+  /// Check for notifications that should have been triggered while app was in background
+  static Future<void> _checkMissedNotifications() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) return;
+
+      print('🔍 Checking for missed notifications...');
+
+      final now = DateTime.now();
+      final fiveMinutesAgo = now.subtract(const Duration(minutes: 5));
+      
+      // Query notifications that should have been triggered in the last 5 minutes
+      final response = await _supabase
+          .from('notification')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_read', false)
+          .gte('alert_time', fiveMinutesAgo.toIso8601String())
+          .lte('alert_time', now.toIso8601String())
+          .order('alert_time', ascending: true);
+
+      if (response.isNotEmpty) {
+        print('📱 Found ${response.length} missed notifications to trigger');
+        
+        for (final notification in response) {
+          final notificationId = notification['id'].toString();
+          
+          // Only process if we haven't already processed this notification
+          if (!_processedNotificationIds.contains(notificationId)) {
+            print('🔔 Triggering missed notification: ${notification['title']}');
+            await _sendDeviceNotificationForData(notification);
+            _processedNotificationIds.add(notificationId);
+          }
+        }
+      } else {
+        print('✅ No missed notifications found');
+      }
+    } catch (e) {
+      print('❌ Error checking missed notifications: $e');
     }
   }
 

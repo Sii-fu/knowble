@@ -6,9 +6,6 @@
 import 'package:flutter/material.dart';
 import 'app.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'core/services/notification_service.dart';
-import 'core/services/local_notification_service.dart';
-import 'core/services/auto_notification_service.dart';
 // import '../features/instructor/course_screen.dart';
 
 void main() async {
@@ -24,18 +21,8 @@ void main() async {
     ),
   );
 
-  // Initialize notification service
-  await NotificationService.initialize();
-
-  // Initialize DEVICE notification service for REAL notifications
-  print('📱 Initializing Local Notification Service...');
-  await LocalNotificationService.initialize();
-  print('✅ Local Notification Service initialized');
-
-  // Initialize auto notification service for new unread notifications
-  print('🔔 Initializing Auto Notification Service...');
-  await AutoNotificationService.initialize();
-  print('✅ Auto Notification Service initialized');
+  // Note: Notification services are now initialized in splash screen after permission is granted
+  print('📱 App initialized - notification services will be initialized after permission is granted');
 
   // The root of the app. MyApp is defined in app.dart.
   runApp(const MyApp());

@@ -796,32 +796,14 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                               ..._enrolledCourses.map((course) {
                                 return DropdownMenuItem<String>(
                                   value: course.id,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        course.title,
-                                        style: TextStyle(
-                                          color: AppTheme.textPrimary,
-                                          fontFamily: 'Jost',
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      if (course.description.isNotEmpty)
-                                        Text(
-                                          course.description.length > 30
-                                              ? '${course.description.substring(0, 30)}...'
-                                              : course.description,
-                                          style: TextStyle(
-                                            color: AppTheme.textSecondary,
-                                            fontFamily: 'Jost',
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                    ],
+                                  child: Text(
+                                    course.title,
+                                    style: TextStyle(
+                                      color: AppTheme.textPrimary,
+                                      fontFamily: 'Jost',
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 );
                               }),

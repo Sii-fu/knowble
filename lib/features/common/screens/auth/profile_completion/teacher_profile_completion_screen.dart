@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../../../config/theme.dart';
 import '../../../../../core/services/auth_manager.dart';
 import '../../../../../core/services/instructor_info_service.dart';
+import '../../../../../widgets/consent_dialog.dart';
 import './widgets/cv_upload_widget.dart';
 import './widgets/education_degree_dropdown_widget.dart';
 import './widgets/subject_expertise_selection_widget.dart';
@@ -180,6 +181,13 @@ class _TeacherProfileCompletionScreenState
     print('[DEBUG] User ID: $userId');
     if (userId == null) {
       _showErrorSnackBar('User not authenticated. Please log in again.');
+      return;
+    }
+
+    // Show consent dialog first
+    final hasConsent = await ConsentDialog.showDocumentConsentDialog(context);
+    if (!hasConsent) {
+      _showErrorSnackBar('Profile submission requires your consent');
       return;
     }
 

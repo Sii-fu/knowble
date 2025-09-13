@@ -170,7 +170,7 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
                         ),
                         SizedBox(height: 0.5.h),
                         Text(
-                          widget.course['title'] as String,
+                          widget.course['title'] as String? ?? 'Untitled Course',
                           style: AppTheme.lightTheme.textTheme.bodyMedium
                               ?.copyWith(color: AppTheme.textSecondary),
                           maxLines: 2,
@@ -334,7 +334,7 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                widget.course['thumbnail'] as String,
+                widget.course['banner'] as String? ?? '',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
@@ -354,7 +354,7 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
           SizedBox(height: 3.h),
           // Course Title
           Text(
-            widget.course['title'] as String,
+            widget.course['title'] as String? ?? 'Untitled Course',
             style: AppTheme.lightTheme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: AppTheme.textPrimary,
@@ -384,19 +384,19 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
             children: [
               _buildStatChip(
                 icon: 'people',
-                value: '${widget.course['enrollmentCount']}',
+                value: '${widget.course['enrollmentCount'] ?? 0}',
                 label: 'Students',
               ),
               SizedBox(width: 3.w),
               _buildStatChip(
                 icon: 'schedule',
-                value: widget.course['duration'] as String,
+                value: widget.course['duration_days']?.toString() ?? 'N/A',
                 label: 'Duration',
               ),
               SizedBox(width: 3.w),
               _buildStatChip(
                 icon: 'star',
-                value: '${widget.course['rating']}',
+                value: '${widget.course['rating'] ?? 0}',
                 label: 'Rating',
               ),
               SizedBox(width: 3.w),
@@ -542,12 +542,12 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
             title: 'Course Information',
             child: Column(
               children: [
-                _buildDetailRow('Category', widget.course['category']),
+                _buildDetailRow('Category', widget.course['category'] ?? 'N/A'),
                 _buildDetailRow(
                   'Created',
-                  _formatDate(widget.course['createdAt']),
+                  _formatDate(widget.course['created_at']),
                 ),
-                _buildDetailRow('Duration', widget.course['duration']),
+                _buildDetailRow('Duration', widget.course['duration_days']?.toString() ?? 'N/A'),
                 _buildDetailRow(
                   'Price',
                   widget.course['isPaid'] == true
@@ -569,7 +569,7 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
             title: 'Instructor Details',
             child: Column(
               children: [
-                _buildDetailRow('Name', widget.course['instructor']),
+                _buildDetailRow('Name', widget.course['instructor'] ?? 'N/A'),
                 _buildDetailRow('Experience', '5+ years'),
                 _buildDetailRow('Courses Created', '12'),
                 _buildDetailRow('Student Rating', '4.8/5'),
@@ -584,12 +584,12 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
               children: [
                 _buildDetailRow(
                   'Enrollments',
-                  '${widget.course['enrollmentCount']}',
+                  '${widget.course['enrollmentCount'] ?? 0}',
                 ),
                 _buildDetailRow('Completion Rate', '87%'),
                 _buildDetailRow(
                   'Average Rating',
-                  '${widget.course['rating']}/5',
+                  '${widget.course['rating'] ?? 0}/5',
                 ),
                 _buildDetailRow('Reviews Count', '342'),
                 _buildDetailRow('Active Students', '156'),
@@ -953,7 +953,19 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
         'complete projects that demonstrate their understanding of key principles.';
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  String _formatDate(dynamic date) {
+    if (date == null) return 'N/A';
+    if (date is String) {
+      try {
+        final parsedDate = DateTime.parse(date);
+        return '${parsedDate.day}/${parsedDate.month}/${parsedDate.year}';
+      } catch (e) {
+        return 'N/A';
+      }
+    }
+    if (date is DateTime) {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+    return 'N/A';
   }
 }

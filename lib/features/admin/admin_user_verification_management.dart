@@ -28,16 +28,13 @@ class _AdminUserVerificationManagementState
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // Filter options (removed 'rejected' since backend doesn't track it)
-  String _currentFilter =
-      'pending'; // 'all', 'pending', 'approved', 'not_submitted'
+  // Filter options (simplified to only pending and approved)
+  String _currentFilter = 'pending'; // 'all', 'pending', 'approved'
 
   // Statistics
   Map<String, int> _statistics = {
     'pending': 0,
     'approved': 0,
-    // 'rejected' intentionally omitted (not tracked in current schema)
-    'not_submitted': 0,
   };
 
   @override
@@ -73,12 +70,6 @@ class _AdminUserVerificationManagementState
           users =
               await AdminUserVerificationService.getAllUsersWithVerificationStatus(
                 statusFilter: 'approved',
-              );
-          break;
-        case 'not_submitted':
-          users =
-              await AdminUserVerificationService.getAllUsersWithVerificationStatus(
-                statusFilter: 'not_submitted',
               );
           break;
         case 'pending':
@@ -275,20 +266,6 @@ class _AdminUserVerificationManagementState
               ),
             ],
           ),
-          SizedBox(height: 2.w),
-          // Note: Rejected omitted because rejection state not persisted.
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Not Submitted',
-                  _statistics['not_submitted'].toString(),
-                  AppTheme.borderSubtle,
-                  Icons.description,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -345,11 +322,6 @@ class _AdminUserVerificationManagementState
         'key': 'approved',
         'label': 'Approved',
         'count': _statistics['approved'],
-      },
-      {
-        'key': 'not_submitted',
-        'label': 'Not Submitted',
-        'count': _statistics['not_submitted'],
       },
       {'key': 'all', 'label': 'All', 'count': null},
     ];
@@ -819,6 +791,7 @@ class _UserVerificationDialogState extends State<UserVerificationDialog> {
     final submittedAt = widget.user['verificationSubmittedAt'] as DateTime?;
 
     return Dialog(
+      backgroundColor: AppTheme.surfaceWhite,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: EdgeInsets.all(6.w),
@@ -898,7 +871,13 @@ class _UserVerificationDialogState extends State<UserVerificationDialog> {
                         size: 20,
                       ),
                       SizedBox(width: 2.w),
-                      Text('Document Type: $documentType'),
+                      Text(
+                        'Document Type: $documentType',
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontFamily: 'Jost',
+                        ),
+                      ),
                     ],
                   ),
                   if (submittedAt != null) ...[
@@ -913,6 +892,10 @@ class _UserVerificationDialogState extends State<UserVerificationDialog> {
                         SizedBox(width: 2.w),
                         Text(
                           'Submitted: ${submittedAt.toString().split(' ')[0]}',
+                          style: TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'Jost',
+                          ),
                         ),
                       ],
                     ),
@@ -923,7 +906,13 @@ class _UserVerificationDialogState extends State<UserVerificationDialog> {
                     child: ElevatedButton.icon(
                       onPressed: _viewDocument,
                       icon: Icon(Icons.visibility),
-                      label: Text('View Document'),
+                      label: Text(
+                        'View Document',
+                        style: TextStyle(
+                          color: AppTheme.surfaceWhite,
+                          fontFamily: 'Jost',
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryTeal,
                         foregroundColor: AppTheme.surfaceWhite,
@@ -985,7 +974,13 @@ class _UserVerificationDialogState extends State<UserVerificationDialog> {
                               ),
                             )
                           : Icon(Icons.close),
-                      label: Text('Reject'),
+                      label: Text(
+                        'Reject',
+                        style: TextStyle(
+                          color: AppTheme.surfaceWhite,
+                          fontFamily: 'Jost',
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.errorRed,
                         foregroundColor: AppTheme.surfaceWhite,
@@ -1010,7 +1005,13 @@ class _UserVerificationDialogState extends State<UserVerificationDialog> {
                               ),
                             )
                           : Icon(Icons.check),
-                      label: Text('Approve'),
+                      label: Text(
+                        'Approve',
+                        style: TextStyle(
+                          color: AppTheme.surfaceWhite,
+                          fontFamily: 'Jost',
+                        ),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.successGreen,
                         foregroundColor: AppTheme.surfaceWhite,

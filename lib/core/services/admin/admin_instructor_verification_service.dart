@@ -613,16 +613,18 @@ If you need assistance, contact our support team.
         '[DEBUG] AdminInstructorVerificationService: Getting document URL for $filePath',
       );
 
+      // Optional: Check if the file exists (can be removed for production)
+      // This helps with debugging but isn't strictly necessary
+
       final url = await _client.storage
-          .from(
-            'instructor-info',
-          ) // Same bucket as used in InstructorInfoService
+          .from('instructor-info')
           .createSignedUrl(filePath, 3600); // 1 hour expiry
 
-      print('[DEBUG] Document URL generated successfully');
+      print('[DEBUG] Document URL generated successfully: $url');
       return url;
     } catch (e) {
       print('[ERROR] getInstructorDocumentUrl failed: $e');
+      print('[ERROR] Error type: ${e.runtimeType}');
       throw Exception('Failed to get document URL: $e');
     }
   }

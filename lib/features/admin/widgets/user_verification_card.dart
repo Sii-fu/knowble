@@ -35,12 +35,10 @@ class UserVerificationCard extends StatelessWidget {
     switch (status.toLowerCase()) {
       case 'approved':
         return 'Verified';
-      case 'rejected':
-        return 'Rejected';
       case 'pending':
         return 'Pending';
       default:
-        return 'Not Submitted';
+        return 'Pending';
     }
   }
 
@@ -48,12 +46,10 @@ class UserVerificationCard extends StatelessWidget {
     switch (status.toLowerCase()) {
       case 'approved':
         return Icons.verified_user;
-      case 'rejected':
-        return Icons.cancel;
       case 'pending':
         return Icons.pending;
       default:
-        return Icons.description;
+        return Icons.pending;
     }
   }
 
@@ -268,9 +264,7 @@ class UserVerificationCard extends StatelessWidget {
                             ),
                             SizedBox(height: 0.5.h),
                             Text(
-                              verificationStatus == 'not_submitted'
-                                  ? 'Not Submitted'
-                                  : 'UPLOADED',
+                              'UPLOADED',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
