@@ -10,6 +10,7 @@ class SearchLayout extends StatelessWidget {
   final Function(String) onCategorySelected;
   final Function(String) onRecentSearchSelected;
   final Function()? onClearRecentSearches; // Add this callback
+  final Function(String)? onCourseSelected; // Add course selection callback
   final String selectedCategory;
   final String searchQuery;
 
@@ -22,6 +23,7 @@ class SearchLayout extends StatelessWidget {
     required this.onCategorySelected,
     required this.onRecentSearchSelected,
     this.onClearRecentSearches, // Add this parameter
+    this.onCourseSelected, // Add this parameter
     required this.selectedCategory,
     required this.searchQuery,
   });
@@ -290,139 +292,188 @@ class SearchLayout extends StatelessWidget {
   }
 
   Widget _buildResultCard(Map<String, dynamic> course) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.shadowLight,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Course Image
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppTheme.accentLight,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.play_circle_outline,
-                color: AppTheme.primaryTeal,
-                size: 32,
-              ),
+    return Builder(
+      builder: (context) {
+        return GestureDetector(
+          onTap: () {
+            // Use callback if provided, otherwise use Navigator
+            if (onCourseSelected != null) {
+              onCourseSelected!(course['id']);
+            } else {
+              // Navigate to course details page
+              Navigator.pushNamed(
+                context,
+                '/course-details',
+                arguments: course['id'], // Pass course ID as argument
+              );
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceWhite,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.shadowLight,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            // Course Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  Text(
-                    course['title'],
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                  // Course Image with banner
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: AppTheme.accentLight,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    course['instructor'],
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textSecondary,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: course['banner'] != null && course['banner'].isNotEmpty
+                          ? Image.network(
+                              course['banner'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: AppTheme.accentLight,
+                                  child: Icon(
+                                    Icons.school,
+                                    color: AppTheme.primaryTeal,
+                                    size: 32,
+                                  ),
+                                );
+                              },
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  color: AppTheme.accentLight,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppTheme.primaryTeal,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Icon(
+                              Icons.school,
+                              color: AppTheme.primaryTeal,
+                              size: 32,
+                            ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.star,
-                        color: AppTheme.warningAmber,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${course['rating']}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '(${course['students']})',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          course['level'],
+                  const SizedBox(width: 16),
+                  // Course Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          course['title'],
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.primaryTeal,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          course['instructor'],
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.textSecondary,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        color: AppTheme.textSecondary,
-                        size: 14,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        course['duration'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.star,
+                              color: AppTheme.warningAmber,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${course['rating']}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '(${course['students']})',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.accentLight,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                course['level'],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppTheme.primaryTeal,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        course['price'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryTeal,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              color: AppTheme.textSecondary,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              course['duration'],
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              course['price'],
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryTeal,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

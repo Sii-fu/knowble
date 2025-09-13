@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../config/theme.dart';
 import '../../../core/services/student/search_service.dart';
 import 'search_layout.dart';
+import '../Course_Details.dart';
 import 'filter_page.dart';
 import 'search_state.dart';
 
@@ -361,7 +362,9 @@ class _SearchPageState extends State<SearchPage> {
 
   /// Convert Course objects to Map format for UI compatibility
   List<Map<String, dynamic>> _getFilteredResults() {
+    const defaultBanner = 'https://picsum.photos/1000/600';
     return _searchResults.map((course) => {
+      'id': course.id,
       'title': course.title,
       'instructor': course.instructorName,
       'rating': course.avgRating,
@@ -369,7 +372,7 @@ class _SearchPageState extends State<SearchPage> {
       'price': course.isPaid ? '\$${course.price.toStringAsFixed(2)}' : 'Free',
       'duration': '${course.durationDays} days',
       'level': _getLevelFromTags(course.tags),
-      'image': 'https://via.placeholder.com/150x100', // Placeholder for now
+      'banner': (course.banner.isNotEmpty) ? course.banner : defaultBanner,
     }).toList();
   }
 
@@ -391,6 +394,15 @@ class _SearchPageState extends State<SearchPage> {
       _recentSearches = [];
     });
     }
+
+  /// Navigate to course details page
+  void _onCourseSelected(String courseId) {
+    // Prefer direct route to CourseDetailPage to ensure courseId is passed as constructor arg
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: courseId)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -522,6 +534,7 @@ class _SearchPageState extends State<SearchPage> {
                       },
                       onRecentSearchSelected: _onRecentSearchSelected,
                       onClearRecentSearches: _clearRecentSearches,
+                      onCourseSelected: _onCourseSelected,
                       selectedCategory: _selectedCategoryName,
                       searchQuery: _searchQuery,
                     ),

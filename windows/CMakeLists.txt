@@ -1,5 +1,7 @@
 # Project-level configuration.
-cmake_minimum_required(VERSION 3.14)
+# Require at least CMake 3.14 and opt into modern behavior up to 3.25.
+# Use the range form to indicate the project doesn't need compatibility with very old CMake versions.
+cmake_minimum_required(VERSION 3.14...3.25)
 project(knowble_app LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change

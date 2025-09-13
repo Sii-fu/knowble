@@ -5,7 +5,6 @@ import '../../data/models/course.dart';
 import '../../data/models/module.dart';
 import '../../data/models/section.dart';
 import '../../data/models/content.dart';
-import 'pdf_viewer_page.dart';
 import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
 import 'chat/chat_detail_page.dart';
@@ -804,19 +803,6 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
                                 color: AppTheme.textPrimary,
                               ),
                             ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PDFViewerPage(
-                                    pdfUrl: content.url,
-                                    title: content.title,
-                                    contentId: content.id,
-                                    courseId: widget.courseId,
-                                  ),
-                                ),
-                              );
-                            },
                           );
                         }),
                       ],

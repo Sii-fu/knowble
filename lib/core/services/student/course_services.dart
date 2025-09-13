@@ -145,8 +145,10 @@ class CourseServices {
   Future<List<Course>> fetchRecentLearningCourses(String studentId) async {
     final enrollments = await fetchUserEnrollments(studentId);
     final enrolledCourseIds = enrollments.map((e) => e.courseId).toSet();
+    final completedCourseIds = await fetchCompletedCourseIds(studentId);
+    final ongoingCourseIds = enrolledCourseIds.difference(completedCourseIds.toSet());
     final allCourses = await fetchAllCourses();
-    return allCourses.where((c) => enrolledCourseIds.contains(c.id)).toList();
+    return allCourses.where((c) => ongoingCourseIds.contains(c.id)).toList();
   }
 
   /// New: Recommendation Algorithm

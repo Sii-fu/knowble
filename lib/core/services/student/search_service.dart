@@ -10,6 +10,7 @@ class Course {
   final int durationDays;
   final double avgRating;
   final int studentsCount;
+  final String banner;
   final List<String> tags;
   final DateTime createdAt;
 
@@ -23,22 +24,56 @@ class Course {
     required this.durationDays,
     required this.avgRating,
     required this.studentsCount,
+    required this.banner,
     required this.tags,
     required this.createdAt,
   });
 
   factory Course.fromJson(Map<String, dynamic> json) {
+    // Handle instructor name from joined users table
+    String instructorName = 'Unknown Instructor';
+    if (json['users'] != null) {
+      instructorName = json['users']['name'] ?? 'Unknown Instructor';
+    } else if (json['instructor_name'] != null) {
+      instructorName = json['instructor_name'];
+    }
+
+    // Calculate average rating from course_reviews
+    double avgRating = 0.0;
+    if (json['course_reviews'] is List && (json['course_reviews'] as List).isNotEmpty) {
+      final reviews = json['course_reviews'] as List;
+      final ratings = reviews.map((r) => (r['rating'] as num?)?.toDouble() ?? 0.0).toList();
+      avgRating = ratings.isEmpty ? 0.0 : ratings.reduce((a, b) => a + b) / ratings.length;
+    } else if (json['avg_rating'] != null) {
+      avgRating = (json['avg_rating'] as num?)?.toDouble() ?? 0.0;
+    }
+
+    // Count students from enrollments
+    int studentsCount = 0;
+    if (json['enrollments'] is List) {
+      studentsCount = (json['enrollments'] as List).length;
+    } else if (json['students_count'] != null) {
+      studentsCount = json['students_count'] ?? 0;
+    }
+
+    // Handle tags (might be array or null from different sources)
+    List<String> tags = [];
+    if (json['tags'] is List) {
+      tags = (json['tags'] as List).map((e) => e.toString()).toList();
+    }
+
     return Course(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      instructorName: json['instructor_name'] ?? 'Unknown Instructor',
+      instructorName: instructorName,
       price: (json['price'] ?? 0.0).toDouble(),
       isPaid: json['is_paid'] ?? false,
       durationDays: json['duration_days'] ?? 0,
-      avgRating: (json['avg_rating'] ?? 0.0).toDouble(),
-      studentsCount: json['students_count'] ?? 0,
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      avgRating: avgRating,
+      studentsCount: studentsCount,
+      banner: json['banner'] ?? '',
+      tags: tags,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
@@ -54,6 +89,7 @@ class Course {
       'duration_days': durationDays,
       'avg_rating': avgRating,
       'students_count': studentsCount,
+      'banner': banner,
       'tags': tags,
       'created_at': createdAt.toIso8601String(),
     };
@@ -79,10 +115,22 @@ class SearchService {
     String sortBy = "relevance",
   }) async {
     try {
-      print('SearchService: Building query using course_search_view with filters');
+      print('SearchService: Building query with banner from courses table');
       
-      // Start with base query from the view
-      var baseQuery = _supabase.from('course_search_view').select('*');
+      // Query directly from courses table with joins to ensure we get banner
+      var baseQuery = _supabase.from('courses').select('''
+        id,
+        title,
+        description,
+        price,
+        is_paid,
+        duration_days,
+        created_at,
+        banner,
+        users!instructor_id(name),
+        course_reviews(rating),
+        enrollments(student_id)
+      ''');
 
       // Apply text search filter if query provided
       if (query != null && query.trim().isNotEmpty) {
@@ -180,6 +228,7 @@ class SearchService {
       for (var courseData in response) {
         try {
           final course = Course.fromJson(courseData);
+          print('SearchService: Processing course "${course.title}" with banner: "${course.banner}"');
           courses.add(course);
         } catch (e) {
           print('SearchService: Error processing course record: $e');
@@ -419,7 +468,7 @@ class SearchService {
     }
   }
 
-  /// Get a single course by ID with full details using course_search_view
+  /// Get a single course by ID with full details including banner
   /// 
   /// [courseId] - The ID of the course to fetch
   Future<Course?> getCourseById(String courseId) async {
@@ -427,8 +476,20 @@ class SearchService {
       print('SearchService: Fetching course by ID: $courseId');
       
       final response = await _supabase
-          .from('course_search_view')
-          .select('*')
+          .from('courses')
+          .select('''
+            id,
+            title,
+            description,
+            price,
+            is_paid,
+            duration_days,
+            created_at,
+            banner,
+            users!instructor_id(name),
+            course_reviews(rating),
+            enrollments(student_id)
+          ''')
           .eq('id', courseId)
           .maybeSingle();
 
