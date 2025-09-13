@@ -5,6 +5,7 @@ import '../../../data/models/module.dart';
 import '../../../data/models/section.dart';
 import '../../../data/models/content.dart';
 import '../../../data/models/enrollment.dart';
+import '../../../data/models/assessment.dart';
 
 class CourseServices {
   final _client = Supabase.instance.client;
@@ -130,6 +131,20 @@ class CourseServices {
         .eq('section_id', sectionId);
     final data = response as List<dynamic>? ?? [];
     return data.map((c) => Content.fromMap(c as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<Assessment>> fetchAssessments(String sectionId) async {
+    try {
+      final response = await _client
+          .from('assessments')
+          .select()
+          .eq('section_id', sectionId);
+      final data = response as List<dynamic>? ?? [];
+      return data.map((a) => Assessment.fromMap(a as Map<String, dynamic>)).toList();
+    } catch (e) {
+      print('Error fetching assessments: $e');
+      return [];
+    }
   }
 
   Future<void> enrollCourse(String userId, String courseId) async {
