@@ -371,7 +371,7 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
               ),
               SizedBox(width: 2.w),
               Text(
-                'By ${widget.course['instructor']}',
+                'By ${widget.course['instructor']?['name'] ?? 'Unknown Instructor'}',
                 style: AppTheme.lightTheme.textTheme.bodyLarge?.copyWith(
                   color: AppTheme.textSecondary,
                 ),
@@ -569,7 +569,7 @@ class _CoursePreviewModalState extends State<CoursePreviewModal>
             title: 'Instructor Details',
             child: Column(
               children: [
-                _buildDetailRow('Name', widget.course['instructor'] ?? 'N/A'),
+                _buildDetailRow('Name', widget.course['instructor']?['name'] ?? 'N/A'),
                 _buildDetailRow('Experience', '5+ years'),
                 _buildDetailRow('Courses Created', '12'),
                 _buildDetailRow('Student Rating', '4.8/5'),

@@ -5,16 +5,12 @@ import '../../../widgets/custom_icon_widget.dart';
 
 class CourseListItemCard extends StatelessWidget {
   final Map<String, dynamic> course;
-  final bool isSelectionMode;
-  final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback? onDetails;
 
   const CourseListItemCard({
     super.key,
     required this.course,
-    required this.isSelectionMode,
-    required this.isSelected,
     required this.onTap,
     this.onDetails,
   });
@@ -48,9 +44,6 @@ class CourseListItemCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
-              border: isSelected
-                  ? Border.all(color: AppTheme.primaryTeal, width: 2)
-                  : null,
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.shadowLight,
@@ -66,15 +59,6 @@ class CourseListItemCard extends StatelessWidget {
                   padding: EdgeInsets.all(4.w),
                   child: Row(
                     children: [
-                      // Selection Checkbox
-                      if (isSelectionMode) ...[
-                        Checkbox(
-                          value: isSelected,
-                          onChanged: (_) => onTap(),
-                          activeColor: AppTheme.primaryTeal,
-                        ),
-                        SizedBox(width: 2.w),
-                      ],
                       // Course Thumbnail
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
@@ -239,23 +223,21 @@ class CourseListItemCard extends StatelessWidget {
                   ),
                 ),
                 // Action Buttons
-                if (!isSelectionMode) ...[
-                  Divider(color: AppTheme.borderSubtle, height: 1),
-                  Padding(
-                    padding: EdgeInsets.all(3.w),
-                    child: Center(
-                      child: SizedBox(
-                        width: 40.w,
-                        child: _buildActionButton(
-                          'Details',
-                          AppTheme.primaryTeal,
-                          'visibility',
-                          onDetails,
-                        ),
+                Divider(color: AppTheme.borderSubtle, height: 1),
+                Padding(
+                  padding: EdgeInsets.all(3.w),
+                  child: Center(
+                    child: SizedBox(
+                      width: 40.w,
+                      child: _buildActionButton(
+                        'Details',
+                        AppTheme.primaryTeal,
+                        'visibility',
+                        onDetails,
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),

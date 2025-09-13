@@ -18,8 +18,6 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
-  bool _isSelectionMode = false;
-  final List<String> _selectedCourses = [];
   final AdminCourseService _adminCourseService = AdminCourseService();
 
   List<Map<String, dynamic>> _courses = [];
@@ -150,82 +148,6 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
     _loadCourses(isRefresh: true);
   }
 
-  void _toggleSelectionMode() {
-    setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) {
-        _selectedCourses.clear();
-      }
-    });
-  }
-
-  void _toggleCourseSelection(String courseId) {
-    setState(() {
-      if (_selectedCourses.contains(courseId)) {
-        _selectedCourses.remove(courseId);
-      } else {
-        _selectedCourses.add(courseId);
-      }
-    });
-  }
-
-  void _performBulkAction(String action) async {
-    if (_selectedCourses.isEmpty) return;
-
-    try {
-      String status;
-      switch (action.toLowerCase()) {
-        case 'approve':
-          status = 'approved';
-          break;
-        case 'reject':
-          status = 'rejected';
-          break;
-        default:
-          return;
-      }
-
-      final success = await _adminCourseService.bulkUpdateCourseStatus(
-        _selectedCourses,
-        status,
-      );
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$action applied to ${_selectedCourses.length} courses',
-            ),
-            backgroundColor: action == 'approve'
-                ? AppTheme.successGreen
-                : AppTheme.errorRed,
-          ),
-        );
-
-        setState(() {
-          _selectedCourses.clear();
-          _isSelectionMode = false;
-        });
-
-        // Reload courses to reflect changes
-        _loadCourses(isRefresh: true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to $action courses'),
-            backgroundColor: AppTheme.errorRed,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: AppTheme.errorRed,
-        ),
-      );
-    }
-  }
 
   void _onBottomNavTap(int index) {
     if (index == _currentIndex) return;
@@ -277,28 +199,6 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
           ),
         ),
         actions: [
-          if (_isSelectionMode) ...[
-            TextButton(
-              onPressed: () => _performBulkAction('Approve'),
-              child: Text(
-                'Approve',
-                style: TextStyle(color: AppTheme.successGreen),
-              ),
-            ),
-            TextButton(
-              onPressed: () => _performBulkAction('Reject'),
-              child: Text('Reject', style: TextStyle(color: AppTheme.errorRed)),
-            ),
-          ] else ...[
-            IconButton(
-              onPressed: _toggleSelectionMode,
-              icon: CustomIconWidget(
-                iconName: 'checklist',
-                color: AppTheme.primaryTeal,
-                size: 24,
-              ),
-            ),
-          ],
           SizedBox(width: 4.w),
         ],
       ),
@@ -405,23 +305,13 @@ class _AdminCoursesManagementState extends State<AdminCoursesManagement> {
                             }
 
                             final course = _courses[index];
-                            final courseId = course['id'] as String;
-                            final isSelected = _selectedCourses.contains(
-                              courseId,
-                            );
 
                             return Container(
                               margin: EdgeInsets.only(bottom: 3.h),
                               child: CourseListItemCard(
                                 course: course,
-                                isSelectionMode: _isSelectionMode,
-                                isSelected: isSelected,
                                 onTap: () {
-                                  if (_isSelectionMode) {
-                                    _toggleCourseSelection(courseId);
-                                  } else {
-                                    // Handle course tap
-                                  }
+                                  // Handle course tap
                                 },
                                 onDetails: () => _showCoursePreview(course),
                               ),

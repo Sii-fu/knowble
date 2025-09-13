@@ -127,13 +127,28 @@ class AdminDashboardService {
             id,
             verification_status,
             submitted_at,
-            users!instructor_info_user_id_fkey(name, profile_pic)
+            user_id
           ''')
           .order('submitted_at', ascending: false)
           .limit(10);
 
       for (var app in instructorApps as List) {
-        final user = app['users'] as Map<String, dynamic>?;
+        // Fetch user data separately
+        final userId = app['user_id'] as String?;
+        Map<String, dynamic>? user;
+        
+        if (userId != null) {
+          try {
+            user = await _supabase
+                .from('users')
+                .select('name, profile_pic')
+                .eq('id', userId)
+                .maybeSingle();
+          } catch (e) {
+            print('Error fetching user data for activity feed: $e');
+          }
+        }
+        
         activities.add({
           'id': 'instructor_${app['id']}',
           'type': 'instructor_application',
