@@ -7,6 +7,7 @@ import 'dart:io';
 
 import '../../core/app_export.dart';
 import '../../widgets/custom_icon_widget.dart';
+import '../../widgets/consent_dialog.dart';
 import './widgets/document_type_selector_widget.dart';
 import './widgets/file_upload_area_widget.dart';
 import './widgets/progress_indicator_widget.dart';
@@ -179,6 +180,13 @@ class _DocumentVerificationScreenState
   Future<void> _handleUpload() async {
     if (_selectedDocumentType == null || _selectedFile == null) {
       _showErrorMessage('Please select a document type and file');
+      return;
+    }
+
+    // Show consent dialog first
+    final hasConsent = await ConsentDialog.showDocumentConsentDialog(context);
+    if (!hasConsent) {
+      _showErrorMessage('Document submission requires your consent');
       return;
     }
 

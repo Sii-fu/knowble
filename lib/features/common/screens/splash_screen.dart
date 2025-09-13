@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:Knowble/config/theme.dart';
 import 'package:Knowble/core/services/auth_manager.dart';
+import 'package:Knowble/core/services/permission_service.dart';
+import 'package:Knowble/core/services/notification_manager.dart';
 
 /// SplashScreen - Entry point of the app that shows logo animation and navigates to onboarding
 /// Called from AppRoutes as the initial route ('/')
@@ -58,10 +60,44 @@ class _SplashScreenState extends State<SplashScreen>
   void _startNavigationTimer() {
     Future.delayed(const Duration(milliseconds: 2500), () async {
       if (mounted) {
-        // After animation, check auth and route based on user role
+        // Request notification permission first
+        await _requestNotificationPermission();
+        
+        // After permission request, check auth and route based on user role
         await AuthManager.handleInitialAuth(context);
       }
     });
+  }
+
+  /// Request notification permission and initialize services if granted
+  Future<void> _requestNotificationPermission() async {
+    try {
+      print('🔔 Requesting notification permission from splash screen...');
+      
+      // Request permission with proper UI context
+      final hasPermission = await PermissionService.requestNotificationPermission(context);
+      
+      if (hasPermission) {
+        print('✅ Permission granted, initializing notification services...');
+        
+        // Initialize notification services only after permission is granted
+        await _initializeNotificationServices();
+      } else {
+        print('❌ Permission denied, skipping notification service initialization');
+      }
+    } catch (e) {
+      print('❌ Error requesting notification permission: $e');
+    }
+  }
+
+  /// Initialize notification services after permission is granted
+  Future<void> _initializeNotificationServices() async {
+    try {
+      // Initialize all notification services through the manager
+      await NotificationManager.initialize();
+    } catch (e) {
+      print('❌ Error initializing notification services: $e');
+    }
   }
 
   @override

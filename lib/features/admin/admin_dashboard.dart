@@ -8,6 +8,8 @@ import './widgets/quick_action_button.dart';
 import './widgets/enrollment_chart.dart';
 import '../../widgets/custom_icon_widget.dart';
 import '../../core/services/admin/admin_dashboard_service.dart';
+import '../../widgets/notification_badge_widget.dart';
+import '../../core/services/notification_badge_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -18,6 +20,7 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard>
     with TickerProviderStateMixin {
+  final NotificationBadgeService _badgeService = NotificationBadgeService();
   int _currentIndex = 0;
   late AnimationController _refreshController;
   bool _isRefreshing = false;
@@ -60,6 +63,20 @@ class _AdminDashboardState extends State<AdminDashboard>
       vsync: this,
     );
     _loadDashboardData();
+    _badgeService.addListener(_onBadgeUpdate);
+  }
+
+  @override
+  void dispose() {
+    _badgeService.removeListener(_onBadgeUpdate);
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  void _onBadgeUpdate() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadDashboardData() async {
@@ -89,11 +106,6 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
-  @override
-  void dispose() {
-    _refreshController.dispose();
-    super.dispose();
-  }
 
   Future<void> _logout(BuildContext context) async {
     try {
@@ -392,15 +404,13 @@ class _AdminDashboardState extends State<AdminDashboard>
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () {
+          NotificationAppBarButton(
+            onTap: () {
               Navigator.pushNamed(context, '/notifications');
             },
-            icon: CustomIconWidget(
-              iconName: 'notifications',
-              color: AppTheme.textSecondary,
-              size: 24,
-            ),
+            unreadCount: _badgeService.unreadCount,
+            iconColor: AppTheme.textSecondary,
+            iconSize: 24,
           ),
           IconButton(
             onPressed: () {

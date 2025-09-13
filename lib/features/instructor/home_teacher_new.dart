@@ -3,6 +3,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../config/theme_instructor.dart';
 import 'course_screen.dart';
 import '../../core/services/Instructor/teacher_dashboard.dart';
+import '../../widgets/notification_badge_widget.dart';
+import '../../core/services/notification_badge_service.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
@@ -12,6 +14,7 @@ class TeacherHomePage extends StatefulWidget {
 }
 
 class _TeacherHomePageState extends State<TeacherHomePage> {
+  final NotificationBadgeService _badgeService = NotificationBadgeService();
   String _selectedRevenueYear = '${DateTime.now().year}';
   final _dashboardService = TeacherDashboardService();
   int _totalCourses = 0;
@@ -30,13 +33,21 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
     super.initState();
   // no session initialization; fetch server activities directly
     _loadDashboard();
+    _badgeService.addListener(_onBadgeUpdate);
   }
 
   @override
   void dispose() {
+    _badgeService.removeListener(_onBadgeUpdate);
     // Note: Don't clear session here as user might navigate back
     // Session should only be cleared on actual logout
     super.dispose();
+  }
+
+  void _onBadgeUpdate() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadDashboard() async {
@@ -127,18 +138,14 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           actions: [
             Container(
               margin: const EdgeInsets.only(right: 16),
-              decoration: BoxDecoration(
-                color: AppThemeInstructor.accentLight,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.notifications_outlined,
-                  color: AppThemeInstructor.primaryBlue,
-                ),
-                onPressed: () {
+              child: NotificationCircularButton(
+                onTap: () {
                   Navigator.pushNamed(context, '/notifications');
                 },
+                unreadCount: _badgeService.unreadCount,
+                backgroundColor: AppThemeInstructor.accentLight,
+                iconColor: AppThemeInstructor.primaryBlue,
+                size: 40,
               ),
             ),
           ],

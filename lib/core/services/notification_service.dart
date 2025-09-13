@@ -18,6 +18,13 @@ class NotificationService {
     if (_isInitialized) return;
 
     try {
+      // Check if permission is granted before initializing
+      final hasPermission = await areNotificationsEnabled();
+      if (!hasPermission) {
+        print('⚠️ Notification permission not granted, skipping initialization');
+        return;
+      }
+
       // Initialize timezone database
       tz.initializeTimeZones();
 
@@ -49,13 +56,10 @@ class NotificationService {
       // Create notification channels for Android
       await _createNotificationChannels();
 
-      // Request permissions
-      await _requestPermissions();
-
       _isInitialized = true;
-      print(' NotificationService initialized successfully');
+      print('✅ NotificationService initialized successfully');
     } catch (e) {
-      print(' Error initializing NotificationService: $e');
+      print('❌ Error initializing NotificationService: $e');
     }
   }
 
@@ -114,29 +118,6 @@ class NotificationService {
         ?.createNotificationChannel(lowPriorityChannel);
   }
 
-  /// Request notification permissions
-  static Future<bool> _requestPermissions() async {
-    // Skip permission requests on web platform
-    if (kIsWeb) {
-      print('🌐 Running on web - skipping native permission requests');
-      return true;
-    }
-
-    // Request notification permission
-    final notificationStatus = await Permission.notification.request();
-
-    // For Android 13+, request additional permission
-    try {
-      if (await Permission.scheduleExactAlarm.isDenied) {
-        await Permission.scheduleExactAlarm.request();
-      }
-    } catch (e) {
-      print(' Could not request scheduleExactAlarm permission: $e');
-      // Continue anyway as this permission is not critical
-    }
-
-    return notificationStatus.isGranted;
-  }
 
   /// Handle notification tap
   static void _onNotificationTapped(NotificationResponse response) {
@@ -195,11 +176,11 @@ class NotificationService {
 
       // Check permissions first
       final hasPermission = await areNotificationsEnabled();
-      print(' Notification permission granted: $hasPermission');
+      print('📱 Notification permission granted: $hasPermission');
 
       if (!hasPermission) {
-        print(' No notification permission! Requesting...');
-        await _requestPermissions();
+        print('❌ No notification permission! Cannot schedule notification.');
+        return null;
       }
 
       // Generate unique notification ID

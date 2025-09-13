@@ -10,6 +10,8 @@ import 'search/search_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'courses_lessons.dart';
 import 'unenrolled_courses_page.dart';
+import '../../widgets/notification_badge_widget.dart';
+import '../../core/services/notification_badge_service.dart';
 
 class StudentDashboardPage extends StatefulWidget {
   const StudentDashboardPage({super.key});
@@ -20,6 +22,7 @@ class StudentDashboardPage extends StatefulWidget {
 
 class _StudentDashboardPageState extends State<StudentDashboardPage> {
   final CourseServices _courseServices = CourseServices();
+  final NotificationBadgeService _badgeService = NotificationBadgeService();
   List<Course> _recommendedCourses = [];
   List<Course> _recentLearningCourses = [];
   List<Reminder> _todaysTasks = [];
@@ -33,6 +36,19 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
     _loadUserName();
     _loadRecommendedCourses();
     _loadTodaysTasks();
+    _badgeService.addListener(_onBadgeUpdate);
+  }
+
+  @override
+  void dispose() {
+    _badgeService.removeListener(_onBadgeUpdate);
+    super.dispose();
+  }
+
+  void _onBadgeUpdate() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadUserName() async {
@@ -133,7 +149,7 @@ class _StudentDashboardPageState extends State<StudentDashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
-                    _Header(userName: _userName),
+                    _Header(userName: _userName, badgeService: _badgeService),
                     const SizedBox(height: 24),
                     const _SearchBar(),
                     const SizedBox(height: 32),
@@ -278,7 +294,8 @@ class _RecommendedCoursesList extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   final String? userName;
-  const _Header({this.userName});
+  final NotificationBadgeService badgeService;
+  const _Header({this.userName, required this.badgeService});
 
   @override
   Widget build(BuildContext context) {
@@ -324,26 +341,13 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          GestureDetector(
+          NotificationBadgeWidget(
             onTap: () {
               Navigator.pushNamed(context, '/notifications');
             },
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Icon(
-                Icons.notifications_none_rounded,
-                size: 24,
-                color: theme.colorScheme.primary,
-              ),
-            ),
+            unreadCount: badgeService.unreadCount,
+            icon: Icons.notifications_none_rounded,
+            iconColor: theme.colorScheme.primary,
           ),
         ],
       ),

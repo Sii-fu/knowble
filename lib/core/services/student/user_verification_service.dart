@@ -118,16 +118,14 @@ class UserVerificationService {
           .select('user_documents, is_verified')
           .eq('id', userId)
           .single();
-      // Derive a status similar to admin logic
+      // Simple status based on is_verified only
       final docs = (response['user_documents'] ?? '') as String;
       final isVerified = response['is_verified'] == true;
       String status;
       if (isVerified) {
         status = 'approved';
-      } else if (docs.isNotEmpty) {
-        status = 'pending';
       } else {
-        status = 'not_submitted';
+        status = 'pending';
       }
       return {
         'user_documents': docs,

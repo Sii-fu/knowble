@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 import 'package:Knowble/config/theme.dart';
 import './widgets/instructor_list_item_card.dart';
@@ -829,8 +830,13 @@ class _AdminInstructorsManagementState
 
   void _viewDocuments(Map<String, dynamic> instructor) {
     final cvFilePath = instructor['cvFilePath'] as String?;
+    
+    print('[DEBUG] _viewDocuments called for instructor: ${instructor['name']}');
+    print('[DEBUG] cvFilePath: $cvFilePath');
+    print('[DEBUG] Full instructor data: $instructor');
 
     if (cvFilePath == null || cvFilePath.isEmpty) {
+      print('[DEBUG] No CV file path available');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -914,8 +920,11 @@ class _AdminInstructorsManagementState
     if (!mounted) return;
 
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    String? documentUrl; // Declare at function scope
 
     try {
+      print('[DEBUG] Attempting to open document with path: $filePath');
+      
       // Show loading
       scaffoldMessenger.showSnackBar(
         SnackBar(
@@ -925,34 +934,162 @@ class _AdminInstructorsManagementState
         ),
       );
 
-      final documentUrl =
-          await AdminInstructorVerificationService.getInstructorDocumentUrl(
-            filePath,
+      documentUrl = await AdminInstructorVerificationService.getInstructorDocumentUrl(
+        filePath,
+      );
+
+      print('[DEBUG] Generated document URL: $documentUrl');
+
+      // Try multiple launch modes for better compatibility
+      bool launched = false;
+      
+      // First try: External application (preferred for PDFs)
+      try {
+        if (await canLaunchUrl(Uri.parse(documentUrl))) {
+          launched = await launchUrl(
+            Uri.parse(documentUrl),
+            mode: LaunchMode.externalApplication,
           );
+          print('[DEBUG] Launched with external application: $launched');
+        }
+      } catch (e) {
+        print('[DEBUG] External application launch failed: $e');
+      }
 
-      if (await canLaunchUrl(Uri.parse(documentUrl))) {
-        await launchUrl(
-          Uri.parse(documentUrl),
-          mode: LaunchMode.externalApplication,
-        );
+      // Second try: Platform default
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            Uri.parse(documentUrl),
+            mode: LaunchMode.platformDefault,
+          );
+          print('[DEBUG] Launched with platform default: $launched');
+        } catch (e) {
+          print('[DEBUG] Platform default launch failed: $e');
+        }
+      }
 
+      // Third try: In-app web view
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            Uri.parse(documentUrl),
+            mode: LaunchMode.inAppWebView,
+          );
+          print('[DEBUG] Launched with in-app web view: $launched');
+        } catch (e) {
+          print('[DEBUG] In-app web view launch failed: $e');
+        }
+      }
+
+      if (launched) {
         if (mounted) {
           scaffoldMessenger.hideCurrentSnackBar();
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text('Document downloaded successfully'),
+              backgroundColor: AppTheme.successGreen,
+              duration: Duration(seconds: 2),
+            ),
+          );
         }
       } else {
-        throw Exception('Could not launch document URL');
+        // If all launch methods fail, show the URL for manual copying
+        _showUrlDialog(documentUrl);
       }
     } catch (e) {
+      print('[ERROR] Failed to open document: $e');
       if (mounted) {
         scaffoldMessenger.hideCurrentSnackBar();
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('Failed to open document: $e'),
-            backgroundColor: AppTheme.errorRed,
+            content: Text('Failed to open document. Showing URL for manual access.'),
+            backgroundColor: AppTheme.warningAmber,
+            duration: Duration(seconds: 3),
           ),
         );
+        if (documentUrl != null) {
+          _showUrlDialog(documentUrl);
+        }
       }
     }
+  }
+
+  void _showUrlDialog(String url) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Document URL',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'The document could not be opened automatically. Please copy the URL below and open it in your browser:',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+            SizedBox(height: 2.h),
+            Container(
+              padding: EdgeInsets.all(2.w),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundLight,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.textSecondary.withOpacity(0.3)),
+              ),
+              child: SelectableText(
+                url,
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Try to copy to clipboard
+              try {
+                await Clipboard.setData(ClipboardData(text: url));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('URL copied to clipboard'),
+                      backgroundColor: AppTheme.successGreen,
+                    ),
+                  );
+                }
+              } catch (e) {
+                print('[ERROR] Failed to copy to clipboard: $e');
+              }
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryTeal,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Copy URL'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showInstructorDetail(Map<String, dynamic> instructor) {

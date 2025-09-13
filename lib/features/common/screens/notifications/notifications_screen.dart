@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:Knowble/config/theme.dart';
 import 'package:Knowble/widgets/custom_icon_widget.dart';
 import '../../widgets/notifications/notification_list_widget.dart';
@@ -7,6 +8,8 @@ import '../../../../core/services/notification_data_service.dart';
 import '../../../../core/services/local_notification_service.dart';
 import '../../../../data/models/reminder.dart';
 import '../../../../core/services/Instructor/notification_instructor.dart';
+import '../../../../core/services/notification_badge_service.dart';
+import '../../../../core/services/notification_manager.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -16,6 +19,7 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  final NotificationBadgeService _badgeService = NotificationBadgeService();
   bool _isLoading = true;
   List<NotificationData> _allNotifications = [];
 
@@ -109,7 +113,103 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   // Handle notification tap to navigate first, then mark as read
   void _onNotificationTap(String notificationId) async {
     try {
-      // Only fetch review matching notification.navigate == course_reviews.course_id
+      print('🔔 Handling notification tap for ID: $notificationId');
+      
+      // First, get the notification details to check its type
+      final notificationData = await _getNotificationDetails(notificationId);
+      
+      if (notificationData == null) {
+        _showErrorSnackBar('Notification not found');
+        return;
+      }
+
+      final notificationType = notificationData['type'] as String? ?? 'general';
+      final navigateValue = notificationData['navigate'] as String?;
+      
+      print('📱 Notification type: $notificationType, navigate: $navigateValue');
+
+      // First, try to resolve as a course review (regardless of type)
+      // This handles notifications where navigate contains a course_id
+      final svc = NotificationInstructorService();
+      final courseReviewDetails = await svc.resolveNotificationToClosestReview(notificationId);
+      
+      if (courseReviewDetails != null && courseReviewDetails['review'] != null) {
+        // This is a course review notification
+        print('📱 Found course review, showing review dialog');
+        await _handleCourseReviewNotification(notificationId);
+        return;
+      }
+      
+      // If not a course review, check the navigate value format first
+      if (navigateValue != null && navigateValue.isNotEmpty) {
+        if (navigateValue.startsWith('/')) {
+          // Navigate value is a path, navigate to that page (regardless of type)
+          print('📱 Found path navigation, navigating to: $navigateValue');
+          await _handlePathNavigation(notificationId, navigateValue);
+          return;
+        } else if (_isValidUuid(navigateValue)) {
+          // Navigate value is a UUID, treat as task
+          print('📱 Found UUID navigation, navigating to task: $navigateValue');
+          await _handleTaskNotification(notificationId, navigateValue);
+          return;
+        }
+      }
+      
+      // If navigate value doesn't match known formats, handle based on notification type
+      switch (notificationType.toLowerCase()) {
+        case 'course_reviews':
+          // This should have been caught above, but just in case
+          await _handleCourseReviewNotification(notificationId);
+          break;
+        case 'general':
+        case 'task':
+        case 'reminder':
+          if (navigateValue != null && navigateValue.isNotEmpty) {
+            await _handleTaskNotification(notificationId, navigateValue);
+          } else {
+            _showErrorSnackBar('No navigation value found for task notification');
+          }
+          break;
+        case 'feedback':
+          await _handleFeedbackNotification(notificationId, navigateValue);
+          break;
+        default:
+          _showErrorSnackBar('Unknown notification type: $notificationType');
+      }
+    } catch (e) {
+      print('❌ Error handling notification tap: $e');
+      _showErrorSnackBar('Failed to open notification');
+    }
+  }
+
+  /// Get notification details by ID
+  Future<Map<String, dynamic>?> _getNotificationDetails(String notificationId) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      
+      if (user == null) {
+        print('❌ User not authenticated');
+        return null;
+      }
+
+      final response = await supabase
+          .from('notification')
+          .select('*')
+          .eq('id', notificationId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      return response;
+    } catch (e) {
+      print('❌ Error fetching notification details: $e');
+      return null;
+    }
+  }
+
+  /// Handle course review notifications
+  Future<void> _handleCourseReviewNotification(String notificationId) async {
+    try {
       final svc = NotificationInstructorService();
       final details = await svc.resolveNotificationToClosestReview(notificationId);
 
@@ -232,12 +332,75 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         // mark as read after showing
         await _markNotificationAsRead(notificationId);
       } else {
-        _showErrorSnackBar('Review not found for this notification');
+        _showErrorSnackBar('Course review not found for this notification');
       }
     } catch (e) {
-      print('Error handling notification tap: $e');
-      _showErrorSnackBar('Failed to open notification');
+      print('❌ Error handling course review notification: $e');
+      _showErrorSnackBar('Failed to open course review');
     }
+  }
+
+  /// Handle task/reminder notifications
+  Future<void> _handleTaskNotification(String notificationId, String? taskId) async {
+    try {
+      if (taskId == null || taskId.isEmpty) {
+        _showErrorSnackBar('No task ID found in notification');
+        return;
+      }
+
+      print('📱 Navigating to task: $taskId');
+      
+      // Navigate to task details
+      final success = await _navigateToReminderDetails(taskId);
+      
+      if (success) {
+        // Mark notification as read after successful navigation
+        await _markNotificationAsRead(notificationId);
+      }
+    } catch (e) {
+      print('❌ Error handling task notification: $e');
+      _showErrorSnackBar('Failed to open task details');
+    }
+  }
+
+  /// Handle feedback notifications
+  Future<void> _handleFeedbackNotification(String notificationId, String? navigateValue) async {
+    try {
+      if (navigateValue == null || navigateValue.isEmpty) {
+        _showErrorSnackBar('No navigation path found in notification');
+        return;
+      }
+
+      print('📱 Handling feedback notification with navigate: $navigateValue');
+      
+      // Use the path navigation method for feedback notifications
+      await _handlePathNavigation(notificationId, navigateValue);
+    } catch (e) {
+      print('❌ Error handling feedback notification: $e');
+      _showErrorSnackBar('Failed to open feedback');
+    }
+  }
+
+  /// Handle path-based navigation (e.g., /admin/users, /feedback-history)
+  Future<void> _handlePathNavigation(String notificationId, String path) async {
+    try {
+      print('📱 Navigating to path: $path');
+      
+      // Navigate to the specified path
+      Navigator.pushNamed(context, path);
+      
+      // Mark notification as read after successful navigation
+      await _markNotificationAsRead(notificationId);
+    } catch (e) {
+      print('❌ Error handling path navigation: $e');
+      _showErrorSnackBar('Failed to navigate to $path');
+    }
+  }
+
+  /// Check if a string is a valid UUID
+  bool _isValidUuid(String value) {
+    final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+    return uuidRegex.hasMatch(value);
   }
 
   // Very small heuristic to check for UUID-like strings: 36 chars with hyphens
@@ -260,7 +423,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         notificationId,
       );
 
-      if (!success) {
+      if (success) {
+        // Update badge service to reflect the change
+        _badgeService.markAsRead(notificationId);
+      } else {
         // Revert UI change if database update failed
         setState(() {
           _clickedNotifications.remove(notificationId);
@@ -426,6 +592,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           }
           _isLoading = false;
         });
+        
+        // Update badge service to reflect all notifications are read
+        _badgeService.markAllAsRead();
+        
         _showSuccessSnackBar('All notifications marked as read');
       } else {
         setState(() {
@@ -547,6 +717,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  /// Test instant notifications for unread items
+  Future<void> _testInstantNotificationsForUnread() async {
+    try {
+      _showSuccessSnackBar('Testing instant notifications for unread items...');
+
+      await NotificationManager.testInstantNotificationsForUnread();
+
+      _showSuccessSnackBar('✅ Instant notifications test completed!');
+    } catch (e) {
+      print('Error testing instant notifications: $e');
+      _showErrorSnackBar('Failed to test instant notifications: $e');
+    }
+  }
+
   Future<void> _onRefresh() async {
     await _loadNotifications();
   }
@@ -627,6 +811,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           child: const Center(
                             child: Icon(
                               Icons.notification_add,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Test instant notifications button
+                      GestureDetector(
+                        onTap: _testInstantNotificationsForUnread,
+                        child: Container(
+                          width: 10.w,
+                          height: 5.h,
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withValues(
+                                  alpha: 0.3,
+                                ),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.notifications_active,
                               color: Colors.white,
                               size: 20,
                             ),

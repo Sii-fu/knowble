@@ -7,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auto_notification_service.dart';
+import 'notification_manager.dart';
 
 class AuthManager {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -87,6 +87,8 @@ class AuthManager {
 
           if (role == 'student') {
             print('🎓 Redirecting to student dashboard');
+            // Push instant notifications for unread notifications BEFORE navigation
+            await NotificationManager.pushInstantNotificationsForUnread();
             Navigator.pushReplacementNamed(context, '/student');
           } else if (role == 'instructor') {
             // Check if instructor has completed their profile
@@ -106,10 +108,14 @@ class AuthManager {
             } else {
               // Instructor has completed profile, redirect to instructor dashboard
               print('👨‍🏫 Redirecting to instructor dashboard');
+              // Push instant notifications for unread notifications BEFORE navigation
+              await NotificationManager.pushInstantNotificationsForUnread();
               Navigator.pushReplacementNamed(context, '/instructor');
             }
           } else if (role == 'admin') {
             print('🔧 Redirecting to admin dashboard');
+            // Push instant notifications for unread notifications BEFORE navigation
+            await NotificationManager.pushInstantNotificationsForUnread();
             Navigator.pushReplacementNamed(context, '/admin/dashboard');
           } else {
             print('❓ Unknown user role: $role - redirecting to login');
@@ -135,8 +141,8 @@ class AuthManager {
 
   /// Logs out the user and navigates to login
   static Future<void> logout(BuildContext context) async {
-    // Clear notification tracking before logout
-    AutoNotificationService.clearTracking();
+    // Clean up notification services before logout
+    await NotificationManager.cleanup();
 
     await _client.auth.signOut();
     Navigator.pushReplacementNamed(context, '/login');
