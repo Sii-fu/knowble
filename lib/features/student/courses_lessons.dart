@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
 import 'pdf_viewer_page.dart';
+import 'video_player_page.dart';
 import '../../core/services/student/course_services.dart';
 import '../../data/models/content.dart';
 import '../../data/models/course.dart';
@@ -122,6 +123,7 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
                 'title': content.title,
                 'type': content.type,
                 'url': content.url,
+                'section_id': content.sectionId,
               }).toList(),
         });
       }
@@ -668,6 +670,23 @@ class _CourseLessonsPageState extends State<CourseLessonsPage>
               title: content['title'],
               contentId: content['id'],
               courseId: widget.courseId,
+            ),
+          ),
+        );
+      };
+    } else if (content['type'] == 'video' || content['type'] == 'youtube') {
+      icon = Icons.play_circle_outline;
+      iconColor = AppTheme.primaryTeal;
+      onTap = () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VideoPlayerPage(
+              videoUrl: content['url'],
+              title: content['title'],
+              contentId: content['id'],
+              courseId: widget.courseId,
+              sectionId: content['section_id'],
             ),
           ),
         );
