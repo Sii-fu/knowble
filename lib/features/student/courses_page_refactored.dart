@@ -5,6 +5,7 @@ import '../../config/theme.dart';
 import 'course_layout.dart';
 import 'courses_lessons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'pdf_viewer_page.dart';
 
 Widget buildCourseCard(
   BuildContext context,
@@ -91,26 +92,68 @@ Widget buildCourseCard(
                 const SizedBox(height: 6),
 
                 // If course is completed
-                if (isCompleted) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 14, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text('4.2',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 12),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'VIEW CERTIFICATE',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ]
+                // Inside buildCourseCard
+if (isCompleted) ...[
+  Row(
+    children: [
+      const Icon(Icons.star, size: 14, color: Colors.amber),
+      const SizedBox(width: 4),
+      Text('4.2',
+          style: theme.textTheme.bodySmall
+              ?.copyWith(fontWeight: FontWeight.w600)),
+      const SizedBox(width: 12),
+    ],
+  ),
+  const SizedBox(height: 6),
+
+  // 👇 Replace plain text with a button
+  InkWell(
+    onTap: () async {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+
+      if (userId == null) return;
+
+      // Fetch certificate record for this student & course
+      final certData = await client
+          .from('certificates')
+          .select('certificate_url')
+          .eq('student_id', userId)
+          .eq('course_id', course.id)
+          .maybeSingle();
+
+      if (certData != null && certData['certificate_url'] != null) {
+        final certUrl = certData['certificate_url'] as String;
+
+        // Navigate to PDFViewerPage
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PDFViewerPage(
+              pdfUrl: certUrl,
+              title: 'Certificate - ${course.title}',
+              contentId: course.id,
+              courseId: course.id,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No certificate found for this course")),
+        );
+      }
+    },
+    child: Text(
+      'VIEW CERTIFICATE',
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.primary,
+        fontWeight: FontWeight.bold,
+        decoration: TextDecoration.underline,
+      ),
+    ),
+  ),
+]
+
                 // If course is ongoing
                 else ...[
                   const SizedBox(height: 8),

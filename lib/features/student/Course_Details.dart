@@ -8,6 +8,7 @@ import '../../data/models/content.dart';
 import '../../config/theme.dart';
 import 'chatbot/chatbotpage.dart';
 import 'chat/chat_detail_page.dart';
+import 'transaction_page.dart';
 
 class CourseDetailPage extends StatefulWidget {
   final String courseId;
@@ -818,40 +819,62 @@ class _CourseDetailPageState extends State<CourseDetailPage> {
   }
 
   // Helper method to build enrollment section for non-enrolled users
-  Widget _buildEnrollmentSection() {
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: AppTheme.gradient,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryTeal.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+// Helper method to build enrollment section for non-enrolled users
+Widget _buildEnrollmentSection() {
+  return Center(
+    child: Container(
+      decoration: BoxDecoration(
+        gradient: AppTheme.gradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryTeal.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
-          icon: const Icon(Icons.school, color: AppTheme.surfaceWhite),
-          label: Text(
-            'Enroll Now',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppTheme.surfaceWhite,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          onPressed: _handleEnrollment,
-        ),
+        ],
       ),
-    );
-  }
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        icon: const Icon(Icons.school, color: AppTheme.surfaceWhite),
+        label: Text(
+          'Enroll Now',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppTheme.surfaceWhite,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TransactionPage(courseId: widget.courseId),
+            ),
+          );
+
+          if (result == true) {
+            await _handleEnrollment();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Enrollment successful! 🎉"),
+                backgroundColor: Colors.green,
+              ),
+            );
+            setState(() {
+              _enrolled = true;
+            });
+          }
+        },
+      ),
+    ),
+  );
+}
+
 
   // Helper method to build related courses section
   Widget _buildRelatedCoursesSection() {
