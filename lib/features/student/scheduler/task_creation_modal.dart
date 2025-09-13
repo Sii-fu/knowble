@@ -709,7 +709,12 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                         ),
                         SizedBox(height: 1.h),
                         DropdownButtonFormField<String>(
-                          value: _selectedCourseId,
+                          // Ensure the selected value exists in the items. If not, fall back to null
+                          value: _selectedCourseId != null && _enrolledCourses.any((c) => c.id == _selectedCourseId)
+                              ? _selectedCourseId
+                              : null,
+                          // Prevent overflow by expanding to available width
+                          isExpanded: true,
                           decoration: InputDecoration(
                             hintText: 'Select a course (optional)',
                             hintStyle: TextStyle(
@@ -743,17 +748,7 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                             ),
                           ),
                           items: [
-                            DropdownMenuItem<String>(
-                              value: null,
-                              child: Text(
-                                'No course selected',
-                                style: TextStyle(
-                                  color: AppTheme.textSecondary,
-                                  fontFamily: 'Jost',
-                                  fontSize: 14.sp,
-                                ),
-                              ),
-                            ),
+                            // While loading, show a single loading item (null value)
                             if (_isLoadingCourses)
                               DropdownMenuItem<String>(
                                 value: null,
@@ -781,8 +776,23 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                                     ),
                                   ],
                                 ),
-                              ),
-                            if (!_isLoadingCourses)
+                              )
+                            else if (!_isLoadingCourses && _enrolledCourses.isEmpty)
+                              // No enrolled courses: single informative null item
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(
+                                  'No enrolled courses found',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontFamily: 'Jost',
+                                    fontSize: 14.sp,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              )
+                            else
+                              // When courses are available, show them only (no duplicate null items)
                               ..._enrolledCourses.map((course) {
                                 return DropdownMenuItem<String>(
                                   value: course.id,
@@ -815,19 +825,6 @@ class _TaskCreationModalState extends State<TaskCreationModal> {
                                   ),
                                 );
                               }),
-                            if (!_isLoadingCourses && _enrolledCourses.isEmpty)
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Text(
-                                  'No enrolled courses found',
-                                  style: TextStyle(
-                                    color: AppTheme.textSecondary,
-                                    fontFamily: 'Jost',
-                                    fontSize: 14.sp,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ),
                           ],
                           onChanged: (String? newValue) {
                             setState(() {

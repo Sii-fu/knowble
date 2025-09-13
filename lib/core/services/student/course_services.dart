@@ -159,7 +159,7 @@ class CourseServices {
           .from('student_tags')
           .select('tag_id')
           .eq('student_id', studentId);
-      final studentTagIds = (studentTagsResponse as List<dynamic>)
+      final studentTagIds = (studentTagsResponse as List<dynamic>) 
           .map((e) => e['tag_id'] as String)
           .toSet();
 
