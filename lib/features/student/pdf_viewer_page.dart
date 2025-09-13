@@ -133,22 +133,44 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
   }
 
   Future<void> _downloadPdf(BuildContext context) async {
-    try {
-      final url = Uri.parse(widget.pdfUrl);
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        
+  try {
+    final response = await http.get(Uri.parse(widget.pdfUrl));
+
+    if (response.statusCode == 200) {
+      // Get downloads directory (on Android it points to /storage/emulated/0/Download)
+      final dir = await getExternalStorageDirectory();
+
+      // Make sure directory exists
+      final downloadsDir = Directory("${dir!.path}/Download");
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      // Save file with course title as name
+      final filePath = "${downloadsDir.path}/${widget.title.replaceAll(' ', '_')}.pdf";
+      final file = File(filePath);
+      await file.writeAsBytes(response.bodyBytes);
+
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch PDF URL.')),
+          SnackBar(content: Text("PDF downloaded successfully: $filePath")),
         );
       }
-    } catch (e) {
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to download PDF.")),
+        );
+      }
+    }
+  } catch (e) {
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to download PDF: $e')),
+        SnackBar(content: Text("Error downloading PDF: $e")),
       );
     }
   }
+}
 
   void _searchInPdf() {
     ScaffoldMessenger.of(context).showSnackBar(
