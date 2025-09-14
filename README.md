@@ -1,6 +1,12 @@
 # Knowble: Your Smart Learning Companion
 
-![Knowble Logo Placeholder] Knowble is an AI-powered EdTech mobile application designed to transform the way people learn and teach in today's digital world. With innovative features like AI-generated quizzes, personalized course recommendations, interactive chat support, and smart scheduling tools, Knowble aims to create a more engaging, accessible, and efficient learning experience for users of all ages.
+![Knowble Logo](assets/images/logo%203.png)
+
+Knowble is a Flutter-based EdTech mobile application that revolutionizes digital learning through AI integration and smart features. Built with Flutter for cross-platform compatibility and powered by Supabase for real-time data management, Knowble delivers a seamless learning experience with features like AI-generated quizzes, personalized course recommendations, real-time chat support, and intelligent scheduling tools.
+
+[![Flutter Version](https://img.shields.io/badge/Flutter-3.0+-blue.svg)](https://flutter.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-green.svg)](https://supabase.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Table of Contents
 
@@ -41,13 +47,51 @@ Knowble aims to solve these challenges by providing a smarter, learner-focused s
 
 ## Main Features
 
-Knowble offers a robust set of features for both students and instructors:
+Knowble offers a comprehensive set of features designed for modern education:
 
-* **Course Management:** Instructors can easily create, upload materials (videos, PDFs, slides), and manage courses. Students can browse, enroll, download resources, and participate in quizzes.
-* **AI-Powered Quizzes & Certification:** AI generates quizzes directly from course content, reducing instructor workload. Students receive digital certificates upon successful completion.
-* **Student-Instructor Messaging:** A secure, private messaging system enables direct one-on-one communication, providing timely feedback and support.
-* **Study Scheduler:** A built-in calendar helps students organize and track learning goals, with personalized suggestions and reminders.
-* **AI Chatbot:** A 24/7 AI-powered chatbot acts as a personal tutor, answering course-related questions and explaining complex concepts using course materials.
+### For Students
+* **Smart Course Discovery:** 
+  - Advanced search with filters and recommendations
+  - Course previews and detailed information
+  - Easy enrollment process
+  
+* **Learning Tools:**
+  - Download and view course materials (PDFs, videos)
+  - Interactive quizzes with instant feedback
+  - Progress tracking and achievements
+  - Digital certificates upon course completion
+
+* **Study Management:**
+  - Smart scheduling with reminders
+  - Customizable study planner
+  - Progress analytics and insights
+  - Local notifications for deadlines
+
+### For Instructors
+* **Course Management:**
+  - Intuitive course creation interface
+  - Multiple content type support (PDF, video, slides)
+  - Student progress monitoring
+  - Engagement analytics
+
+* **Communication Tools:**
+  - Real-time chat with students
+  - Announcement system
+  - Feedback mechanism
+  - Group discussions
+
+### Core Features
+* **AI Integration:**
+  - Smart content recommendations
+  - Automated quiz generation
+  - Intelligent study planning
+  - 24/7 AI tutoring support
+
+* **Security & Performance:**
+  - Secure authentication
+  - Offline content access
+  - Cross-platform compatibility
+  - Real-time data sync
 
 ## Getting Started
 
@@ -55,37 +99,48 @@ To get a local copy up and running follow these simple steps.
 
 ### Prerequisites
 
-* Node.js (LTS version recommended)
-* npm (or yarn)
-* Supabase project setup (for database and authentication)
+* Flutter SDK (3.0 or higher)
+* Dart SDK (Latest stable version)
+* Android Studio / VS Code with Flutter extension
+* Supabase account (for database and authentication)
 * Google Cloud Project (for Gemini API access)
 
 ### Installation
 
 1.  Clone the repo:
     ```bash
-    git clone [https://github.com/your_username/Knowble.git](https://github.com/your_username/Knowble.git)
+    git clone https://github.com/Sii-fu/knowble.git
     ```
 2.  Navigate to the project directory:
     ```bash
-    cd Knowble
+    cd knowble
     ```
-3.  Install NPM packages:
+3.  Install Flutter dependencies:
     ```bash
-    npm install
-    # or yarn install
+    flutter pub get
     ```
-4.  Set up environment variables: Create a `.env` file in the root directory and add your Supabase and Gemini API keys:
+4.  Set up environment variables: Create a `.env` file in the root directory and add your configuration:
     ```
     SUPABASE_URL=YOUR_SUPABASE_URL
     SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
     GEMINI_API_KEY=YOUR_GEMINI_API_KEY
     ```
-5.  Run the application (development mode):
+5.  Run the application:
     ```bash
-    npm start
-    # or yarn start
+    flutter run
     ```
+
+### Building for Production
+
+To build the release version:
+
+```bash
+# For Android
+flutter build apk --release
+
+# For iOS
+flutter build ios --release
+```
 
 ## Usage
 
@@ -106,10 +161,24 @@ Don't forget to give the project a star! Thanks again!
 
 ## Team
 
-* **Sifat Bin Asad**
-* **Mehnaj Hridi**
-* **Progga Laboni Ray**
-* **Reefah Tasnia Haque**
+Meet our talented team of developers:
+
+* **Sifat Bin Asad** ([@Sii-fu](https://github.com/Sii-fu))
+* **Mehnaj Hridi** ([@mehnaj-hridi](https://github.com/mehnaj-hridi))
+* **Progga Laboni Ray** ([@mika-progga](https://github.com/mika-progga))
+* **Reefah Tasnia Haque** ([@reefahtasnia ](https://github.com/reefahtasnia))
+
+## Technical Stack
+
+- **Frontend**: Flutter, Dart
+- **Backend**: Node.js, Express
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **AI Integration**: Google Gemini API
+- **Storage**: Supabase Storage
+- **Notifications**: Flutter Local Notifications
+- **State Management**: Provider
+- **UI Components**: Material Design, Custom Widgets
 
 ## License
 
